@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import { LogIn, ShieldAlert, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import axios from 'axios';
+import { supabase } from '../lib/supabaseClient';
 
 interface Props {
   onLogin: (success: boolean) => void;
 }
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
 const LoginPage: React.FC<Props> = ({ onLogin }) => {
   const [email, setEmail] = useState('');
@@ -19,25 +17,54 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    
+
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/login`, {
-        username: email, // Backend handles email or username as 'username'
-        password
+      // Authenticate via Supabase auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
 
-      const { access_token, user } = response.data;
-
-      if (user.role !== 'ADMIN') {
-        setError('Access denied. Admin portal only.');
+      if (authError) {
+        setError(authError.message);
         return;
       }
 
-      localStorage.setItem('adminToken', access_token);
-      localStorage.setItem('adminUser', JSON.stringify(user));
+      if (!authData.user) {
+        setError('Login failed. Please try again.');
+        return;
+      }
+
+      // Verify user has admin role in profiles table
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role, full_name')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (profileError || !profile) {
+        setError('Failed to verify account role.');
+        await supabase.auth.signOut();
+        return;
+      }
+
+      if (profile.role !== 'admin') {
+        setError('Access denied. This portal is for administrators only.');
+        await supabase.auth.signOut();
+        return;
+      }
+
+      // Store admin info for UI display
+      localStorage.setItem('adminUser', JSON.stringify({
+        id: authData.user.id,
+        username: profile.full_name || 'Admin',
+        email: authData.user.email,
+        role: 'admin',
+      }));
+
       onLogin(true);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid credentials. Please try again.');
+      setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
