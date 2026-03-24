@@ -68,16 +68,16 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'Comment' }, () => {
         setStats((prev: any) => prev ? { ...prev, totalComments: prev.totalComments + 1 } : prev);
       })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'CreatorRequest' }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'creator_requests' }, () => {
         setStats((prev: any) => prev ? { ...prev, pendingRequests: prev.pendingRequests + 1 } : prev);
       })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'CreatorRequest' }, (payload: any) => {
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'creator_requests' }, (payload: any) => {
         // When a request is approved/rejected, decrement pendingRequests if it was pending
-        if (payload.old?.status === 'PENDING' && payload.new?.status !== 'PENDING') {
+        if (payload.old?.status === 'pending' && payload.new?.status !== 'pending') {
           setStats((prev: any) => prev ? { ...prev, pendingRequests: Math.max(0, prev.pendingRequests - 1) } : prev);
         }
         // If a creator was just approved, increment totalCreators
-        if (payload.new?.status === 'APPROVED' && payload.old?.status !== 'APPROVED') {
+        if (payload.new?.status === 'approved' && payload.old?.status !== 'approved') {
           setStats((prev: any) => prev ? { ...prev, totalCreators: prev.totalCreators + 1 } : prev);
         }
       })

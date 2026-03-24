@@ -24,11 +24,11 @@ export interface CreatorRequest {
   name: string;
   email: string;
   bio: string;
-  portfolioUrl?: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
-  adminMessage?: string;
-  createdAt: string;
-  updatedAt: string;
+  portfolio_url?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  admin_message?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export const adminService = {
@@ -57,87 +57,14 @@ export const adminService = {
           email: payload.email,
           username: payload.email.split('@')[0],
           bio: payload.bio || '',
-          role: 'CREATOR',
+          role: 'ANALYST',
         }, { onConflict: 'id' });
       return data.user;
     }
 
-    // If the error is "Database error creating new user", the trigger may be broken.
-    console.warn('createUser failed, trying manual approach:', error?.message);
-
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const serviceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-    const dropTriggerSQL = `DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;`;
-    const createTriggerSQL = `
-      CREATE OR REPLACE FUNCTION public.handle_new_user()
-      RETURNS TRIGGER AS $$
-      BEGIN
-        INSERT INTO public."User" (id, email, username, role)
-        VALUES (
-          NEW.id,
-          NEW.email,
-          COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
-          'VIEWER'
-        )
-        ON CONFLICT (id) DO NOTHING;
-        RETURN NEW;
-      EXCEPTION WHEN OTHERS THEN
-        RETURN NEW;
-      END;
-      $$ LANGUAGE plpgsql SECURITY DEFINER;
-
-      CREATE TRIGGER on_auth_user_created
-        AFTER INSERT ON auth.users
-        FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-    `;
-
-    try {
-      // Drop the broken trigger
-      await fetch(`${supabaseUrl}/pg/query`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${serviceKey}`,
-          'apikey': serviceKey,
-        },
-        body: JSON.stringify({ query: dropTriggerSQL }),
-      });
-
-      // Now create the user without the trigger
-      const { data: data2, error: error2 } = await supabaseAdmin.auth.admin.createUser({
-        email: payload.email,
-        password: payload.password,
-        email_confirm: true,
-        user_metadata: {
-          full_name: payload.fullName,
-          username: payload.email.split('@')[0],
-        },
-      });
-
-      if (error2) {
-        throw new Error(error2.message || 'Failed to create user after dropping trigger');
-      }
-
-      if (data2?.user) {
-        // Manually create the profile since trigger was dropped
-        await this._ensureProfile(data2.user.id, payload);
-      }
-
-      // Recreate the fixed trigger
-      await fetch(`${supabaseUrl}/pg/query`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${serviceKey}`,
-          'apikey': serviceKey,
-        },
-        body: JSON.stringify({ query: createTriggerSQL }),
-      });
-
-      return data2?.user || { id: '', email: payload.email };
-    } catch (retryError: any) {
-      throw new Error(retryError.message || 'Failed to create creator account');
-    }
+    // If createUser fails (e.g. database trigger error or email exists)
+    console.warn('createUser failed:', error?.message);
+    throw new Error(error?.message || 'Database error creating new user');
   },
 
   /**
@@ -151,7 +78,7 @@ export const adminService = {
         email: payload.email,
         username: payload.email.split('@')[0],
         bio: payload.bio || '',
-        role: 'CREATOR',
+        role: 'ANALYST',
       }, { onConflict: 'id' });
 
     if (error) {
@@ -164,12 +91,12 @@ export const adminService = {
    */
   async getCreatorRequests(filter?: string) {
     let query = supabaseAdmin
-      .from('CreatorRequest')
+      .from('creator_requests')
       .select('*')
-      .order('createdAt', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (filter && filter !== 'ALL') {
-      query = query.eq('status', filter.toUpperCase());
+      query = query.eq('status', filter.toLowerCase());
     }
 
     const { data, error } = await query;
@@ -182,11 +109,11 @@ export const adminService = {
    */
   async approveRequestStatus(requestId: string, adminMessage?: string) {
     const { error } = await supabaseAdmin
-      .from('CreatorRequest')
+      .from('creator_requests')
       .update({
-        status: 'APPROVED',
-        adminMessage: adminMessage || 'Your application has been approved! Login with the credentials shared by admin.',
-        updatedAt: new Date().toISOString(),
+        status: 'approved',
+        admin_message: adminMessage || 'Your application has been approved! Login with the credentials shared by admin.',
+        updated_at: new Date().toISOString(),
       })
       .eq('id', requestId);
 
@@ -198,11 +125,11 @@ export const adminService = {
    */
   async rejectCreatorRequest(requestId: string, adminMessage?: string) {
     const { error } = await supabaseAdmin
-      .from('CreatorRequest')
+      .from('creator_requests')
       .update({
-        status: 'REJECTED',
-        adminMessage: adminMessage || 'Your application has been rejected.',
-        updatedAt: new Date().toISOString(),
+        status: 'rejected',
+        admin_message: adminMessage || 'Your application has been rejected.',
+        updated_at: new Date().toISOString(),
       })
       .eq('id', requestId);
 
@@ -221,10 +148,10 @@ export const adminService = {
       { count: pendingRequests },
     ] = await Promise.all([
       supabaseAdmin.from('User').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('User').select('*', { count: 'exact', head: true }).eq('role', 'CREATOR'),
+      supabaseAdmin.from('User').select('*', { count: 'exact', head: true }).eq('role', 'ANALYST'),
       supabaseAdmin.from('Post').select('*', { count: 'exact', head: true }),
       supabaseAdmin.from('Comment').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('CreatorRequest').select('*', { count: 'exact', head: true }).eq('status', 'PENDING'),
+      supabaseAdmin.from('creator_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
     ]);
 
     return {
@@ -251,7 +178,7 @@ export const adminService = {
     const { data, error } = await supabaseAdmin
       .from('User')
       .select('*')
-      .eq('role', 'CREATOR')
+      .eq('role', 'ANALYST')
       .order('createdAt', { ascending: false });
 
     if (error) throw error;
