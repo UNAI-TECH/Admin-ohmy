@@ -19,7 +19,7 @@ function App() {
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle();
 
         if (profile?.role === 'admin') {
           setIsLoggedIn(true);

@@ -40,7 +40,7 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
         .from('profiles')
         .select('role, full_name')
         .eq('id', authData.user.id)
-        .single();
+        .maybeSingle();
 
       if (profileError || !profile) {
         setError('Failed to verify account role.');
