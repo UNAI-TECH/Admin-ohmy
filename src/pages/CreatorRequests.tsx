@@ -9,7 +9,7 @@ import { adminService, type CreatorRequest, type CreateCreatorPayload } from '..
 export default function CreatorRequests() {
   const [requests, setRequests] = useState<CreatorRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'ALL' | 'pending' | 'approved' | 'rejected'>('pending');
+  const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
   const [selectedRequest, setSelectedRequest] = useState<CreatorRequest | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [adminMessage, setAdminMessage] = useState('');
@@ -53,7 +53,7 @@ export default function CreatorRequests() {
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
-        table: 'creator_requests',
+        table: 'CreatorRequest',
       }, (payload: any) => {
         // A new request was submitted — add it to the top of the list
         setRequests(prev => {
@@ -65,7 +65,7 @@ export default function CreatorRequests() {
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
-        table: 'creator_requests',
+        table: 'CreatorRequest',
       }, (payload: any) => {
         // A request was updated (approved/rejected) — update it in the list
         setRequests(prev =>
@@ -193,17 +193,17 @@ export default function CreatorRequests() {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
           <StatCard title="Total" count={requests.length} icon={Users} color="blue" />
-          <StatCard title="Pending" count={requests.filter(r => r.status === 'pending').length} icon={Clock} color="orange" />
-          <StatCard title="Approved" count={requests.filter(r => r.status === 'approved').length} icon={CheckCircle} color="green" />
-          <StatCard title="Rejected" count={requests.filter(r => r.status === 'rejected').length} icon={XCircle} color="red" />
+          <StatCard title="Pending" count={requests.filter(r => r.status === 'PENDING').length} icon={Clock} color="orange" />
+          <StatCard title="Approved" count={requests.filter(r => r.status === 'APPROVED').length} icon={CheckCircle} color="green" />
+          <StatCard title="Rejected" count={requests.filter(r => r.status === 'REJECTED').length} icon={XCircle} color="red" />
         </div>
 
         {/* Filter + Table */}
         <div className="bg-[#171f3366] backdrop-blur-md border border-[#ae88831a] rounded-2xl overflow-hidden">
           <div className="p-6 border-b border-[#ae88830d] flex gap-4">
-            <FilterButton active={filter === 'pending'} onClick={() => setFilter('pending')} label="Pending" />
-            <FilterButton active={filter === 'approved'} onClick={() => setFilter('approved')} label="Approved" />
-            <FilterButton active={filter === 'rejected'} onClick={() => setFilter('rejected')} label="Rejected" />
+            <FilterButton active={filter === 'PENDING'} onClick={() => setFilter('PENDING')} label="Pending" />
+            <FilterButton active={filter === 'APPROVED'} onClick={() => setFilter('APPROVED')} label="Approved" />
+            <FilterButton active={filter === 'REJECTED'} onClick={() => setFilter('REJECTED')} label="Rejected" />
             <FilterButton active={filter === 'ALL'} onClick={() => setFilter('ALL')} label="All" />
           </div>
 
@@ -248,7 +248,7 @@ export default function CreatorRequests() {
                       <StatusBadge status={request.status} />
                     </td>
                     <td className="px-8 py-6 text-sm text-[#e7bdb8] opacity-60">
-                      {new Date(request.created_at).toLocaleDateString()}
+                      {new Date(request.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-8 py-6 text-right">
                       <button 
@@ -297,8 +297,8 @@ export default function CreatorRequests() {
                   <h4 className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest mb-2 flex items-center gap-2 opacity-60">
                     <ExternalLink className="w-4 h-4" /> Portfolio
                   </h4>
-                  {selectedRequest.portfolio_url ? (
-                    <a href={selectedRequest.portfolio_url} target="_blank" rel="noreferrer" className="text-red-500 font-bold hover:underline flex items-center gap-1">
+                  {selectedRequest.portfolioUrl ? (
+                    <a href={selectedRequest.portfolioUrl} target="_blank" rel="noreferrer" className="text-red-500 font-bold hover:underline flex items-center gap-1">
                       View Portfolio <ExternalLink className="w-4 h-4" />
                     </a>
                   ) : (
@@ -307,7 +307,7 @@ export default function CreatorRequests() {
                 </div>
               </div>
 
-              {selectedRequest.status === 'pending' && (
+              {selectedRequest.status === 'PENDING' && (
                 <div className="space-y-6">
                   <textarea 
                     placeholder="Add a message for the creator (optional)..."
@@ -334,12 +334,12 @@ export default function CreatorRequests() {
                 </div>
               )}
 
-              {selectedRequest.status !== 'pending' && (
-                <div className={`p-6 rounded-xl ${selectedRequest.status === 'approved' ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'}`}>
-                  <h4 className={`text-sm font-bold uppercase mb-2 ${selectedRequest.status === 'approved' ? 'text-green-400' : 'text-red-400'}`}>
+              {selectedRequest.status !== 'PENDING' && (
+                <div className={`p-6 rounded-xl ${selectedRequest.status === 'APPROVED' ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'}`}>
+                  <h4 className={`text-sm font-bold uppercase mb-2 ${selectedRequest.status === 'APPROVED' ? 'text-green-400' : 'text-red-400'}`}>
                     Decision: {selectedRequest.status}
                   </h4>
-                  <p className="text-white/60 italic">"{selectedRequest.admin_message || 'No message provided'}"</p>
+                  <p className="text-white/60 italic">"{selectedRequest.adminMessage || 'No message provided'}"</p>
                 </div>
               )}
             </div>
@@ -579,9 +579,9 @@ function FilterButton({ active, onClick, label }: any) {
 
 function StatusBadge({ status }: { status: string }) {
   const styles: any = {
-    pending: 'bg-orange-500/10 text-orange-400 border border-orange-500/20',
-    approved: 'bg-green-500/10 text-green-400 border border-green-500/20',
-    rejected: 'bg-red-500/10 text-red-400 border border-red-500/20'
+    PENDING: 'bg-orange-500/10 text-orange-400 border border-orange-500/20',
+    APPROVED: 'bg-green-500/10 text-green-400 border border-green-500/20',
+    REJECTED: 'bg-red-500/10 text-red-400 border border-red-500/20'
   };
   return (
     <span className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-wider ${styles[status] || 'bg-white/5'}`}>

@@ -37,8 +37,8 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
 
       // Verify user has admin role in profiles table
       const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role, full_name')
+        .from('User')
+        .select('role, username')
         .eq('id', authData.user.id)
         .maybeSingle();
 
@@ -48,7 +48,7 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
         return;
       }
 
-      if (profile.role !== 'admin') {
+      if (profile.role !== 'ADMIN') {
         setError('Access denied. This portal is for administrators only.');
         await supabase.auth.signOut();
         return;
@@ -57,9 +57,9 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
       // Store admin info for UI display
       localStorage.setItem('adminUser', JSON.stringify({
         id: authData.user.id,
-        username: profile.full_name || 'Admin',
+        username: profile.username || authData.user.email?.split('@')[0] || 'Admin',
         email: authData.user.email,
-        role: 'admin',
+        role: 'ADMIN',
       }));
 
       onLogin(true);

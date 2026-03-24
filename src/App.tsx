@@ -16,12 +16,12 @@ function App() {
       if (session?.user) {
         // Verify admin role
         const { data: profile } = await supabase
-          .from('profiles')
+          .from('User')
           .select('role')
           .eq('id', session.user.id)
           .maybeSingle();
 
-        if (profile?.role === 'admin') {
+        if (profile?.role === 'ADMIN') {
           setIsLoggedIn(true);
         } else {
           await supabase.auth.signOut();

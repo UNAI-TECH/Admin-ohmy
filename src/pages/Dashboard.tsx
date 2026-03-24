@@ -58,26 +58,26 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
   useEffect(() => {
     const channel = supabase
       .channel('admin-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, (payload) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'Post' }, (payload) => {
         setRecentPosts(prev => [payload.new, ...prev].slice(0, 5));
         setStats((prev: any) => prev ? { ...prev, totalPosts: prev.totalPosts + 1 } : prev);
       })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'User' }, () => {
         setStats((prev: any) => prev ? { ...prev, totalUsers: prev.totalUsers + 1 } : prev);
       })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments' }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'Comment' }, () => {
         setStats((prev: any) => prev ? { ...prev, totalComments: prev.totalComments + 1 } : prev);
       })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'creator_requests' }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'CreatorRequest' }, () => {
         setStats((prev: any) => prev ? { ...prev, pendingRequests: prev.pendingRequests + 1 } : prev);
       })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'creator_requests' }, (payload: any) => {
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'CreatorRequest' }, (payload: any) => {
         // When a request is approved/rejected, decrement pendingRequests if it was pending
-        if (payload.old?.status === 'pending' && payload.new?.status !== 'pending') {
+        if (payload.old?.status === 'PENDING' && payload.new?.status !== 'PENDING') {
           setStats((prev: any) => prev ? { ...prev, pendingRequests: Math.max(0, prev.pendingRequests - 1) } : prev);
         }
         // If a creator was just approved, increment totalCreators
-        if (payload.new?.status === 'approved' && payload.old?.status !== 'approved') {
+        if (payload.new?.status === 'APPROVED' && payload.old?.status !== 'APPROVED') {
           setStats((prev: any) => prev ? { ...prev, totalCreators: prev.totalCreators + 1 } : prev);
         }
       })
@@ -247,14 +247,14 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
                             <td className="py-5">
                               <div className="flex items-center gap-2">
                                 <div className="w-5 h-5 rounded-full bg-white/5 border border-white/10" />
-                                <span className="text-xs text-[#e7bdb8]/70">{post.profiles?.full_name || post.profiles?.email || 'Unknown'}</span>
+                                <span className="text-xs text-[#e7bdb8]/70">{post.User?.username || post.User?.email || 'Unknown'}</span>
                               </div>
                             </td>
                             <td className="py-5">
                               <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-white/5 text-[#e7bdb8]/60 uppercase tracking-wider">{post.type}</span>
                             </td>
                             <td className="py-5 text-right">
-                              <span className="text-xs text-[#e7bdb8]/40">{new Date(post.created_at).toLocaleDateString()}</span>
+                              <span className="text-xs text-[#e7bdb8]/40">{new Date(post.createdAt).toLocaleDateString()}</span>
                             </td>
                           </tr>
                         ))}
@@ -274,10 +274,10 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
                       ) : creators.slice(0, 5).map((creator: any) => (
                         <div key={creator.id} className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-400 text-sm font-bold">
-                            {(creator.full_name || creator.email || '?').charAt(0).toUpperCase()}
+                            {(creator.username || creator.email || '?').charAt(0).toUpperCase()}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-white truncate">{creator.full_name || creator.username}</p>
+                            <p className="text-sm font-semibold text-white truncate">{creator.username}</p>
                             <p className="text-[10px] text-[#e7bdb8] opacity-40 truncate">{creator.email}</p>
                           </div>
                         </div>

@@ -24,11 +24,11 @@ export interface CreatorRequest {
   name: string;
   email: string;
   bio: string;
-  portfolio_url?: string;
-  status: 'pending' | 'approved' | 'rejected';
-  admin_message?: string;
-  created_at: string;
-  updated_at: string;
+  portfolioUrl?: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  adminMessage?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export const adminService = {
@@ -51,14 +51,13 @@ export const adminService = {
     if (!error && data.user) {
       // Success! Update role to creator.
       await supabaseAdmin
-        .from('profiles')
+        .from('User')
         .upsert({
           id: data.user.id,
           email: payload.email,
           username: payload.email.split('@')[0],
-          full_name: payload.fullName,
           bio: payload.bio || '',
-          role: 'creator',
+          role: 'CREATOR',
         }, { onConflict: 'id' });
       return data.user;
     }
@@ -73,13 +72,12 @@ export const adminService = {
       CREATE OR REPLACE FUNCTION public.handle_new_user()
       RETURNS TRIGGER AS $$
       BEGIN
-        INSERT INTO public.profiles (id, email, username, full_name, role)
+        INSERT INTO public."User" (id, email, username, role)
         VALUES (
           NEW.id,
           NEW.email,
           COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
-          COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
-          'viewer'
+          'VIEWER'
         )
         ON CONFLICT (id) DO NOTHING;
         RETURN NEW;
@@ -147,14 +145,13 @@ export const adminService = {
    */
   async _ensureProfile(userId: string, payload: CreateCreatorPayload) {
     const { error } = await supabaseAdmin
-      .from('profiles')
+      .from('User')
       .upsert({
         id: userId,
         email: payload.email,
         username: payload.email.split('@')[0],
-        full_name: payload.fullName,
         bio: payload.bio || '',
-        role: 'creator',
+        role: 'CREATOR',
       }, { onConflict: 'id' });
 
     if (error) {
@@ -167,12 +164,12 @@ export const adminService = {
    */
   async getCreatorRequests(filter?: string) {
     let query = supabaseAdmin
-      .from('creator_requests')
+      .from('CreatorRequest')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('createdAt', { ascending: false });
 
     if (filter && filter !== 'ALL') {
-      query = query.eq('status', filter.toLowerCase());
+      query = query.eq('status', filter.toUpperCase());
     }
 
     const { data, error } = await query;
@@ -185,11 +182,11 @@ export const adminService = {
    */
   async approveRequestStatus(requestId: string, adminMessage?: string) {
     const { error } = await supabaseAdmin
-      .from('creator_requests')
+      .from('CreatorRequest')
       .update({
-        status: 'approved',
-        admin_message: adminMessage || 'Your application has been approved! Login with the credentials shared by admin.',
-        updated_at: new Date().toISOString(),
+        status: 'APPROVED',
+        adminMessage: adminMessage || 'Your application has been approved! Login with the credentials shared by admin.',
+        updatedAt: new Date().toISOString(),
       })
       .eq('id', requestId);
 
@@ -201,11 +198,11 @@ export const adminService = {
    */
   async rejectCreatorRequest(requestId: string, adminMessage?: string) {
     const { error } = await supabaseAdmin
-      .from('creator_requests')
+      .from('CreatorRequest')
       .update({
-        status: 'rejected',
-        admin_message: adminMessage || 'Your application has been rejected.',
-        updated_at: new Date().toISOString(),
+        status: 'REJECTED',
+        adminMessage: adminMessage || 'Your application has been rejected.',
+        updatedAt: new Date().toISOString(),
       })
       .eq('id', requestId);
 
@@ -223,11 +220,11 @@ export const adminService = {
       { count: totalComments },
       { count: pendingRequests },
     ] = await Promise.all([
-      supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'creator'),
-      supabaseAdmin.from('posts').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('comments').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('creator_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabaseAdmin.from('User').select('*', { count: 'exact', head: true }),
+      supabaseAdmin.from('User').select('*', { count: 'exact', head: true }).eq('role', 'CREATOR'),
+      supabaseAdmin.from('Post').select('*', { count: 'exact', head: true }),
+      supabaseAdmin.from('Comment').select('*', { count: 'exact', head: true }),
+      supabaseAdmin.from('CreatorRequest').select('*', { count: 'exact', head: true }).eq('status', 'PENDING'),
     ]);
 
     return {
@@ -241,9 +238,9 @@ export const adminService = {
 
   async getRecentPosts(limit = 10) {
     const { data, error } = await supabaseAdmin
-      .from('posts')
-      .select('*, profiles!author_id(full_name, email)')
-      .order('created_at', { ascending: false })
+      .from('Post')
+      .select('*, User(username, email)')
+      .order('createdAt', { ascending: false })
       .limit(limit);
 
     if (error) throw error;
@@ -252,10 +249,10 @@ export const adminService = {
 
   async getAllCreators() {
     const { data, error } = await supabaseAdmin
-      .from('profiles')
+      .from('User')
       .select('*')
-      .eq('role', 'creator')
-      .order('created_at', { ascending: false });
+      .eq('role', 'CREATOR')
+      .order('createdAt', { ascending: false });
 
     if (error) throw error;
     return data || [];
