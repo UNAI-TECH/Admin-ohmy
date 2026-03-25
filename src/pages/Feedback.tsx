@@ -35,15 +35,37 @@ const Feedback: React.FC = () => {
 
   const fetchFeedbacks = async () => {
     try {
+      // Try with standard relationship name 'User'
+      // If the FK points to "User" table, PostgREST usually maps it to "User"
       const { data, error } = await supabase
         .from('Feedback')
         .select(`
           *,
-          User:userId (username, email, role)
+          User (username, email, role)
         `)
         .order('createdAt', { ascending: false });
 
-      if (error && error.code !== '42P01') throw error; // Ignore relation "Feedback" does not exist (handled by auto-create)
+      if (error) {
+        console.error('Feedback fetch error details:', error);
+        
+        // Fallback: If it's a relationship error, try selecting without the join
+        if (error.message?.includes('relationship') || error.code === 'PGRST204') {
+          const { data: noJoinData, error: noJoinError } = await supabase
+            .from('Feedback')
+            .select('*')
+            .order('createdAt', { ascending: false });
+          
+          if (noJoinError) throw noJoinError;
+          setFeedbacks(noJoinData || []);
+          return;
+        }
+        // If table doesn't exist yet, just don't crash the UI
+        if (error.code === '42P01' || error.message?.includes('not found')) {
+          setFeedbacks([]);
+          return;
+        }
+        throw error;
+      }
       setFeedbacks(data || []);
     } catch (err) {
       console.error('Failed to fetch feedback:', err);

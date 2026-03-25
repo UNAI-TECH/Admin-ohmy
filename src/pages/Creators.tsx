@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { adminService } from '../lib/adminService';
 import { supabase } from '../lib/supabaseClient';
-import { Users, Loader2, Key, Eye, EyeOff, LayoutTemplate, FileText, XCircle } from 'lucide-react';
+import { Users, Loader2, Key, LayoutTemplate, FileText, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Creators: React.FC = () => {
@@ -11,12 +11,11 @@ const Creators: React.FC = () => {
   // States for viewing a profile
   const [selectedCreator, setSelectedCreator] = useState<any | null>(null);
   const [creatorPosts, setCreatorPosts] = useState<any[]>([]);
+  const [followerCount, setFollowerCount] = useState(0);
   const [postsLoading, setPostsLoading] = useState(false);
 
-  // States for revealing/resetting credentials
-  const [resettingId, setResettingId] = useState<string | null>(null);
-  const [newPassword, setNewPassword] = useState('');
-  const [revealedCreds, setRevealedCreds] = useState<{id: string, email: string, password?: string} | null>(null);
+  // States for revealing credentials
+  const [revealedCredsId, setRevealedCredsId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCreators();
@@ -37,16 +36,30 @@ const Creators: React.FC = () => {
   const handleViewProfile = async (creator: any) => {
     setSelectedCreator(creator);
     setPostsLoading(true);
+    setFollowerCount(0);
     try {
       // Fetch posts for this creator
-      const { data } = await supabase
+      const postsPromise = supabase
         .from('Post')
         .select('*')
         .eq('authorId', creator.id)
         .order('createdAt', { ascending: false });
-      setCreatorPosts(data || []);
+
+      // Fetch follow count for this creator
+      const followPromise = supabase
+        .from('Follow')
+        .select('*', { count: 'exact', head: true })
+        .eq('followingId', creator.id);
+
+      const [{ data: posts }, { count: followers }] = await Promise.all([
+        postsPromise,
+        followPromise
+      ]);
+
+      setCreatorPosts(posts || []);
+      setFollowerCount(followers || 0);
     } catch(err) {
-      console.error('Failed to load creator posts:', err);
+      console.error('Failed to load creator data:', err);
     } finally {
       setPostsLoading(false);
     }
@@ -54,33 +67,10 @@ const Creators: React.FC = () => {
 
   const handleRevealCredentials = (creator: any, e: React.MouseEvent) => {
     e.stopPropagation(); // prevent opening profile
-    // Since we don't store plaintext passwords, we can only reveal the email by default.
-    // We offer a quick reset option to generate a temporary password if needed.
-    if (revealedCreds?.id === creator.id) {
-      setRevealedCreds(null); // toggle off
+    if (revealedCredsId === creator.id) {
+      setRevealedCredsId(null); // toggle off
     } else {
-      setRevealedCreds({ id: creator.id, email: creator.email });
-    }
-  };
-
-  const handleResetPassword = async (creator: any, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!newPassword || newPassword.length < 8) return alert("Password must be at least 8 characters");
-    
-    setResettingId(creator.id);
-    try {
-      // Update password using admin service
-      const { error } = await supabase.auth.admin.updateUserById(creator.id, {
-        password: newPassword
-      });
-      if (error) throw error;
-      
-      setRevealedCreds({ id: creator.id, email: creator.email, password: newPassword });
-      setNewPassword('');
-    } catch (err: any) {
-      alert("Failed to reset password: " + err.message);
-    } finally {
-      setResettingId(null);
+      setRevealedCredsId(creator.id);
     }
   };
 
@@ -147,35 +137,21 @@ const Creators: React.FC = () => {
                   </p>
 
                   <div className="border-t border-[#ae88831a] pt-4 mt-auto">
-                    {revealedCreds?.id === creator.id ? (
+                    {revealedCredsId === creator.id ? (
                       <div className="space-y-3" onClick={e => e.stopPropagation()}>
                         <div className="bg-white/5 p-3 rounded-xl border border-white/10">
                           <p className="text-[10px] text-[#e7bdb8] opacity-60 uppercase tracking-widest mb-1">Email</p>
                           <p className="text-white text-sm font-mono truncate">{creator.email}</p>
                         </div>
-                        {revealedCreds.password ? (
-                          <div className="bg-green-500/10 p-3 rounded-xl border border-green-500/20">
-                            <p className="text-[10px] text-green-400 uppercase tracking-widest mb-1 font-bold">New Password Extracted</p>
-                            <p className="text-white text-sm font-mono tracking-widest">{revealedCreds.password}</p>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col gap-2">
-                            <input 
-                              type="text" 
-                              placeholder="Reset password..." 
-                              value={newPassword}
-                              onChange={e => setNewPassword(e.target.value)}
-                              className="w-full bg-[#0b1326] border border-[#ae88831a] rounded-lg px-3 py-2 text-sm text-white focus:border-[#E31E24] outline-none"
-                            />
-                            <button 
-                              onClick={(e) => handleResetPassword(creator, e)}
-                              disabled={resettingId === creator.id}
-                              className="w-full py-2 bg-yellow-500 hover:bg-yellow-600 text-black font-bold text-xs rounded-lg transition-colors flex items-center justify-center gap-2"
-                            >
-                              {resettingId === creator.id ? <Loader2 className="w-4 h-4 animate-spin" /> : "Set New Password"}
-                            </button>
-                          </div>
-                        )}
+                        <div className="bg-green-500/10 p-3 rounded-xl border border-green-500/20">
+                          <p className="text-[10px] text-green-400 uppercase tracking-widest mb-1 font-bold">Initial Password</p>
+                          <p className="text-white text-sm font-mono tracking-widest">
+                            {creator.temporary_password || '********'}
+                          </p>
+                          {!creator.temporary_password && (
+                            <p className="text-[9px] text-orange-400 mt-1 italic opacity-60">Not captured (legacy account)</p>
+                          )}
+                        </div>
                         <button 
                           onClick={(e) => handleRevealCredentials(creator, e)}
                           className="w-full text-xs text-[#e7bdb8] hover:text-white transition-colors py-1"
@@ -256,7 +232,7 @@ const Creators: React.FC = () => {
                         <p className="text-xs text-[#e7bdb8] opacity-60 uppercase tracking-widest font-bold">Posts</p>
                       </div>
                       <div>
-                        <p className="text-xl font-bold text-white">0</p>
+                        <p className="text-xl font-bold text-white">{followerCount}</p>
                         <p className="text-xs text-[#e7bdb8] opacity-60 uppercase tracking-widest font-bold">Followers</p>
                       </div>
                     </div>

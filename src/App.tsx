@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from './lib/supabaseClient';
 import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
+import { adminService } from './lib/adminService';
 import './index.css';
 
 function App() {
@@ -23,6 +24,10 @@ function App() {
 
         if (profile?.role === 'ADMIN') {
           setIsLoggedIn(true);
+          // Run migrations quietly
+          adminService.migratePostTable();
+          adminService.migrateUserTable();
+          adminService.createFeedbackTable();
         } else {
           await supabase.auth.signOut();
         }

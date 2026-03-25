@@ -43,8 +43,7 @@ export const adminService = {
    */
   async fixTriggerIfNeeded() {
     try {
-      // Replace the trigger function to insert into public."User" instead of profiles
-      await supabaseAdmin.rpc('exec_sql', {
+      const { error } = await supabaseAdmin.rpc('exec_sql', {
         query: `
           CREATE OR REPLACE FUNCTION public.handle_new_user()
           RETURNS trigger
@@ -65,10 +64,13 @@ export const adminService = {
           $$;
         `
       });
-      console.log('[Admin] Trigger function updated successfully');
-    } catch (e) {
-      // RPC might not exist — we'll handle the trigger failure in createCreatorAccount
-      console.warn('[Admin] Could not update trigger via RPC:', e);
+      if (error) {
+        console.warn('[Admin] Could not update trigger via RPC:', error.message);
+      } else {
+        console.log('[Admin] Trigger function updated successfully');
+      }
+    } catch (e: any) {
+      console.warn('[Admin] Unexpected error in fixTriggerIfNeeded:', e.message);
     }
   },
 
@@ -77,7 +79,7 @@ export const adminService = {
    */
   async createFeedbackTable() {
     try {
-      await supabaseAdmin.rpc('exec_sql', {
+      const { error } = await supabaseAdmin.rpc('exec_sql', {
         query: `
           create table if not exists public."Feedback" (
             id uuid not null default gen_random_uuid(),
@@ -91,8 +93,13 @@ export const adminService = {
           ) TABLESPACE pg_default;
         `
       });
-    } catch (e) {
-      console.warn('[Admin] Could not create feedback table:', e);
+      if (error) {
+        console.warn('[Admin] Could not create feedback table:', error.message);
+      } else {
+        console.log('[Admin] Feedback table ensured');
+      }
+    } catch (e: any) {
+      console.warn('[Admin] Unexpected error in createFeedbackTable:', e.message);
     }
   },
 
@@ -101,7 +108,7 @@ export const adminService = {
    */
   async migratePostTable() {
     try {
-      await supabaseAdmin.rpc('exec_sql', {
+      const { error } = await supabaseAdmin.rpc('exec_sql', {
         query: `
           ALTER TABLE public."Post" 
           ADD COLUMN IF NOT EXISTS "status" text DEFAULT 'PUBLISHED',
@@ -109,9 +116,35 @@ export const adminService = {
           NOTIFY pgrst, 'reload schema';
         `
       });
-      console.log('[Admin] Post table migrated successfully');
-    } catch (e) {
-      console.warn('[Admin] Could not migrate Post table:', e);
+      if (error) {
+        console.warn('[Admin] Could not migrate Post table:', error.message);
+      } else {
+        console.log('[Admin] Post table migrated successfully');
+      }
+    } catch (e: any) {
+      console.warn('[Admin] Unexpected error in migratePostTable:', e.message);
+    }
+  },
+
+  /**
+   * Migrate the User table to add temporary_password column
+   */
+  async migrateUserTable() {
+    try {
+      const { error } = await supabaseAdmin.rpc('exec_sql', {
+        query: `
+          ALTER TABLE public."User" 
+          ADD COLUMN IF NOT EXISTS "temporary_password" text;
+          NOTIFY pgrst, 'reload schema';
+        `
+      });
+      if (error) {
+        console.warn('[Admin] Could not migrate User table:', error.message);
+      } else {
+        console.log('[Admin] User table migrated successfully');
+      }
+    } catch (e: any) {
+      console.warn('[Admin] Unexpected error in migrateUserTable:', e.message);
     }
   },
 
@@ -146,6 +179,7 @@ export const adminService = {
         username: rawUsername,
         bio: payload.bio || '',
         role: 'ANALYST',
+        temporary_password: payload.password,
         updatedAt: now,
       }, { onConflict: 'id' });
 
@@ -191,6 +225,7 @@ export const adminService = {
       username: rawUsername,
       bio: payload.bio || '',
       role: 'ANALYST',
+      temporary_password: payload.password,
       updatedAt: now,
     }, { onConflict: 'id' });
 
@@ -204,6 +239,7 @@ export const adminService = {
         username: fallbackUsername,
         bio: payload.bio || '',
         role: 'ANALYST',
+        temporary_password: payload.password,
         updatedAt: now,
       }, { onConflict: 'id' });
     }
