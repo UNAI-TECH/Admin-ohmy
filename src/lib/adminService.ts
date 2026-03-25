@@ -73,6 +73,49 @@ export const adminService = {
   },
 
   /**
+   * Create the Feedback table if it doesn't exist
+   */
+  async createFeedbackTable() {
+    try {
+      await supabaseAdmin.rpc('exec_sql', {
+        query: `
+          create table if not exists public."Feedback" (
+            id uuid not null default gen_random_uuid(),
+            "userId" text null,
+            content text not null,
+            category text null,
+            "createdAt" timestamp without time zone not null default CURRENT_TIMESTAMP,
+            status text default 'pending',
+            constraint Feedback_pkey primary key (id),
+            constraint Feedback_userId_fkey foreign KEY ("userId") references "User" (id) on update CASCADE on delete SET NULL
+          ) TABLESPACE pg_default;
+        `
+      });
+    } catch (e) {
+      console.warn('[Admin] Could not create feedback table:', e);
+    }
+  },
+
+  /**
+   * Migrate the Post table to add status and scheduledFor columns
+   */
+  async migratePostTable() {
+    try {
+      await supabaseAdmin.rpc('exec_sql', {
+        query: `
+          ALTER TABLE public."Post" 
+          ADD COLUMN IF NOT EXISTS "status" text DEFAULT 'PUBLISHED',
+          ADD COLUMN IF NOT EXISTS "scheduledFor" timestamp with time zone;
+          NOTIFY pgrst, 'reload schema';
+        `
+      });
+      console.log('[Admin] Post table migrated successfully');
+    } catch (e) {
+      console.warn('[Admin] Could not migrate Post table:', e);
+    }
+  },
+
+  /**
    * Create a new creator account.
    * Uses admin.createUser() then manually creates the User row.
    * The trigger may fail (500) but the auth user is sometimes still created.

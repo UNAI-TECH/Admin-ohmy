@@ -20,6 +20,12 @@ import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabaseClient';
 import { adminService } from '../lib/adminService';
 import CreatorRequests from './CreatorRequests';
+import Notifications from './Notifications';
+import Feedback from './Feedback';
+import Posts from './Posts';
+import Creators from './Creators';
+import Analytics from './Analytics';
+
 
 interface Props {
   onLogout: () => void;
@@ -36,6 +42,9 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
     const fetchData = async () => {
       setLoading(true);
       try {
+        await adminService.createFeedbackTable(); // Ensure Feedback table exists
+        await adminService.migratePostTable(); // Migrate Post table for new statuses
+
         const [statsData, postsData, creatorsData] = await Promise.all([
           adminService.getOverviewStats(),
           adminService.getRecentPosts(5),
@@ -113,9 +122,12 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
           <nav className="space-y-1">
             <NavItem icon={<PieChart size={18} />} label="Overview" active={activeTab === 'Overview'} onClick={() => setActiveTab('Overview')} />
             <NavItem icon={<Users size={18} />} label="Creator Requests" active={activeTab === 'Creator Requests'} onClick={() => setActiveTab('Creator Requests')} />
+            <NavItem icon={<Users size={18} />} label="Creators" active={activeTab === 'Creators'} onClick={() => setActiveTab('Creators')} />
             <NavItem icon={<FileText size={18} />} label="Posts" active={activeTab === 'Posts'} onClick={() => setActiveTab('Posts')} />
             <NavItem icon={<BarChart3 size={18} />} label="Analytics" active={activeTab === 'Analytics'} onClick={() => setActiveTab('Analytics')} />
             <NavItem icon={<DollarSign size={18} />} label="Payments" active={activeTab === 'Payments'} onClick={() => setActiveTab('Payments')} />
+            <NavItem icon={<Bell size={18} />} label="Notifications" active={activeTab === 'Notifications'} onClick={() => setActiveTab('Notifications')} />
+            <NavItem icon={<MessageSquare size={18} />} label="Feedback" active={activeTab === 'Feedback'} onClick={() => setActiveTab('Feedback')} />
             <NavItem icon={<Settings size={18} />} label="Settings" active={activeTab === 'Settings'} onClick={() => setActiveTab('Settings')} />
           </nav>
         </div>
@@ -285,7 +297,7 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
                     </div>
                     {creators.length > 5 && (
                       <button 
-                        onClick={() => setActiveTab('Creator Requests')}
+                        onClick={() => setActiveTab('Creators')}
                         className="mt-4 text-xs text-[#E31E24] font-bold hover:opacity-80 transition-all"
                       >
                         View all {creators.length} creators →
@@ -308,6 +320,25 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
             </>
           ) : activeTab === 'Creator Requests' ? (
             <CreatorRequests />
+          ) : activeTab === 'Creators' ? (
+            <Creators />
+          ) : activeTab === 'Posts' ? (
+            <Posts />
+          ) : activeTab === 'Analytics' ? (
+            <Analytics />
+          ) : activeTab === 'Notifications' ? (
+            <Notifications />
+          ) : activeTab === 'Feedback' ? (
+            <Feedback />
+          ) : activeTab === 'Payments' ? (
+            <div className="flex flex-col items-center justify-center h-full">
+              <div className="w-20 h-20 bg-gradient-to-br from-[#E31E24] to-[#93000d] rounded-2xl flex items-center justify-center mb-6 shadow-2xl shadow-red-900/40">
+                <DollarSign size={40} className="text-white" />
+              </div>
+              <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">Payments Infrastructure</h2>
+              <p className="text-[#e7bdb8] opacity-60 max-w-md text-center">Global payout integrations, creator monetization, and finance dashboards are coming in the next platform update.</p>
+              <span className="mt-8 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-xs font-bold uppercase tracking-widest text-white/40">Coming Soon</span>
+            </div>
           ) : (
             <div className="flex items-center justify-center h-full text-[#e7bdb8] opacity-60">
               <p className="text-xl italic">The {activeTab} module is initializing...</p>

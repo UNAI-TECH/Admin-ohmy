@@ -162,6 +162,13 @@ export default function CreatorRequests() {
     setTimeout(() => setCopiedField(null), 2000);
   };
 
+  const handleCloseCredentials = async () => {
+    setCreatedCredentials(null);
+    await supabase.auth.signOut();
+    localStorage.removeItem('adminUser');
+    window.location.reload(); // Force app to show login page
+  };
+
   const filteredRequests = filter === 'ALL' 
     ? requests 
     : requests.filter(r => r.status === filter);
@@ -531,10 +538,10 @@ export default function CreatorRequests() {
               </div>
 
               <button 
-                onClick={() => setCreatedCredentials(null)}
-                className="w-full py-3 bg-white/5 border border-white/10 text-white rounded-xl font-bold hover:bg-white/10 transition-all"
+                onClick={handleCloseCredentials}
+                className="w-full py-3 bg-[#E31E24]/20 border border-[#E31E24]/30 text-[#E31E24] rounded-xl font-bold hover:bg-[#E31E24]/30 transition-all flex items-center justify-center gap-2"
               >
-                Close
+                Copy & Log Out Securely
               </button>
             </div>
           </div>
