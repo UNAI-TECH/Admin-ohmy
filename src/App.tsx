@@ -39,7 +39,7 @@ function App() {
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (event, _session) => {
         if (event === 'SIGNED_OUT') {
           setIsLoggedIn(false);
           localStorage.removeItem('adminUser');
