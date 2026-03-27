@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Star, Reply, Loader2 } from 'lucide-react';
+import { MessageSquare, Reply, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabaseClient';
 
@@ -16,7 +16,7 @@ const Feedback: React.FC = () => {
         const newFb = payload.new as any;
         if (newFb.userId) {
           try {
-            const { data: user } = await supabase.from('User').select('username, email, role').eq('id', newFb.userId).single();
+            const { data: user } = await supabase.from('User').select('username, email, role, avatarUrl').eq('id', newFb.userId).single();
             newFb.User = user || { username: 'Unknown User', role: 'CITIZEN' };
           } catch(e) {
             newFb.User = { username: 'Unknown User', role: 'CITIZEN' };
@@ -41,7 +41,7 @@ const Feedback: React.FC = () => {
         .from('Feedback')
         .select(`
           *,
-          User (username, email, role)
+          User (username, email, role, avatarUrl)
         `)
         .order('createdAt', { ascending: false });
 
@@ -123,9 +123,13 @@ const Feedback: React.FC = () => {
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-blue-500/10 border border-blue-500/20 rounded-full flex items-center justify-center text-blue-400 font-bold text-lg">
-                        {username.charAt(0).toUpperCase()}
-                      </div>
+                      {item.User?.avatarUrl ? (
+                        <img src={item.User.avatarUrl} alt="avatar" className="w-12 h-12 rounded-full object-cover border border-blue-500/20" />
+                      ) : (
+                        <div className="w-12 h-12 bg-blue-500/10 border border-blue-500/20 rounded-full flex items-center justify-center text-blue-400 font-bold text-lg">
+                          {username.charAt(0).toUpperCase()}
+                        </div>
+                      )}
                       <div>
                         <h3 className="text-lg font-bold text-white mb-0.5">{username}</h3>
                         <div className="flex flex-wrap items-center gap-3">
@@ -146,11 +150,6 @@ const Feedback: React.FC = () => {
                           </span>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex gap-1 text-yellow-500/80">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} size={16} fill={i < item.rating ? "currentColor" : "none"} className={i >= item.rating ? "text-white/10" : ""} />
-                      ))}
                     </div>
                   </div>
                   

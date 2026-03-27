@@ -25,6 +25,7 @@ import Feedback from './Feedback';
 import Posts from './Posts';
 import Creators from './Creators';
 import Analytics from './Analytics';
+import SettingsView from './Settings';
 
 
 interface Props {
@@ -161,7 +162,10 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
           </div>
           
           <div className="flex items-center gap-8">
-            <button className="relative p-2 rounded-xl hover:bg-white/5 transition-colors text-[#e7bdb8]">
+            <button 
+              onClick={() => setActiveTab('Notifications')}
+              className="relative p-2 rounded-xl hover:bg-white/5 transition-colors text-[#e7bdb8]"
+            >
               <Bell size={20} />
               {stats?.pendingRequests > 0 && (
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#E31E24] rounded-full text-[10px] font-bold text-white flex items-center justify-center border-2 border-[#0b1326]">
@@ -258,7 +262,13 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
                             </td>
                             <td className="py-5">
                               <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-full bg-white/5 border border-white/10" />
+                                {post.User?.avatarUrl ? (
+                                  <img src={post.User.avatarUrl} alt="avatar" className="w-6 h-6 rounded-full object-cover border border-white/10" />
+                                ) : (
+                                  <div className="w-6 h-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-bold text-white/70">
+                                    {(post.User?.username || post.User?.email || '?').charAt(0).toUpperCase()}
+                                  </div>
+                                )}
                                 <span className="text-xs text-[#e7bdb8]/70">{post.User?.username || post.User?.email || 'Unknown'}</span>
                               </div>
                             </td>
@@ -285,9 +295,13 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
                         <p className="text-[#e7bdb8] opacity-40 text-sm italic">No creators yet</p>
                       ) : creators.slice(0, 5).map((creator: any) => (
                         <div key={creator.id} className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-400 text-sm font-bold">
-                            {(creator.username || creator.email || '?').charAt(0).toUpperCase()}
-                          </div>
+                          {creator.avatarUrl ? (
+                            <img src={creator.avatarUrl} alt={creator.username} className="w-8 h-8 rounded-lg object-cover bg-red-500/10 border border-white/10" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-400 text-sm font-bold border border-white/10">
+                              {(creator.username || creator.email || '?').charAt(0).toUpperCase()}
+                            </div>
+                          )}
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-white truncate">{creator.username}</p>
                             <p className="text-[10px] text-[#e7bdb8] opacity-40 truncate">{creator.email}</p>
@@ -339,6 +353,8 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
               <p className="text-[#e7bdb8] opacity-60 max-w-md text-center">Global payout integrations, creator monetization, and finance dashboards are coming in the next platform update.</p>
               <span className="mt-8 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-xs font-bold uppercase tracking-widest text-white/40">Coming Soon</span>
             </div>
+          ) : activeTab === 'Settings' ? (
+            <SettingsView />
           ) : (
             <div className="flex items-center justify-center h-full text-[#e7bdb8] opacity-60">
               <p className="text-xl italic">The {activeTab} module is initializing...</p>

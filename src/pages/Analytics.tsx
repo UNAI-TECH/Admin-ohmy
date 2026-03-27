@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { BarChart3, Users, FileText, Loader2, Calendar } from 'lucide-react';
+import { BarChart3, Users, FileText, Loader2, TrendingUp, Globe } from 'lucide-react';
 
 const Analytics: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -84,8 +84,29 @@ const Analytics: React.FC = () => {
           </h1>
           <p className="text-[#e7bdb8] opacity-60">Real-time metrics for creator onboarding and content volume ({new Date().getFullYear()}).</p>
         </div>
-        <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-sm text-[#e7bdb8] opacity-80">
-          <Calendar size={16} /> Year To Date
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div className="bg-[#171f3366] backdrop-blur-md border border-[#ae88831a] p-6 rounded-2xl">
+          <p className="text-[#e7bdb8] text-[10px] font-bold uppercase tracking-widest mb-1 opacity-50">Active Creators</p>
+          <h3 className="text-2xl font-bold text-white mb-2">{creatorsByMonth.reduce((acc, c) => acc + c.count, 0)}</h3>
+          <div className="flex items-center gap-2 text-[10px] text-green-400 font-bold bg-green-400/10 px-2 py-0.5 rounded-full w-fit">
+            <TrendingUp size={12} /> +12% growth
+          </div>
+        </div>
+        <div className="bg-[#171f3366] backdrop-blur-md border border-[#ae88831a] p-6 rounded-2xl">
+          <p className="text-[#e7bdb8] text-[10px] font-bold uppercase tracking-widest mb-1 opacity-50">Content Volume</p>
+          <h3 className="text-2xl font-bold text-white mb-2">{postsByMonth.reduce((acc, p) => acc + p.count, 0)}</h3>
+          <div className="flex items-center gap-2 text-[10px] text-blue-400 font-bold bg-blue-400/10 px-2 py-0.5 rounded-full w-fit">
+            <FileText size={12} /> High Velocity
+          </div>
+        </div>
+        <div className="bg-[#171f3366] backdrop-blur-md border border-[#ae88831a] p-6 rounded-2xl">
+          <p className="text-[#e7bdb8] text-[10px] font-bold uppercase tracking-widest mb-1 opacity-50">User Segment</p>
+          <h3 className="text-2xl font-bold text-white mb-2">Enterprise</h3>
+          <div className="flex items-center gap-2 text-[10px] text-purple-400 font-bold bg-purple-400/10 px-2 py-0.5 rounded-full w-fit">
+            <Globe size={12} /> Global reached
+          </div>
         </div>
       </div>
 

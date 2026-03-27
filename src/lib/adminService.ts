@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { supabase } from './supabaseClient'; // anon-key client (same as mobile app uses)
+// anon-key client (same as mobile app uses) removed as unused
 
 // Admin client — service_role key, no session persistence (for admin-only operations)
 const supabaseAdmin = createClient(
@@ -192,27 +192,26 @@ export const adminService = {
     // this to insert into `profiles` successfully.
     const uniqueDummyUsername = rawUsername + '_' + Date.now();
 
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+    const { data: createData, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email: payload.email,
       password: payload.password,
-      options: {
-        data: {
-          full_name: payload.fullName,
-          username: uniqueDummyUsername, // Passes trigger's unique username constraint
-        },
+      email_confirm: true,
+      user_metadata: {
+        full_name: payload.fullName,
+        username: uniqueDummyUsername, // Passes trigger's unique username constraint
       },
     });
 
-    if (signUpError) {
-      console.error('[Admin] SignUp error:', signUpError.message);
-      throw new Error(signUpError.message || 'Failed to create user');
+    if (createError) {
+      console.error('[Admin] CreateUser error:', createError.message);
+      throw new Error(createError.message || 'Failed to create user');
     }
 
-    if (!signUpData.user) {
-      throw new Error('SignUp returned no user data');
+    if (!createData.user) {
+      throw new Error('CreateUser returned no user data');
     }
 
-    const userId = signUpData.user.id;
+    const userId = createData.user.id;
     console.log('[Admin] Auth user created:', userId);
 
     // Wait for the trigger to finish its work
@@ -244,16 +243,8 @@ export const adminService = {
       }, { onConflict: 'id' });
     }
 
-    // Confirm email so creator can login immediately
-    await supabaseAdmin.auth.admin.updateUserById(userId, {
-      email_confirm: true,
-    });
-
-    // Clean up anon session
-    await supabase.auth.signOut();
-
     console.log('[Admin] Creator account created for:', payload.email);
-    return signUpData.user;
+    return createData.user;
   },
 
   /**
@@ -355,7 +346,7 @@ export const adminService = {
   async getRecentPosts(limit = 10) {
     const { data, error } = await supabaseAdmin
       .from('Post')
-      .select('*, User(username, email)')
+      .select('*, User(username, email, avatarUrl)')
       .order('createdAt', { ascending: false })
       .limit(limit);
 
@@ -372,5 +363,16 @@ export const adminService = {
 
     if (error) throw error;
     return data || [];
+  },
+
+  /**
+   * Send the email credentials using the Supabase Edge Function via the Service Role Key.
+   */
+  async sendCreatorCredentialsEmail(email: string, password: string) {
+    const { data, error } = await supabaseAdmin.functions.invoke('send-credentials', {
+      body: { email, password }
+    });
+    if (error) throw error;
+    return data;
   },
 };

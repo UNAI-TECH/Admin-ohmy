@@ -19,6 +19,8 @@ export default function CreatorRequests() {
   const [approvePassword, setApprovePassword] = useState('');
   const [requestToApprove, setRequestToApprove] = useState<CreatorRequest | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailSentMsg, setEmailSentMsg] = useState('');
 
   // Create Creator form state
   const [newCreator, setNewCreator] = useState<CreateCreatorPayload>({
@@ -162,11 +164,31 @@ export default function CreatorRequests() {
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const handleCloseCredentials = async () => {
+  const handleSendEmail = async () => {
+    if (!createdCredentials) return;
+    setIsSendingEmail(true);
+    setEmailSentMsg('');
+    try {
+      await adminService.sendCreatorCredentialsEmail(
+        createdCredentials.email,
+        createdCredentials.password
+      );
+
+      setEmailSentMsg('Email sent successfully');
+      setTimeout(() => {
+        setCreatedCredentials(null);
+        setEmailSentMsg('');
+      }, 2000);
+    } catch (err: any) {
+      alert('Error sending email: ' + err.message);
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
+  const handleCloseCredentials = () => {
     setCreatedCredentials(null);
-    await supabase.auth.signOut();
-    localStorage.removeItem('adminUser');
-    window.location.reload(); // Force app to show login page
+    setEmailSentMsg('');
   };
 
   const filteredRequests = filter === 'ALL' 
@@ -491,7 +513,7 @@ export default function CreatorRequests() {
                   disabled={actionLoading}
                   className="w-full py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CheckCircle size={18} /> Approve & Create Account</>}
+                  {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CheckCircle size={18} /> Create Account</>}
                 </button>
               </form>
             </div>
@@ -499,20 +521,22 @@ export default function CreatorRequests() {
         </div>
       )}
 
-      {/* Credentials Display Modal */}
+      {/* Credentials Display / Mail Preview Modal */}
       {createdCredentials && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
           <div className="bg-[#131b2e] rounded-2xl w-full max-w-md shadow-2xl border border-green-500/20 relative overflow-hidden">
             <div className="p-10">
-              <div className="flex flex-col items-center mb-8">
+              <div className="flex flex-col items-center mb-6">
                 <div className="w-16 h-16 bg-green-500/10 rounded-2xl flex items-center justify-center mb-4">
                   <CheckCircle className="w-8 h-8 text-green-500" />
                 </div>
-                <h2 className="text-2xl font-bold text-white">Creator Account Created!</h2>
-                <p className="text-[#e7bdb8] opacity-60 text-sm mt-1">Share these credentials securely with the creator</p>
+                <h2 className="text-2xl font-bold text-white">Login Credentials</h2>
+                <p className="text-[#e7bdb8] opacity-60 text-sm mt-2 text-center">
+                  Your account has been approved. Use the following credentials to sign in and access the Creator Studio.
+                </p>
               </div>
 
-              <div className="space-y-4 mb-8">
+              <div className="space-y-4 mb-6">
                 <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
                   <div>
                     <p className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest opacity-60 mb-1">Email</p>
@@ -533,16 +557,31 @@ export default function CreatorRequests() {
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs mb-6">
-                ⚠️ This password won't be shown again. Make sure to copy it now.
-              </div>
+              {emailSentMsg ? (
+                <div className="p-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-sm mb-6 text-center font-bold">
+                  {emailSentMsg}
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs mb-6">
+                  ⚠️ This password won't be shown again. Make sure to copy it or send the email now.
+                </div>
+              )}
 
-              <button 
-                onClick={handleCloseCredentials}
-                className="w-full py-3 bg-[#E31E24]/20 border border-[#E31E24]/30 text-[#E31E24] rounded-xl font-bold hover:bg-[#E31E24]/30 transition-all flex items-center justify-center gap-2"
-              >
-                Copy & Log Out Securely
-              </button>
+              <div className="flex gap-4">
+                <button 
+                  onClick={handleCloseCredentials}
+                  className="flex-1 py-3 bg-white/5 border border-white/10 text-white rounded-xl font-bold hover:bg-white/10 transition-all flex items-center justify-center"
+                >
+                  Close
+                </button>
+                <button 
+                  onClick={handleSendEmail}
+                  disabled={isSendingEmail || !!emailSentMsg}
+                  className="flex-1 py-3 bg-[#E31E24] text-white rounded-xl font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isSendingEmail ? <Loader2 className="w-5 h-5 animate-spin" /> : "Send Email"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

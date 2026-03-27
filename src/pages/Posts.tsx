@@ -26,7 +26,7 @@ const Posts: React.FC = () => {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'Post' }, async (payload) => {
         const newPost = payload.new as any;
         try {
-          const { data: user } = await supabase.from('User').select('username, email').eq('id', newPost.authorId).single();
+          const { data: user } = await supabase.from('User').select('username, email, avatarUrl').eq('id', newPost.authorId).single();
           newPost.User = user || { username: 'Unknown' };
         } catch(e) {}
         setPosts(prev => [newPost, ...prev]);
@@ -105,7 +105,7 @@ const Posts: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 max-w-md">
                         <h4 className="text-sm font-bold text-white mb-1 line-clamp-1">{post.title}</h4>
-                        <p className="text-xs text-[#e7bdb8] opacity-60 line-clamp-2">{post.subtitle || post.content}</p>
+                        <p className="text-xs text-[#e7bdb8] opacity-60 line-clamp-2">{post.subtitle || post.content?.replace(/<[^>]*>?/gm, '')}</p>
                         {post.isTrending && (
                           <span className="inline-block mt-2 px-2 py-0.5 bg-yellow-500/10 text-yellow-500 text-[10px] font-bold rounded-sm uppercase tracking-wider border border-yellow-500/20">
                             Trending
@@ -114,9 +114,13 @@ const Posts: React.FC = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 font-bold text-sm border border-red-500/20">
-                            {(post.User?.username || post.User?.email || '?').charAt(0).toUpperCase()}
-                          </div>
+                          {post.User?.avatarUrl ? (
+                            <img src={post.User.avatarUrl} alt="author" className="w-8 h-8 rounded-full object-cover border border-red-500/20" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 font-bold text-sm border border-red-500/20">
+                              {(post.User?.username || post.User?.email || '?').charAt(0).toUpperCase()}
+                            </div>
+                          )}
                           <div className="flex flex-col">
                             <span className="text-sm text-white/90 font-medium">{post.User?.username || 'Unknown'}</span>
                             <span className="text-[10px] text-[#e7bdb8] opacity-50">{post.User?.email || ''}</span>
