@@ -3,6 +3,7 @@ import { supabase } from './lib/supabaseClient';
 import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
 import { adminService } from './lib/adminService';
+import { ToastProvider } from './context/ToastContext';
 import './index.css';
 
 function App() {
@@ -25,10 +26,12 @@ function App() {
         if (profile?.role === 'ADMIN') {
           setIsLoggedIn(true);
           // Run migrations quietly
-          adminService.migratePostTable();
-          adminService.migrateUserTable();
-          adminService.createFeedbackTable();
-        } else {
+           adminService.migratePostTable();
+           adminService.migrateUserTable();
+           adminService.createFeedbackTable();
+           adminService.ensureAdsBucket();
+           adminService.ensureAdsTable();
+         } else {
           await supabase.auth.signOut();
         }
       }
@@ -65,13 +68,15 @@ function App() {
   }
 
   return (
-    <div className="app-container">
-      {isLoggedIn ? (
-        <Dashboard onLogout={handleLogout} />
-      ) : (
-        <LoginPage onLogin={(success) => setIsLoggedIn(success)} />
-      )}
-    </div>
+    <ToastProvider>
+      <div className="app-container">
+        {isLoggedIn ? (
+          <Dashboard onLogout={handleLogout} />
+        ) : (
+          <LoginPage onLogin={(success) => setIsLoggedIn(success)} />
+        )}
+      </div>
+    </ToastProvider>
   );
 }
 

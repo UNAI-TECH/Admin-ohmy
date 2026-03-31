@@ -12,9 +12,10 @@ import {
   Search,
   ChevronRight,
   LifeBuoy,
-  DollarSign,
+  IndianRupee,
   BarChart3,
   TrendingUp,
+  Megaphone,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabaseClient';
@@ -26,6 +27,7 @@ import Posts from './Posts';
 import Creators from './Creators';
 import Analytics from './Analytics';
 import SettingsView from './Settings';
+import AdsLayout from './Ads/AdsLayout';
 
 
 interface Props {
@@ -45,6 +47,8 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
       try {
         await adminService.createFeedbackTable(); // Ensure Feedback table exists
         await adminService.migratePostTable(); // Migrate Post table for new statuses
+        await adminService.ensureAdsBucket(); // Ensure ads storage exists
+        await adminService.ensureAdsTable(); // Ensure ads table exists
 
         const [statsData, postsData, creatorsData] = await Promise.all([
           adminService.getOverviewStats(),
@@ -107,40 +111,48 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
 
   return (
     <div className="flex h-screen bg-[#0b1326] text-[#dae2fd] overflow-hidden">
+      {/* Sidebar Placeholder for absolute positioning */}
+      {activeTab === 'Advertisement' && <div className="w-[88px] shrink-0 md:block hidden" />}
+
       {/* Side Navigation */}
-      <aside className="w-64 bg-[#131b2e] border-r border-[#ae88831a] hidden md:flex flex-col">
-        <div className="p-8">
-          <div className="flex items-center gap-3 mb-10">
-            <div className="w-10 h-10 bg-gradient-to-br from-[#E31E24] to-[#93000d] rounded-xl flex items-center justify-center shadow-lg shadow-red-900/20">
+      <aside 
+        className={`bg-[#131b2e] border-r border-[#ae88831a] hidden md:flex flex-col transition-all duration-300 z-50 group overflow-hidden whitespace-nowrap ${
+          activeTab === 'Advertisement' ? 'w-[88px] hover:w-64 absolute h-full shadow-[20px_0_30px_-10px_rgba(0,0,0,0.5)]' : 'w-64 relative'
+        }`}
+      >
+        <div className="py-8 px-5 flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+          <div className="flex items-center gap-3 mb-10 shrink-0">
+            <div className="w-10 h-10 shrink-0 bg-gradient-to-br from-[#E31E24] to-[#93000d] rounded-xl flex items-center justify-center shadow-lg shadow-red-900/20">
               <ShieldAlert size={24} color="white" />
             </div>
-            <div>
+            <div className={`transition-opacity duration-300 min-w-[150px] ${activeTab === 'Advertisement' ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
               <h2 className="text-xl font-bold tracking-tight text-white leading-tight">OMH Sentinel</h2>
               <p className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-[0.2em] opacity-60">Enterprise Control</p>
             </div>
           </div>
 
-          <nav className="space-y-1">
-            <NavItem icon={<PieChart size={18} />} label="Overview" active={activeTab === 'Overview'} onClick={() => setActiveTab('Overview')} />
-            <NavItem icon={<Users size={18} />} label="Creator Requests" active={activeTab === 'Creator Requests'} onClick={() => setActiveTab('Creator Requests')} />
-            <NavItem icon={<Users size={18} />} label="Creators" active={activeTab === 'Creators'} onClick={() => setActiveTab('Creators')} />
-            <NavItem icon={<FileText size={18} />} label="Posts" active={activeTab === 'Posts'} onClick={() => setActiveTab('Posts')} />
-            <NavItem icon={<BarChart3 size={18} />} label="Analytics" active={activeTab === 'Analytics'} onClick={() => setActiveTab('Analytics')} />
-            <NavItem icon={<DollarSign size={18} />} label="Payments" active={activeTab === 'Payments'} onClick={() => setActiveTab('Payments')} />
-            <NavItem icon={<Bell size={18} />} label="Notifications" active={activeTab === 'Notifications'} onClick={() => setActiveTab('Notifications')} />
-            <NavItem icon={<MessageSquare size={18} />} label="Feedback" active={activeTab === 'Feedback'} onClick={() => setActiveTab('Feedback')} />
-            <NavItem icon={<Settings size={18} />} label="Settings" active={activeTab === 'Settings'} onClick={() => setActiveTab('Settings')} />
+          <nav className="space-y-1 w-full max-w-[215px]">
+            <NavItem icon={<PieChart size={18} />} label="Overview" active={activeTab === 'Overview'} onClick={() => setActiveTab('Overview')} activeTab={activeTab} />
+            <NavItem icon={<Users size={18} />} label="Creator Requests" active={activeTab === 'Creator Requests'} onClick={() => setActiveTab('Creator Requests')} activeTab={activeTab} />
+            <NavItem icon={<Users size={18} />} label="Creators" active={activeTab === 'Creators'} onClick={() => setActiveTab('Creators')} activeTab={activeTab} />
+            <NavItem icon={<FileText size={18} />} label="Posts" active={activeTab === 'Posts'} onClick={() => setActiveTab('Posts')} activeTab={activeTab} />
+            <NavItem icon={<BarChart3 size={18} />} label="Analytics" active={activeTab === 'Analytics'} onClick={() => setActiveTab('Analytics')} activeTab={activeTab} />
+            <NavItem icon={<Megaphone size={18} />} label="Advertisement" active={activeTab === 'Advertisement'} onClick={() => setActiveTab('Advertisement')} activeTab={activeTab} />
+            <NavItem icon={<IndianRupee size={18} />} label="Payments" active={activeTab === 'Payments'} onClick={() => setActiveTab('Payments')} activeTab={activeTab} />
+            <NavItem icon={<Bell size={18} />} label="Notifications" active={activeTab === 'Notifications'} onClick={() => setActiveTab('Notifications')} activeTab={activeTab} />
+            <NavItem icon={<MessageSquare size={18} />} label="Feedback" active={activeTab === 'Feedback'} onClick={() => setActiveTab('Feedback')} activeTab={activeTab} />
+            <NavItem icon={<Settings size={18} />} label="Settings" active={activeTab === 'Settings'} onClick={() => setActiveTab('Settings')} activeTab={activeTab} />
           </nav>
         </div>
 
-        <div className="mt-auto p-8 space-y-2 border-t border-[#ae88830d]">
-          <NavItem icon={<LifeBuoy size={18} />} label="Support" />
+        <div className="mt-auto px-5 py-6 space-y-2 border-t border-[#ae88830d] shrink-0 w-full max-w-[215px]">
+          <NavItem icon={<LifeBuoy size={18} className="shrink-0" />} label="Support" activeTab={activeTab} />
           <button 
             onClick={onLogout}
-            className="flex items-center gap-3 w-full p-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-all font-semibold text-sm group"
+            className={`flex items-center gap-4 w-full p-3.5 rounded-xl text-red-400 hover:bg-red-500/10 transition-all font-semibold text-sm group/logout overflow-hidden whitespace-nowrap`}
           >
-            <LogOut size={18} className="group-hover:translate-x-1 transition-transform" />
-            Logout
+            <LogOut size={18} className="shrink-0 group-hover/logout:translate-x-0.5 transition-transform" />
+            <span className={`transition-opacity duration-300 ${activeTab === 'Advertisement' ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>Logout</span>
           </button>
         </div>
       </aside>
@@ -184,7 +196,7 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
         </header>
 
         {/* Dynamic Content */}
-        <div className="p-10 overflow-y-auto custom-scrollbar bg-gradient-to-b from-[#0b1326] to-[#060e20] flex-1">
+        <div className={`p-10 overflow-y-auto custom-scrollbar bg-gradient-to-b from-[#0b1326] to-[#060e20] flex-1 ${activeTab === 'Advertisement' ? '!p-0' : ''}`}>
           {activeTab === 'Overview' ? (
             <>
               <div className="mb-10">
@@ -344,10 +356,12 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
             <Notifications />
           ) : activeTab === 'Feedback' ? (
             <Feedback />
+          ) : activeTab === 'Advertisement' ? (
+            <AdsLayout onBack={() => setActiveTab('Overview')} />
           ) : activeTab === 'Payments' ? (
             <div className="flex flex-col items-center justify-center h-full">
               <div className="w-20 h-20 bg-gradient-to-br from-[#E31E24] to-[#93000d] rounded-2xl flex items-center justify-center mb-6 shadow-2xl shadow-red-900/40">
-                <DollarSign size={40} className="text-white" />
+                <IndianRupee size={40} className="text-white" />
               </div>
               <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">Payments Infrastructure</h2>
               <p className="text-[#e7bdb8] opacity-60 max-w-md text-center">Global payout integrations, creator monetization, and finance dashboards are coming in the next platform update.</p>
@@ -363,19 +377,20 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
         </div>
       </main>
     </div>
+
   );
 };
 
-const NavItem = ({ icon, label, active = false, onClick }: { icon: any, label: string, active?: boolean, onClick?: () => void }) => (
+const NavItem = ({ icon, label, active = false, onClick, activeTab }: { icon: any, label: string, active?: boolean, onClick?: () => void, activeTab?: string }) => (
   <button 
     onClick={onClick}
-    className={`flex items-center gap-4 w-full p-3.5 rounded-xl transition-all font-semibold text-sm ${
+    className={`flex items-center gap-4 w-full p-3 rounded-xl transition-all font-semibold text-sm overflow-hidden whitespace-nowrap shrink-0 group/pill ${
       active 
       ? 'bg-[#E31E24] text-white shadow-lg shadow-red-900/20' 
       : 'text-[#e7bdb8]/60 hover:text-[#e7bdb8] hover:bg-white/5'
     }`}>
-    {icon}
-    {label}
+    <div className={`shrink-0 flex items-center justify-center`}>{icon}</div>
+    <span className={`transition-opacity duration-300 ${activeTab === 'Advertisement' ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>{label}</span>
   </button>
 );
 

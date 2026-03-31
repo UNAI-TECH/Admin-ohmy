@@ -375,4 +375,184 @@ export const adminService = {
     if (error) throw error;
     return data;
   },
+
+  /**
+   * Ensure the 'ads' storage bucket exists.
+   * Note: Policies must be applied manually via SQL if automated ones fail.
+   */
+  async ensureAdsBucket() {
+    try {
+      const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets();
+      if (listError) throw listError;
+
+      const adsBucket = buckets?.find(b => b.name === 'ads');
+      if (!adsBucket) {
+        console.log('[Admin] Ads bucket not found, creating...');
+        await supabaseAdmin.storage.createBucket('ads', {
+          public: true,
+        });
+      }
+      
+      // Removed applyAdsBucketPolicies to avoid 403 Forbidden errors.
+      // These must be applied manually via the provided SQL script.
+    } catch (e: any) {
+      console.warn('[Admin] Error in ensureAdsBucket:', e.message);
+    }
+  },
+
+  /**
+   * Manual policy application (Disabled to prevent console noise).
+   */
+  async applyAdsBucketPolicies() {
+    // This is now disabled. Please run the SQL script provided in the documentation.
+    return;
+  },
+
+  /**
+   * Ensure the full Custom Advertisement System (Ads, Impressions, Clicks) and RPCs exist.
+   */
+  async ensureAdsTable() {
+    try {
+      const { error: sqlError } = await supabaseAdmin.rpc('exec_sql', {
+        query: `
+          DO $$
+          BEGIN
+            -- 1. ADS TABLE
+            IF NOT EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'ads') THEN
+              CREATE TABLE public.ads (
+                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                advertiser_name text,
+                title text,
+                description text,
+                media_url text, -- supports images/videos
+                redirect_url text,
+                pricing_model text CHECK (pricing_model IN ('cpc', 'cpm')),
+                cpc_amount numeric DEFAULT 0,
+                cpm_amount numeric DEFAULT 0,
+                budget_total numeric NOT NULL,
+                budget_remaining numeric NOT NULL,
+                impressions_count integer DEFAULT 0,
+                clicks_count integer DEFAULT 0,
+                total_spent numeric DEFAULT 0,
+                status text DEFAULT 'active', -- active, paused, completed
+                created_at timestamp with time zone DEFAULT now()
+              );
+              CREATE INDEX idx_ads_status ON ads(status);
+              CREATE INDEX idx_ads_budget ON ads(budget_remaining);
+            END IF;
+
+            -- 2. AD IMPRESSIONS (with unique constraint for fraud prevention)
+            IF NOT EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'ad_impressions') THEN
+              CREATE TABLE public.ad_impressions (
+                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                ad_id uuid REFERENCES ads(id) ON DELETE CASCADE,
+                user_id text,
+                viewed_at timestamp with time zone DEFAULT now(),
+                UNIQUE (ad_id, user_id)
+              );
+              CREATE INDEX idx_impressions_ad ON ad_impressions(ad_id);
+            END IF;
+
+            -- 3. AD CLICKS (with unique constraint for fraud prevention)
+            IF NOT EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'ad_clicks') THEN
+              CREATE TABLE public.ad_clicks (
+                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                ad_id uuid REFERENCES ads(id) ON DELETE CASCADE,
+                user_id text,
+                clicked_at timestamp with time zone DEFAULT now(),
+                cost numeric,
+                UNIQUE (ad_id, user_id)
+              );
+              CREATE INDEX idx_clicks_ad ON ad_clicks(ad_id);
+            END IF;
+
+            -- 4. PERMISSIONS & RLS
+            ALTER TABLE public.ads DISABLE ROW LEVEL SECURITY;
+            ALTER TABLE public.ad_impressions DISABLE ROW LEVEL SECURITY;
+            ALTER TABLE public.ad_clicks DISABLE ROW LEVEL SECURITY;
+            GRANT ALL ON TABLE public.ads TO anon, authenticated, service_role;
+            GRANT ALL ON TABLE public.ad_impressions TO anon, authenticated, service_role;
+            GRANT ALL ON TABLE public.ad_clicks TO anon, authenticated, service_role;
+
+            -- 5. RPC: track_ad_impression
+            CREATE OR REPLACE FUNCTION public.track_ad_impression(p_ad_id uuid, p_user_id text)
+            RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $f$
+            DECLARE
+              v_cpm numeric;
+            BEGIN
+              -- Avoid duplicate impressions
+              IF EXISTS (SELECT 1 FROM ad_impressions WHERE ad_id = p_ad_id AND user_id = p_user_id) THEN
+                RETURN;
+              END IF;
+
+              INSERT INTO ad_impressions (ad_id, user_id) VALUES (p_ad_id, p_user_id);
+
+              SELECT cpm_amount INTO v_cpm FROM ads WHERE id = p_ad_id;
+
+              UPDATE ads SET 
+                impressions_count = impressions_count + 1,
+                total_spent = total_spent + (v_cpm / 1000.0),
+                budget_remaining = budget_remaining - (v_cpm / 1000.0)
+              WHERE id = p_ad_id;
+
+              -- Auto-stop check
+              UPDATE ads SET status = 'completed' WHERE id = p_ad_id AND budget_remaining <= 0;
+            END;
+            $f$;
+
+            -- 6. RPC: track_ad_click
+            CREATE OR REPLACE FUNCTION public.track_ad_click(p_ad_id uuid, p_user_id text)
+            RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $f$
+            DECLARE
+              v_cpc numeric;
+            BEGIN
+              -- Avoid duplicate clicks
+              IF EXISTS (SELECT 1 FROM ad_clicks WHERE ad_id = p_ad_id AND user_id = p_user_id) THEN
+                RETURN;
+              END IF;
+
+              SELECT cpc_amount INTO v_cpc FROM ads WHERE id = p_ad_id;
+
+              INSERT INTO ad_clicks (ad_id, user_id, cost) VALUES (p_ad_id, p_user_id, v_cpc);
+
+              UPDATE ads SET 
+                clicks_count = clicks_count + 1,
+                total_spent = total_spent + v_cpc,
+                budget_remaining = budget_remaining - v_cpc
+              WHERE id = p_ad_id;
+
+              -- Auto-stop check
+              UPDATE ads SET status = 'completed' WHERE id = p_ad_id AND budget_remaining <= 0;
+            END;
+            $f$;
+
+          END
+          $$;
+        `
+      });
+
+      if (sqlError) {
+        console.warn('[Admin] Error ensuring full ads ecosystem:', sqlError.message);
+      } else {
+        console.log('[Admin] Full ads ecosystem and RPCs ensured');
+      }
+    } catch (e: any) {
+      console.warn('[Admin] Unexpected error in ensureAdsTable:', e.message);
+    }
+  },
+
+  /**
+   * Upload an ad image using the service role to bypass RLS.
+   */
+  async uploadAdImage(file: File, fileName: string) {
+    const { data, error } = await supabaseAdmin.storage
+      .from('ads')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: true
+      });
+    
+    if (error) throw error;
+    return data;
+  },
 };

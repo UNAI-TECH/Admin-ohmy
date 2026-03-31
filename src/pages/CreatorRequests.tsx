@@ -5,8 +5,11 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { adminService, type CreatorRequest, type CreateCreatorPayload } from '../lib/adminService';
+import { useToast } from '../context/ToastContext';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function CreatorRequests() {
+  const { success: toastSuccess, error: toastError } = useToast();
   const [requests, setRequests] = useState<CreatorRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'ALL' | 'pending' | 'approved' | 'rejected'>('pending');
@@ -111,13 +114,14 @@ export default function CreatorRequests() {
         email: requestToApprove.email,
         password: approvePassword,
       });
+      toastSuccess('Account created and application approved!');
       setShowApproveCredModal(false);
       setRequestToApprove(null);
       setAdminMessage('');
       setApprovePassword('');
       fetchRequests();
     } catch (err: any) {
-      alert('Failed to approve: ' + (err.message || 'Unknown error'));
+      toastError('Failed to approve: ' + (err.message || 'Unknown error'));
     } finally {
       setActionLoading(false);
     }
@@ -128,11 +132,12 @@ export default function CreatorRequests() {
     setActionLoading(true);
     try {
       await adminService.rejectCreatorRequest(selectedRequest.id, adminMessage);
+      toastSuccess('Application rejected');
       setAdminMessage('');
       setSelectedRequest(null);
       fetchRequests();
     } catch (err: any) {
-      alert('Failed to reject: ' + (err.message || 'Unknown error'));
+      toastError('Failed to reject: ' + (err.message || 'Unknown error'));
     } finally {
       setActionLoading(false);
     }
@@ -174,13 +179,14 @@ export default function CreatorRequests() {
         createdCredentials.password
       );
 
+      toastSuccess('Login credentials sent via email');
       setEmailSentMsg('Email sent successfully');
       setTimeout(() => {
         setCreatedCredentials(null);
         setEmailSentMsg('');
       }, 2000);
     } catch (err: any) {
-      alert('Error sending email: ' + err.message);
+      toastError('Error sending email: ' + err.message);
     } finally {
       setIsSendingEmail(false);
     }
@@ -296,296 +302,324 @@ export default function CreatorRequests() {
       </div>
 
       {/* Review Modal */}
-      {selectedRequest && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-          <div className="bg-[#131b2e] rounded-2xl w-full max-w-2xl shadow-2xl border border-[#ae88831a] relative overflow-hidden">
-            <div className="p-10">
-              <div className="flex justify-between items-start mb-8">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center font-bold text-2xl">
-                    {selectedRequest.name.charAt(0)}
+      <AnimatePresence>
+        {selectedRequest && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-[#131b2e] rounded-2xl w-full max-w-2xl shadow-2xl border border-[#ae88831a] relative overflow-hidden"
+            >
+              <div className="p-10">
+                <div className="flex justify-between items-start mb-8">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center font-bold text-2xl">
+                      {selectedRequest.name.charAt(0)}
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-white">{selectedRequest.name}</h2>
+                      <p className="text-[#e7bdb8] opacity-60">{selectedRequest.email}</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setSelectedRequest(null)} className="text-[#e7bdb8] opacity-40 hover:opacity-100 transition-opacity">
+                    <XCircle className="w-8 h-8" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+                  <div>
+                    <h4 className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest mb-2 flex items-center gap-2 opacity-60">
+                      <Info className="w-4 h-4" /> About
+                    </h4>
+                    <p className="text-white/80 leading-relaxed">{selectedRequest.bio}</p>
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-white">{selectedRequest.name}</h2>
-                    <p className="text-[#e7bdb8] opacity-60">{selectedRequest.email}</p>
+                    <h4 className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest mb-2 flex items-center gap-2 opacity-60">
+                      <ExternalLink className="w-4 h-4" /> Portfolio
+                    </h4>
+                    {selectedRequest.portfolio_url ? (
+                      <a href={selectedRequest.portfolio_url} target="_blank" rel="noreferrer" className="text-red-500 font-bold hover:underline flex items-center gap-1">
+                        View Portfolio <ExternalLink className="w-4 h-4" />
+                      </a>
+                    ) : (
+                      <p className="text-[#e7bdb8] opacity-40 italic">No link provided</p>
+                    )}
                   </div>
                 </div>
-                <button onClick={() => setSelectedRequest(null)} className="text-[#e7bdb8] opacity-40 hover:opacity-100 transition-opacity">
-                  <XCircle className="w-8 h-8" />
-                </button>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-                <div>
-                  <h4 className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest mb-2 flex items-center gap-2 opacity-60">
-                    <Info className="w-4 h-4" /> About
-                  </h4>
-                  <p className="text-white/80 leading-relaxed">{selectedRequest.bio}</p>
-                </div>
-                <div>
-                  <h4 className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest mb-2 flex items-center gap-2 opacity-60">
-                    <ExternalLink className="w-4 h-4" /> Portfolio
-                  </h4>
-                  {selectedRequest.portfolio_url ? (
-                    <a href={selectedRequest.portfolio_url} target="_blank" rel="noreferrer" className="text-red-500 font-bold hover:underline flex items-center gap-1">
-                      View Portfolio <ExternalLink className="w-4 h-4" />
-                    </a>
-                  ) : (
-                    <p className="text-[#e7bdb8] opacity-40 italic">No link provided</p>
-                  )}
-                </div>
-              </div>
-
-              {selectedRequest.status === 'pending' && (
-                <div className="space-y-6">
-                  <textarea 
-                    placeholder="Add a message for the creator (optional)..."
-                    value={adminMessage}
-                    onChange={(e) => setAdminMessage(e.target.value)}
-                    className="w-full p-6 bg-white/5 border border-white/10 focus:border-[#E31E24] rounded-xl outline-none transition-all min-h-[100px] text-white placeholder-[#e7bdb8]/30"
-                  />
-                  <div className="flex gap-4">
-                    <button 
-                      onClick={handleOpenApproveCredentials}
-                      disabled={actionLoading}
-                      className="flex-1 py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
-                      <CheckCircle className="w-5 h-5" /> Approve
-                    </button>
-                    <button 
-                      onClick={handleReject}
-                      disabled={actionLoading}
-                      className="flex-1 py-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
-                      {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><XCircle className="w-5 h-5" /> Reject</>}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {selectedRequest.status !== 'pending' && (
-                <div className={`p-6 rounded-xl ${selectedRequest.status === 'approved' ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'}`}>
-                  <h4 className={`text-sm font-bold uppercase mb-2 ${selectedRequest.status === 'approved' ? 'text-green-400' : 'text-red-400'}`}>
-                    Decision: {selectedRequest.status}
-                  </h4>
-                  <p className="text-white/60 italic">"{selectedRequest.admin_message || 'No message provided'}"</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Create Creator Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-          <div className="bg-[#131b2e] rounded-2xl w-full max-w-lg shadow-2xl border border-[#ae88831a] relative overflow-hidden">
-            <div className="p-10">
-              <div className="flex justify-between items-start mb-8">
-                <div>
-                  <h2 className="text-2xl font-bold text-white">Create Creator Account</h2>
-                  <p className="text-[#e7bdb8] opacity-60 text-sm mt-1">Manually provision a new creator</p>
-                </div>
-                <button onClick={() => setShowCreateModal(false)} className="text-[#e7bdb8] opacity-40 hover:opacity-100">
-                  <XCircle className="w-8 h-8" />
-                </button>
-              </div>
-
-              <form onSubmit={handleCreateCreator} className="space-y-5">
-                <div>
-                  <label className="block text-sm font-medium text-[#e7bdb8] opacity-60 mb-2">Full Name</label>
-                  <input 
-                    type="text" required
-                    className="w-full p-3 bg-white/5 border border-white/10 focus:border-[#E31E24] rounded-xl outline-none text-white placeholder-[#e7bdb8]/30"
-                    placeholder="Creator's full name"
-                    value={newCreator.fullName}
-                    onChange={e => setNewCreator({...newCreator, fullName: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[#e7bdb8] opacity-60 mb-2">Email</label>
-                  <input 
-                    type="email" required
-                    className="w-full p-3 bg-white/5 border border-white/10 focus:border-[#E31E24] rounded-xl outline-none text-white placeholder-[#e7bdb8]/30"
-                    placeholder="creator@email.com"
-                    value={newCreator.email}
-                    onChange={e => setNewCreator({...newCreator, email: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[#e7bdb8] opacity-60 mb-2">Password</label>
-                  <input 
-                    type="text" required minLength={8}
-                    className="w-full p-3 bg-white/5 border border-white/10 focus:border-[#E31E24] rounded-xl outline-none text-white placeholder-[#e7bdb8]/30"
-                    placeholder="Minimum 8 characters"
-                    value={newCreator.password}
-                    onChange={e => setNewCreator({...newCreator, password: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[#e7bdb8] opacity-60 mb-2">Bio (optional)</label>
-                  <textarea 
-                    className="w-full p-3 bg-white/5 border border-white/10 focus:border-[#E31E24] rounded-xl outline-none text-white placeholder-[#e7bdb8]/30 min-h-[80px]"
-                    placeholder="About this creator..."
-                    value={newCreator.bio}
-                    onChange={e => setNewCreator({...newCreator, bio: e.target.value})}
-                  />
-                </div>
-
-                {createError && (
-                  <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm">
-                    {createError}
+                {selectedRequest.status === 'pending' && (
+                  <div className="space-y-6">
+                    <textarea 
+                      placeholder="Add a message for the creator (optional)..."
+                      value={adminMessage}
+                      onChange={(e) => setAdminMessage(e.target.value)}
+                      className="w-full p-6 bg-white/5 border border-white/10 focus:border-[#E31E24] rounded-xl outline-none transition-all min-h-[100px] text-white placeholder-[#e7bdb8]/30"
+                    />
+                    <div className="flex gap-4">
+                      <button 
+                        onClick={handleOpenApproveCredentials}
+                        disabled={actionLoading}
+                        className="flex-1 py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        <CheckCircle className="w-5 h-5" /> Approve
+                      </button>
+                      <button 
+                        onClick={handleReject}
+                        disabled={actionLoading}
+                        className="flex-1 py-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><XCircle className="w-5 h-5" /> Reject</>}
+                      </button>
+                    </div>
                   </div>
                 )}
 
-                <button 
-                  type="submit"
-                  disabled={createLoading}
-                  className="w-full py-4 bg-[#E31E24] text-white rounded-xl font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {createLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><UserPlus size={18} /> Create Account</>}
-                </button>
-              </form>
-            </div>
+                {selectedRequest.status !== 'pending' && (
+                  <div className={`p-6 rounded-xl ${selectedRequest.status === 'approved' ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'}`}>
+                    <h4 className={`text-sm font-bold uppercase mb-2 ${selectedRequest.status === 'approved' ? 'text-green-400' : 'text-red-400'}`}>
+                      Decision: {selectedRequest.status}
+                    </h4>
+                    <p className="text-white/60 italic">"{selectedRequest.admin_message || 'No message provided'}"</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
+
+      {/* Create Creator Modal */}
+      <AnimatePresence>
+        {showCreateModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-[#131b2e] rounded-2xl w-full max-w-lg shadow-2xl border border-[#ae88831a] relative overflow-hidden"
+            >
+              <div className="p-10">
+                <div className="flex justify-between items-start mb-8">
+                  <div>
+                    <h2 className="text-2xl font-bold text-white">Create Creator Account</h2>
+                    <p className="text-[#e7bdb8] opacity-60 text-sm mt-1">Manually provision a new creator</p>
+                  </div>
+                  <button onClick={() => setShowCreateModal(false)} className="text-[#e7bdb8] opacity-40 hover:opacity-100">
+                    <XCircle className="w-8 h-8" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleCreateCreator} className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium text-[#e7bdb8] opacity-60 mb-2">Full Name</label>
+                    <input 
+                      type="text" required
+                      className="w-full p-3 bg-white/5 border border-white/10 focus:border-[#E31E24] rounded-xl outline-none text-white placeholder-[#e7bdb8]/30"
+                      placeholder="Creator's full name"
+                      value={newCreator.fullName}
+                      onChange={e => setNewCreator({...newCreator, fullName: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#e7bdb8] opacity-60 mb-2">Email</label>
+                    <input 
+                      type="email" required
+                      className="w-full p-3 bg-white/5 border border-white/10 focus:border-[#E31E24] rounded-xl outline-none text-white placeholder-[#e7bdb8]/30"
+                      placeholder="creator@email.com"
+                      value={newCreator.email}
+                      onChange={e => setNewCreator({...newCreator, email: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#e7bdb8] opacity-60 mb-2">Password</label>
+                    <input 
+                      type="text" required minLength={8}
+                      className="w-full p-3 bg-white/5 border border-white/10 focus:border-[#E31E24] rounded-xl outline-none text-white placeholder-[#e7bdb8]/30"
+                      placeholder="Minimum 8 characters"
+                      value={newCreator.password}
+                      onChange={e => setNewCreator({...newCreator, password: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#e7bdb8] opacity-60 mb-2">Bio (optional)</label>
+                    <textarea 
+                      className="w-full p-3 bg-white/5 border border-white/10 focus:border-[#E31E24] rounded-xl outline-none text-white placeholder-[#e7bdb8]/30 min-h-[80px]"
+                      placeholder="About this creator..."
+                      value={newCreator.bio}
+                      onChange={e => setNewCreator({...newCreator, bio: e.target.value})}
+                    />
+                  </div>
+
+                  {createError && (
+                    <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm">
+                      {createError}
+                    </div>
+                  )}
+
+                  <button 
+                    type="submit"
+                    disabled={createLoading}
+                    className="w-full py-4 bg-[#E31E24] text-white rounded-xl font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {createLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><UserPlus size={18} /> Create Account</>}
+                  </button>
+                </form>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Approve Credentials Modal — Admin sets password before approving */}
-      {showApproveCredModal && requestToApprove && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-          <div className="bg-[#131b2e] rounded-2xl w-full max-w-lg shadow-2xl border border-green-500/20 relative overflow-hidden">
-            <div className="p-10">
-              <div className="flex justify-between items-start mb-8">
-                <div>
-                  <h2 className="text-2xl font-bold text-white">Create Login Credentials</h2>
-                  <p className="text-[#e7bdb8] opacity-60 text-sm mt-1">Set a password for <strong className="text-white">{requestToApprove.name}</strong></p>
+      <AnimatePresence>
+        {showApproveCredModal && requestToApprove && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-[#131b2e] rounded-2xl w-full max-w-lg shadow-2xl border border-green-500/20 relative overflow-hidden"
+            >
+              <div className="p-10">
+                <div className="flex justify-between items-start mb-8">
+                  <div>
+                    <h2 className="text-2xl font-bold text-white">Create Login Credentials</h2>
+                    <p className="text-[#e7bdb8] opacity-60 text-sm mt-1">Set a password for <strong className="text-white">{requestToApprove.name}</strong></p>
+                  </div>
+                  <button onClick={() => { setShowApproveCredModal(false); setRequestToApprove(null); }} className="text-[#e7bdb8] opacity-40 hover:opacity-100">
+                    <XCircle className="w-8 h-8" />
+                  </button>
                 </div>
-                <button onClick={() => { setShowApproveCredModal(false); setRequestToApprove(null); }} className="text-[#e7bdb8] opacity-40 hover:opacity-100">
-                  <XCircle className="w-8 h-8" />
-                </button>
-              </div>
 
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-green-500/10 text-green-400 rounded-xl flex items-center justify-center font-bold text-xl">
-                    {requestToApprove.name.charAt(0)}
+                <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-green-500/10 text-green-400 rounded-xl flex items-center justify-center font-bold text-xl">
+                      {requestToApprove.name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="text-white font-bold">{requestToApprove.name}</p>
+                      <p className="text-[#e7bdb8] opacity-60 text-sm">{requestToApprove.email}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <form onSubmit={handleConfirmApprove} className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium text-[#e7bdb8] opacity-60 mb-2">Email (auto-filled)</label>
+                    <input 
+                      type="email" disabled
+                      className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white/50 cursor-not-allowed"
+                      value={requestToApprove.email}
+                    />
                   </div>
                   <div>
-                    <p className="text-white font-bold">{requestToApprove.name}</p>
-                    <p className="text-[#e7bdb8] opacity-60 text-sm">{requestToApprove.email}</p>
+                    <label className="block text-sm font-medium text-[#e7bdb8] opacity-60 mb-2">Set Password</label>
+                    <input 
+                      type="text" required minLength={8}
+                      className="w-full p-3 bg-white/5 border border-white/10 focus:border-green-500 rounded-xl outline-none text-white placeholder-[#e7bdb8]/30"
+                      placeholder="Minimum 8 characters"
+                      value={approvePassword}
+                      onChange={e => setApprovePassword(e.target.value)}
+                      autoFocus
+                    />
                   </div>
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#e7bdb8] opacity-60 mb-2">Admin Message (optional)</label>
+                    <textarea 
+                      className="w-full p-3 bg-white/5 border border-white/10 focus:border-green-500 rounded-xl outline-none text-white placeholder-[#e7bdb8]/30 min-h-[80px]"
+                      placeholder="Congratulations! Your application has been approved..."
+                      value={adminMessage}
+                      onChange={e => setAdminMessage(e.target.value)}
+                    />
+                  </div>
+
+                  <button 
+                    type="submit"
+                    disabled={actionLoading}
+                    className="w-full py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CheckCircle size={18} /> Create Account</>}
+                  </button>
+                </form>
               </div>
-
-              <form onSubmit={handleConfirmApprove} className="space-y-5">
-                <div>
-                  <label className="block text-sm font-medium text-[#e7bdb8] opacity-60 mb-2">Email (auto-filled)</label>
-                  <input 
-                    type="email" disabled
-                    className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white/50 cursor-not-allowed"
-                    value={requestToApprove.email}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[#e7bdb8] opacity-60 mb-2">Set Password</label>
-                  <input 
-                    type="text" required minLength={8}
-                    className="w-full p-3 bg-white/5 border border-white/10 focus:border-green-500 rounded-xl outline-none text-white placeholder-[#e7bdb8]/30"
-                    placeholder="Minimum 8 characters"
-                    value={approvePassword}
-                    onChange={e => setApprovePassword(e.target.value)}
-                    autoFocus
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[#e7bdb8] opacity-60 mb-2">Admin Message (optional)</label>
-                  <textarea 
-                    className="w-full p-3 bg-white/5 border border-white/10 focus:border-green-500 rounded-xl outline-none text-white placeholder-[#e7bdb8]/30 min-h-[80px]"
-                    placeholder="Congratulations! Your application has been approved..."
-                    value={adminMessage}
-                    onChange={e => setAdminMessage(e.target.value)}
-                  />
-                </div>
-
-                <button 
-                  type="submit"
-                  disabled={actionLoading}
-                  className="w-full py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CheckCircle size={18} /> Create Account</>}
-                </button>
-              </form>
-            </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* Credentials Display / Mail Preview Modal */}
-      {createdCredentials && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-          <div className="bg-[#131b2e] rounded-2xl w-full max-w-md shadow-2xl border border-green-500/20 relative overflow-hidden">
-            <div className="p-10">
-              <div className="flex flex-col items-center mb-6">
-                <div className="w-16 h-16 bg-green-500/10 rounded-2xl flex items-center justify-center mb-4">
-                  <CheckCircle className="w-8 h-8 text-green-500" />
-                </div>
-                <h2 className="text-2xl font-bold text-white">Login Credentials</h2>
-                <p className="text-[#e7bdb8] opacity-60 text-sm mt-2 text-center">
-                  Your account has been approved. Use the following credentials to sign in and access the Creator Studio.
-                </p>
-              </div>
-
-              <div className="space-y-4 mb-6">
-                <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest opacity-60 mb-1">Email</p>
-                    <p className="text-white font-mono text-sm">{createdCredentials.email}</p>
+      <AnimatePresence>
+        {createdCredentials && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-[#131b2e] rounded-2xl w-full max-w-md shadow-2xl border border-green-500/20 relative overflow-hidden"
+            >
+              <div className="p-10">
+                <div className="flex flex-col items-center mb-6">
+                  <div className="w-16 h-16 bg-green-500/10 rounded-2xl flex items-center justify-center mb-4">
+                    <CheckCircle className="w-8 h-8 text-green-500" />
                   </div>
-                  <button onClick={() => copyToClipboard(createdCredentials.email, 'email')} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                    {copiedField === 'email' ? <Check size={16} className="text-green-400" /> : <Copy size={16} className="text-[#e7bdb8]" />}
+                  <h2 className="text-2xl font-bold text-white">Login Credentials</h2>
+                  <p className="text-[#e7bdb8] opacity-60 text-sm mt-2 text-center">
+                    Your account has been approved. Use the following credentials to sign in and access the Creator Studio.
+                  </p>
+                </div>
+
+                <div className="space-y-4 mb-6">
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest opacity-60 mb-1">Email</p>
+                      <p className="text-white font-mono text-sm">{createdCredentials.email}</p>
+                    </div>
+                    <button onClick={() => copyToClipboard(createdCredentials.email, 'email')} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                      {copiedField === 'email' ? <Check size={16} className="text-green-400" /> : <Copy size={16} className="text-[#e7bdb8]" />}
+                    </button>
+                  </div>
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest opacity-60 mb-1">Password</p>
+                      <p className="text-white font-mono text-sm">{createdCredentials.password}</p>
+                    </div>
+                    <button onClick={() => copyToClipboard(createdCredentials.password, 'password')} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                      {copiedField === 'password' ? <Check size={16} className="text-green-400" /> : <Copy size={16} className="text-[#e7bdb8]" />}
+                    </button>
+                  </div>
+                </div>
+
+                {emailSentMsg ? (
+                  <div className="p-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-sm mb-6 text-center font-bold">
+                    {emailSentMsg}
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs mb-6">
+                    ⚠️ This password won't be shown again. Make sure to copy it or send the email now.
+                  </div>
+                )}
+
+                <div className="flex gap-4">
+                  <button 
+                    onClick={handleCloseCredentials}
+                    className="flex-1 py-3 bg-white/5 border border-white/10 text-white rounded-xl font-bold hover:bg-white/10 transition-all flex items-center justify-center"
+                  >
+                    Close
+                  </button>
+                  <button 
+                    onClick={handleSendEmail}
+                    disabled={isSendingEmail || !!emailSentMsg}
+                    className="flex-1 py-3 bg-[#E31E24] text-white rounded-xl font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {isSendingEmail ? <Loader2 className="w-5 h-5 animate-spin" /> : "Send Email"}
                   </button>
                 </div>
-                <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest opacity-60 mb-1">Password</p>
-                    <p className="text-white font-mono text-sm">{createdCredentials.password}</p>
-                  </div>
-                  <button onClick={() => copyToClipboard(createdCredentials.password, 'password')} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                    {copiedField === 'password' ? <Check size={16} className="text-green-400" /> : <Copy size={16} className="text-[#e7bdb8]" />}
-                  </button>
-                </div>
               </div>
-
-              {emailSentMsg ? (
-                <div className="p-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-sm mb-6 text-center font-bold">
-                  {emailSentMsg}
-                </div>
-              ) : (
-                <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs mb-6">
-                  ⚠️ This password won't be shown again. Make sure to copy it or send the email now.
-                </div>
-              )}
-
-              <div className="flex gap-4">
-                <button 
-                  onClick={handleCloseCredentials}
-                  className="flex-1 py-3 bg-white/5 border border-white/10 text-white rounded-xl font-bold hover:bg-white/10 transition-all flex items-center justify-center"
-                >
-                  Close
-                </button>
-                <button 
-                  onClick={handleSendEmail}
-                  disabled={isSendingEmail || !!emailSentMsg}
-                  className="flex-1 py-3 bg-[#E31E24] text-white rounded-xl font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {isSendingEmail ? <Loader2 className="w-5 h-5 animate-spin" /> : "Send Email"}
-                </button>
-              </div>
-            </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 }
