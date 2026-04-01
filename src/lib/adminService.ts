@@ -35,8 +35,6 @@ export interface CreatorRequest {
 
 export const adminService = {
   /**
-   * Create a new creator account.
-  /**
    * Fix the broken DB trigger (one-time). The existing trigger inserts into
    * `public.profiles` with `user_role` type, but our app uses `public."User"` 
    * with `public."Role"` type. This replaces the trigger function.

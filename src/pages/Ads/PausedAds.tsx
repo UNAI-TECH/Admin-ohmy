@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { PauseCircle, Target, Link, Calendar, IndianRupee, Play, Search, CreditCard } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -13,7 +13,7 @@ export default function PausedAds() {
   useEffect(() => {
     const fetchAds = async () => {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('ads')
         .select('*')
         .in('status', ['paused', 'ended'])
