@@ -134,7 +134,7 @@ const Feedback: React.FC = () => {
                         <h3 className="text-lg font-bold text-white mb-0.5">{username}</h3>
                         <div className="flex flex-wrap items-center gap-3">
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border ${
-                            role === 'ANALYST' ? 'bg-[#E31E24]/10 border-[#E31E24]/20 text-[#E31E24]' : 
+                            (role === 'ANALYST' || role === 'CREATOR') ? 'bg-[#E31E24]/10 border-[#E31E24]/20 text-[#E31E24]' : 
                             role === 'ADMIN' ? 'bg-purple-500/10 border-purple-500/20 text-purple-400' :
                             'bg-white/5 border-white/10 text-[#e7bdb8]'
                           }`}>

@@ -158,9 +158,8 @@ export const adminService = {
    * Uses admin.createUser() then manually creates the User row.
    * The trigger may fail (500) but the auth user is sometimes still created.
    */
-  async createCreatorAccount(payload: CreateCreatorPayload, isOrganization: boolean = false) {
+  async createCreatorAccount(payload: CreateCreatorPayload, _isOrganization: boolean = false) {
     const rawUsername = payload.email.split('@')[0];
-    const now = new Date().toISOString();
 
     // Step 1: Check if this email already exists in auth (from previous failed attempts)
     let existingAuthUser = null;
@@ -177,17 +176,6 @@ export const adminService = {
         password: payload.password,
         email_confirm: true,
       });
-
-      await supabaseAdmin.from('User').upsert({
-        id: existingAuthUser.id,
-        email: payload.email,
-        username: rawUsername,
-        bio: payload.bio || '',
-        role: 'ANALYST',
-        is_organization: isOrganization,
-        temporary_password: payload.password,
-        updatedAt: now,
-      }, { onConflict: 'id' });
 
       return existingAuthUser;
     }
@@ -220,38 +208,10 @@ export const adminService = {
     const userId = createData.user.id;
     console.log('[Admin] Auth user created:', userId);
 
-    // Wait for the trigger to finish its work
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // The DB triggers handle migrating this Auth user into the public."User" table
+    // (via handle_new_user and the handle_creator_approval trigger)
 
-    // Now create the correct row in public."User" with the real username and correct role
-    let { error: upsertError } = await supabaseAdmin.from('User').upsert({
-      id: userId,
-      email: payload.email,
-      username: rawUsername,
-      bio: payload.bio || '',
-      role: 'ANALYST',
-      is_organization: isOrganization,
-      temporary_password: payload.password,
-      updatedAt: now,
-    }, { onConflict: 'id' });
-
-    if (upsertError) {
-      // If the real username is taken in `public.User`, try with a 4-digit suffix
-      console.warn('[Admin] Upsert error, trying unique username in User table:', upsertError);
-      const fallbackUsername = rawUsername + '_' + Date.now().toString().slice(-4);
-      await supabaseAdmin.from('User').upsert({
-        id: userId,
-        email: payload.email,
-        username: fallbackUsername,
-        bio: payload.bio || '',
-        role: 'ANALYST',
-        is_organization: isOrganization,
-        temporary_password: payload.password,
-        updatedAt: now,
-      }, { onConflict: 'id' });
-    }
-
-    console.log('[Admin] Creator account created for:', payload.email);
+    console.log('[Admin] Creator auth account created for:', payload.email);
     return createData.user;
   },
 
@@ -266,7 +226,7 @@ export const adminService = {
         email: payload.email,
         username: payload.email.split('@')[0],
         bio: payload.bio || '',
-        role: 'ANALYST',
+        role: 'CREATOR',
       }, { onConflict: 'id' });
 
     if (error) {
@@ -336,7 +296,7 @@ export const adminService = {
       { count: pendingRequests },
     ] = await Promise.all([
       supabaseAdmin.from('User').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('User').select('*', { count: 'exact', head: true }).eq('role', 'ANALYST'),
+      supabaseAdmin.from('User').select('*', { count: 'exact', head: true }).in('role', ['ANALYST', 'CREATOR']),
       supabaseAdmin.from('Post').select('*', { count: 'exact', head: true }),
       supabaseAdmin.from('Comment').select('*', { count: 'exact', head: true }),
       supabaseAdmin.from('creator_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
@@ -366,7 +326,7 @@ export const adminService = {
     const { data, error } = await supabaseAdmin
       .from('User')
       .select('*')
-      .eq('role', 'ANALYST')
+      .in('role', ['ANALYST', 'CREATOR'])
       .order('createdAt', { ascending: false });
 
     if (error) throw error;

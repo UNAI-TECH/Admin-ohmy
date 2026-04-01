@@ -30,7 +30,7 @@ const Analytics: React.FC = () => {
     try {
       // Fetch all creators and posts to calculate monthly distribution
       const [creatorsData, postsData] = await Promise.all([
-        supabase.from('User').select('createdAt').eq('role', 'ANALYST').order('createdAt', { ascending: true }),
+        supabase.from('User').select('createdAt').in('role', ['ANALYST', 'CREATOR']).order('createdAt', { ascending: true }),
         supabase.from('Post').select('createdAt').order('createdAt', { ascending: true })
       ]);
 
