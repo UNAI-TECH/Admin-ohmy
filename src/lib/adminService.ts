@@ -23,10 +23,17 @@ export interface CreateCreatorPayload {
 
 export interface CreatorRequest {
   id: string;
+  request_type: 'personal' | 'organization';
   name: string;
+  username: string;
   email: string;
   bio: string;
-  portfolio_url?: string;
+  social_link?: string;
+  channel_name?: string;
+  channel_email?: string;
+  category?: string[];
+  employee_size?: number;
+  channel_bio?: string;
   status: 'pending' | 'approved' | 'rejected';
   admin_message?: string;
   created_at: string;
@@ -151,7 +158,7 @@ export const adminService = {
    * Uses admin.createUser() then manually creates the User row.
    * The trigger may fail (500) but the auth user is sometimes still created.
    */
-  async createCreatorAccount(payload: CreateCreatorPayload) {
+  async createCreatorAccount(payload: CreateCreatorPayload, isOrganization: boolean = false) {
     const rawUsername = payload.email.split('@')[0];
     const now = new Date().toISOString();
 
@@ -177,6 +184,7 @@ export const adminService = {
         username: rawUsername,
         bio: payload.bio || '',
         role: 'ANALYST',
+        is_organization: isOrganization,
         temporary_password: payload.password,
         updatedAt: now,
       }, { onConflict: 'id' });
@@ -222,6 +230,7 @@ export const adminService = {
       username: rawUsername,
       bio: payload.bio || '',
       role: 'ANALYST',
+      is_organization: isOrganization,
       temporary_password: payload.password,
       updatedAt: now,
     }, { onConflict: 'id' });
@@ -236,6 +245,7 @@ export const adminService = {
         username: fallbackUsername,
         bio: payload.bio || '',
         role: 'ANALYST',
+        is_organization: isOrganization,
         temporary_password: payload.password,
         updatedAt: now,
       }, { onConflict: 'id' });

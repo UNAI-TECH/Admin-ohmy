@@ -99,19 +99,24 @@ export default function CreatorRequests() {
     if (!requestToApprove) return;
     setActionLoading(true);
     try {
+      const isOrg = requestToApprove.request_type === 'organization';
+      const userEmail = isOrg ? (requestToApprove.channel_email || '') : requestToApprove.email;
+      const userName = isOrg ? (requestToApprove.channel_name || '') : requestToApprove.name;
+      const userBio = isOrg ? (requestToApprove.channel_bio || '') : requestToApprove.bio;
+
       // Create the creator account with the admin-set password
       await adminService.createCreatorAccount({
-        email: requestToApprove.email,
+        email: userEmail,
         password: approvePassword,
-        fullName: requestToApprove.name,
-        bio: requestToApprove.bio,
-      });
+        fullName: userName,
+        bio: userBio,
+      }, isOrg);
 
       // Update the request status to approved
       await adminService.approveRequestStatus(requestToApprove.id, adminMessage);
 
       setCreatedCredentials({
-        email: requestToApprove.email,
+        email: userEmail,
         password: approvePassword,
       });
       toastSuccess('Account created and application approved!');
@@ -246,7 +251,7 @@ export default function CreatorRequests() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[#ae88830d]">
-                  <th className="px-8 py-4 text-left text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest opacity-40">Creator</th>
+                  <th className="px-8 py-4 text-left text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest opacity-40">Creator Info</th>
                   <th className="px-8 py-4 text-left text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest opacity-40">Status</th>
                   <th className="px-8 py-4 text-left text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest opacity-40">Applied On</th>
                   <th className="px-8 py-4 text-right text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest opacity-40">Actions</th>
@@ -270,12 +275,22 @@ export default function CreatorRequests() {
                   <tr key={request.id} className="hover:bg-white/[0.02] transition-colors group">
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center font-bold text-xl">
-                          {request.name.charAt(0)}
+                        <div className="w-12 h-12 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center font-bold text-xl uppercase">
+                          {(request.request_type === 'organization' ? request.channel_name : request.name)?.charAt(0) || '?'}
                         </div>
                         <div>
-                          <h4 className="font-bold text-white">{request.name}</h4>
-                          <p className="text-sm text-[#e7bdb8] opacity-60">{request.email}</p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h4 className="font-bold text-white">{request.request_type === 'organization' ? request.channel_name : request.name}</h4>
+                            {request.username && (
+                              <span className="text-[#e7bdb8] opacity-80 text-xs font-semibold">@{request.username}</span>
+                            )}
+                            <span className="px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase bg-white/10 rounded ml-2">
+                              {request.request_type}
+                            </span>
+                          </div>
+                          <p className="text-sm text-[#e7bdb8] opacity-60 mt-1">
+                            {request.request_type === 'organization' ? request.channel_email : request.email}
+                          </p>
                         </div>
                       </div>
                     </td>
@@ -314,12 +329,22 @@ export default function CreatorRequests() {
               <div className="p-10">
                 <div className="flex justify-between items-start mb-8">
                   <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center font-bold text-2xl">
-                      {selectedRequest.name.charAt(0)}
+                    <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center font-bold text-2xl uppercase">
+                      {(selectedRequest.request_type === 'organization' ? selectedRequest.channel_name : selectedRequest.name)?.charAt(0) || '?'}
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold text-white">{selectedRequest.name}</h2>
-                      <p className="text-[#e7bdb8] opacity-60">{selectedRequest.email}</p>
+                      <div className="flex items-center gap-3">
+                        <h2 className="text-2xl font-bold text-white">
+                          {selectedRequest.request_type === 'organization' ? selectedRequest.channel_name : selectedRequest.name}
+                        </h2>
+                        <span className="px-2.5 py-1 text-xs font-bold uppercase tracking-wider bg-white/10 rounded-md">
+                          {selectedRequest.request_type}
+                        </span>
+                      </div>
+                      <p className="text-[#e7bdb8] opacity-60 mt-1">
+                        {selectedRequest.request_type === 'organization' ? selectedRequest.channel_email : selectedRequest.email}
+                        {selectedRequest.request_type === 'personal' && selectedRequest.username && ` • @${selectedRequest.username}`}
+                      </p>
                     </div>
                   </div>
                   <button onClick={() => setSelectedRequest(null)} className="text-[#e7bdb8] opacity-40 hover:opacity-100 transition-opacity">
@@ -328,24 +353,51 @@ export default function CreatorRequests() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-                  <div>
-                    <h4 className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest mb-2 flex items-center gap-2 opacity-60">
-                      <Info className="w-4 h-4" /> About
-                    </h4>
-                    <p className="text-white/80 leading-relaxed">{selectedRequest.bio}</p>
-                  </div>
-                  <div>
-                    <h4 className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest mb-2 flex items-center gap-2 opacity-60">
-                      <ExternalLink className="w-4 h-4" /> Portfolio
-                    </h4>
-                    {selectedRequest.portfolio_url ? (
-                      <a href={selectedRequest.portfolio_url} target="_blank" rel="noreferrer" className="text-red-500 font-bold hover:underline flex items-center gap-1">
-                        View Portfolio <ExternalLink className="w-4 h-4" />
-                      </a>
-                    ) : (
-                      <p className="text-[#e7bdb8] opacity-40 italic">No link provided</p>
-                    )}
-                  </div>
+                  {selectedRequest.request_type === 'organization' ? (
+                    <>
+                      <div>
+                        <h4 className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest mb-2 flex items-center gap-2 opacity-60">
+                          <Info className="w-4 h-4" /> Organization Details
+                        </h4>
+                        <p className="text-white/80 leading-relaxed text-sm"><span className="font-bold opacity-60">Bio:</span> {selectedRequest.channel_bio}</p>
+                        <p className="text-white/80 leading-relaxed text-sm mt-2"><span className="font-bold opacity-60">Categories:</span> {selectedRequest.category?.join(', ')}</p>
+                        <p className="text-white/80 leading-relaxed text-sm mt-2"><span className="font-bold opacity-60">Team Size:</span> {selectedRequest.employee_size}</p>
+                      </div>
+                      <div>
+                        <h4 className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest mb-2 flex items-center gap-2 opacity-60">
+                          <ExternalLink className="w-4 h-4" /> Links
+                        </h4>
+                        {selectedRequest.social_link ? (
+                          <a href={selectedRequest.social_link} target="_blank" rel="noreferrer" className="text-red-500 font-bold hover:underline flex items-center gap-1 text-sm">
+                            View Social Link <ExternalLink className="w-4 h-4" />
+                          </a>
+                        ) : (
+                          <p className="text-[#e7bdb8] opacity-40 italic text-sm">No link provided</p>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <h4 className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest mb-2 flex items-center gap-2 opacity-60">
+                          <Info className="w-4 h-4" /> About
+                        </h4>
+                        <p className="text-white/80 leading-relaxed text-sm">{selectedRequest.bio}</p>
+                      </div>
+                      <div>
+                        <h4 className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest mb-2 flex items-center gap-2 opacity-60">
+                          <ExternalLink className="w-4 h-4" /> Links
+                        </h4>
+                        {selectedRequest.social_link ? (
+                          <a href={selectedRequest.social_link} target="_blank" rel="noreferrer" className="text-red-500 font-bold hover:underline flex items-center gap-1 text-sm">
+                            View Social Link <ExternalLink className="w-4 h-4" />
+                          </a>
+                        ) : (
+                          <p className="text-[#e7bdb8] opacity-40 italic text-sm">No social link provided</p>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {selectedRequest.status === 'pending' && (
@@ -485,7 +537,7 @@ export default function CreatorRequests() {
                 <div className="flex justify-between items-start mb-8">
                   <div>
                     <h2 className="text-2xl font-bold text-white">Create Login Credentials</h2>
-                    <p className="text-[#e7bdb8] opacity-60 text-sm mt-1">Set a password for <strong className="text-white">{requestToApprove.name}</strong></p>
+                    <p className="text-[#e7bdb8] opacity-60 text-sm mt-1">Set a password for <strong className="text-white">{requestToApprove.request_type === 'organization' ? requestToApprove.channel_name : requestToApprove.name}</strong></p>
                   </div>
                   <button onClick={() => { setShowApproveCredModal(false); setRequestToApprove(null); }} className="text-[#e7bdb8] opacity-40 hover:opacity-100">
                     <XCircle className="w-8 h-8" />
@@ -494,12 +546,12 @@ export default function CreatorRequests() {
 
                 <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-green-500/10 text-green-400 rounded-xl flex items-center justify-center font-bold text-xl">
-                      {requestToApprove.name.charAt(0)}
+                    <div className="w-12 h-12 bg-green-500/10 text-green-400 rounded-xl flex items-center justify-center font-bold text-xl uppercase">
+                      {(requestToApprove.request_type === 'organization' ? requestToApprove.channel_name : requestToApprove.name)?.charAt(0) || '?'}
                     </div>
                     <div>
-                      <p className="text-white font-bold">{requestToApprove.name}</p>
-                      <p className="text-[#e7bdb8] opacity-60 text-sm">{requestToApprove.email}</p>
+                      <p className="text-white font-bold">{requestToApprove.request_type === 'organization' ? requestToApprove.channel_name : requestToApprove.name}</p>
+                      <p className="text-[#e7bdb8] opacity-60 text-sm">{requestToApprove.request_type === 'organization' ? requestToApprove.channel_email : requestToApprove.email}</p>
                     </div>
                   </div>
                 </div>
@@ -510,7 +562,7 @@ export default function CreatorRequests() {
                     <input 
                       type="email" disabled
                       className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white/50 cursor-not-allowed"
-                      value={requestToApprove.email}
+                      value={requestToApprove.request_type === 'organization' ? requestToApprove.channel_email : requestToApprove.email}
                     />
                   </div>
                   <div>
