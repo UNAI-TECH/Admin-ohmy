@@ -7,6 +7,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 const Posts: React.FC = () => {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterAuthor, setFilterAuthor] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterType, setFilterType] = useState('');
+
+  const filteredPosts = posts.filter(post => {
+    const authorMatch = !filterAuthor || (post.User?.username || '').toLowerCase().includes(filterAuthor.toLowerCase());
+    const categoryMatch = !filterCategory || (post.category || '').toLowerCase().includes(filterCategory.toLowerCase());
+    const typeMatch = !filterType || (post.type || 'NEWS').toLowerCase() === filterType.toLowerCase();
+    return authorMatch && categoryMatch && typeMatch;
+  });
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -40,12 +50,41 @@ const Posts: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto h-full flex flex-col">
-      <div className="mb-10">
-        <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-          <FileText className="text-[#10B981]" />
-          Content Posts
-        </h1>
-        <p className="text-[#e7bdb8] opacity-60">All published posts, news, blogs, and videos across the platform.</p>
+      <div className="mb-6 flex flex-col sm:flex-row gap-4 items-end sm:items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
+            <FileText className="text-[#10B981]" />
+            Content Posts
+          </h1>
+          <p className="text-[#e7bdb8] opacity-60">All published posts, news, blogs, and videos across the platform.</p>
+        </div>
+        <div className="flex bg-[#171f3366] p-2 rounded-xl border border-[#ae88831a] gap-2">
+          <input 
+            type="text" 
+            placeholder="Filter Creator..." 
+            value={filterAuthor}
+            onChange={(e) => setFilterAuthor(e.target.value)}
+            className="w-32 bg-transparent text-sm text-white px-3 py-1.5 focus:outline-none placeholder:text-white/30 border border-white/5 rounded-lg"
+          />
+          <input 
+            type="text" 
+            placeholder="Category..." 
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+            className="w-28 bg-transparent text-sm text-white px-3 py-1.5 focus:outline-none placeholder:text-white/30 border border-white/5 rounded-lg"
+          />
+          <select 
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            className="w-28 bg-[#131b2e] text-sm text-white px-3 py-1.5 focus:outline-none border border-white/5 rounded-lg"
+          >
+            <option value="">All Types</option>
+            <option value="NEWS">NEWS</option>
+            <option value="BLOG">BLOG</option>
+            <option value="VIDEO">VIDEO</option>
+            <option value="STORY">STORY</option>
+          </select>
+        </div>
       </div>
 
       <div className="flex-1 bg-[#171f3366] backdrop-blur-md border border-[#ae88831a] rounded-2xl overflow-hidden flex flex-col">
@@ -68,15 +107,15 @@ const Posts: React.FC = () => {
                     Loading posts...
                   </td>
                 </tr>
-              ) : posts.length === 0 ? (
+              ) : filteredPosts.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-20 text-center text-[#e7bdb8] opacity-50 italic">
-                    No posts have been published yet.
+                    {posts.length === 0 ? 'No posts have been published yet.' : 'No posts match your filters.'}
                   </td>
                 </tr>
               ) : (
                 <AnimatePresence>
-                  {posts.map(post => (
+                  {filteredPosts.map(post => (
                     <motion.tr 
                       key={post.id}
                       initial={{ opacity: 0, y: 10 }}
