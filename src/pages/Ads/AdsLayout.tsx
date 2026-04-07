@@ -14,17 +14,17 @@ const AdsLayout: React.FC<Props> = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState('Overview');
 
   return (
-    <div className="flex h-full bg-[#060e20]">
+    <div className="flex h-full bg-[#FAFBFF]">
       {/* Ads Manager Sidebar */}
-      <aside className="w-64 bg-[#0b1326] border-r border-[#ae88831a] flex flex-col pt-6">
+      <aside className="w-64 bg-[#FAFBFF] border-r border-gray-200 flex flex-col pt-6">
         <div className="px-6 mb-6">
           <button 
             onClick={onBack}
-            className="flex items-center gap-2 text-xs font-bold text-[#e7bdb8] opacity-60 hover:opacity-100 transition-opacity uppercase tracking-widest mb-6"
+            className="flex items-center gap-2 text-xs font-bold text-gray-500 opacity-60 hover:opacity-100 transition-opacity uppercase tracking-widest mb-6"
           >
             <ChevronLeft size={14} /> Back to Sentinel
           </button>
-          <h2 className="text-xl font-black text-white tracking-tight leading-tight">Ads Manager</h2>
+          <h2 className="text-xl font-black text-gray-900 tracking-tight leading-tight">Ads Manager</h2>
           <p className="text-[10px] font-bold text-[#E31E24] uppercase tracking-[0.2em]">Campaign Hub</p>
         </div>
 
@@ -54,8 +54,8 @@ const AdsNavItem = ({ icon, label, active = false, onClick }: { icon: any, label
     onClick={onClick}
     className={`flex items-center gap-4 w-full p-3 rounded-xl transition-all font-semibold text-sm ${
       active 
-      ? 'bg-[#131b2e] text-white border border-[#ae88831a]' 
-      : 'text-[#e7bdb8]/60 hover:text-[#e7bdb8] hover:bg-[#131b2e]/50'
+      ? 'bg-white text-gray-900 border shadow-sm border-gray-200' 
+      : 'text-gray-500/60 hover:text-gray-900 hover:bg-gray-100'
     }`}>
     {icon}
     {label}

@@ -78,32 +78,32 @@ const Analytics: React.FC = () => {
     <div className="max-w-7xl mx-auto h-full flex flex-col">
       <div className="mb-10 flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
             <BarChart3 className="text-[#3b82f6]" />
             Growth Analytics
           </h1>
-          <p className="text-[#e7bdb8] opacity-60">Real-time metrics for creator onboarding and content volume ({new Date().getFullYear()}).</p>
+          <p className="text-gray-500 opacity-60">Real-time metrics for creator onboarding and content volume ({new Date().getFullYear()}).</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <div className="bg-[#171f3366] backdrop-blur-md border border-[#ae88831a] p-6 rounded-2xl">
-          <p className="text-[#e7bdb8] text-[10px] font-bold uppercase tracking-widest mb-1 opacity-50">Active Creators</p>
-          <h3 className="text-2xl font-bold text-white mb-2">{creatorsByMonth.reduce((acc, c) => acc + c.count, 0)}</h3>
+        <div className="bg-white shadow-sm backdrop-blur-md border border-gray-200 p-6 rounded-2xl">
+          <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1 opacity-50">Active Creators</p>
+          <h3 className="text-2xl font-bold text-gray-900 mb-2">{creatorsByMonth.reduce((acc, c) => acc + c.count, 0)}</h3>
           <div className="flex items-center gap-2 text-[10px] text-green-400 font-bold bg-green-400/10 px-2 py-0.5 rounded-full w-fit">
             <TrendingUp size={12} /> +12% growth
           </div>
         </div>
-        <div className="bg-[#171f3366] backdrop-blur-md border border-[#ae88831a] p-6 rounded-2xl">
-          <p className="text-[#e7bdb8] text-[10px] font-bold uppercase tracking-widest mb-1 opacity-50">Content Volume</p>
-          <h3 className="text-2xl font-bold text-white mb-2">{postsByMonth.reduce((acc, p) => acc + p.count, 0)}</h3>
+        <div className="bg-white shadow-sm backdrop-blur-md border border-gray-200 p-6 rounded-2xl">
+          <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1 opacity-50">Content Volume</p>
+          <h3 className="text-2xl font-bold text-gray-900 mb-2">{postsByMonth.reduce((acc, p) => acc + p.count, 0)}</h3>
           <div className="flex items-center gap-2 text-[10px] text-blue-400 font-bold bg-blue-400/10 px-2 py-0.5 rounded-full w-fit">
             <FileText size={12} /> High Velocity
           </div>
         </div>
-        <div className="bg-[#171f3366] backdrop-blur-md border border-[#ae88831a] p-6 rounded-2xl">
-          <p className="text-[#e7bdb8] text-[10px] font-bold uppercase tracking-widest mb-1 opacity-50">User Segment</p>
-          <h3 className="text-2xl font-bold text-white mb-2">Enterprise</h3>
+        <div className="bg-white shadow-sm backdrop-blur-md border border-gray-200 p-6 rounded-2xl">
+          <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1 opacity-50">User Segment</p>
+          <h3 className="text-2xl font-bold text-gray-900 mb-2">Enterprise</h3>
           <div className="flex items-center gap-2 text-[10px] text-purple-400 font-bold bg-purple-400/10 px-2 py-0.5 rounded-full w-fit">
             <Globe size={12} /> Global reached
           </div>
@@ -113,20 +113,20 @@ const Analytics: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* Creators Chart */}
-        <div className="bg-[#171f3366] backdrop-blur-md rounded-2xl border border-[#ae88831a] p-8 flex flex-col">
+        <div className="bg-white shadow-sm backdrop-blur-md rounded-2xl border border-gray-200 p-8 flex flex-col">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h3 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
+              <h3 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
                 <Users className="text-[#E31E24]" size={20} />
                 Creators Onboarded
               </h3>
-              <p className="text-xs text-[#e7bdb8] opacity-50">Total validated creators joining the platform per month.</p>
+              <p className="text-xs text-gray-500 opacity-50">Total validated creators joining the platform per month.</p>
             </div>
           </div>
           
           <div className="flex-1 min-h-[300px] flex items-end gap-2 sm:gap-4 relative pt-10">
             {/* Y-axis labels */}
-            <div className="absolute left-0 top-0 bottom-6 w-8 flex flex-col justify-between text-[10px] text-[#e7bdb8] opacity-40 text-right pr-2">
+            <div className="absolute left-0 top-0 bottom-6 w-8 flex flex-col justify-between text-[10px] text-gray-500 opacity-40 text-right pr-2">
               <span>{maxCreatorCount}</span>
               <span>{Math.round(maxCreatorCount / 2)}</span>
               <span>0</span>
@@ -135,26 +135,26 @@ const Analytics: React.FC = () => {
             {/* Grid lines */}
             <div className="absolute left-8 right-0 top-2 border-t border-[#ae888308]" />
             <div className="absolute left-8 right-0 top-1/2 border-t border-[#ae888308]" />
-            <div className="absolute left-8 right-0 bottom-6 border-t border-[#ae88831a]" />
+            <div className="absolute left-8 right-0 bottom-6 border-t border-gray-200" />
 
             {/* Bars */}
             <div className="flex-1 flex items-end justify-between ml-8 relative z-10 pb-6 h-full">
               {creatorsByMonth.map((data, idx) => {
-                const heightPercentage = data.count === 0 ? 0 : Math.max(5, (data.count / maxCreatorCount) * 100);
+                const heightPercentage = data.count === 0 ? 0 : Math.max(8, (data.count / maxCreatorCount) * 100);
                 return (
                   <div key={idx} className="flex flex-col items-center w-full group">
                     <div className="w-full max-w-[40px] px-1 h-full flex items-end relative">
                       {data.count > 0 && (
-                        <span className="absolute -top-7 left-1/2 -translate-x-1/2 text-[10px] font-bold text-white bg-black/60 px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-[10px] font-bold text-white bg-gray-900 shadow-xl px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity z-20">
                           {data.count}
                         </span>
                       )}
                       <div 
-                        className="w-full bg-gradient-to-t from-[#E31E24]/20 to-[#E31E24] rounded-t-sm transition-all duration-700 ease-out group-hover:to-[#ff3a40]"
-                        style={{ height: `${heightPercentage}%` }}
+                        className={`w-full transition-all duration-700 ease-out rounded-t-xl ${data.count === 0 ? 'bg-gray-100 h-[2%]' : 'bg-gradient-to-t from-red-100 to-[#E31E24] group-hover:to-red-600'}`}
+                        style={{ height: data.count === 0 ? undefined : `${heightPercentage}%` }}
                       />
                     </div>
-                    <span className="text-[10px] text-[#e7bdb8] opacity-50 mt-3 font-medium uppercase tracking-wider">{data.month}</span>
+                    <span className="text-[10px] text-gray-500 opacity-50 mt-3 font-medium uppercase tracking-wider">{data.month}</span>
                   </div>
                 );
               })}
@@ -163,20 +163,20 @@ const Analytics: React.FC = () => {
         </div>
 
         {/* Posts Chart */}
-        <div className="bg-[#171f3366] backdrop-blur-md rounded-2xl border border-[#ae88831a] p-8 flex flex-col">
+        <div className="bg-white shadow-sm backdrop-blur-md rounded-2xl border border-gray-200 p-8 flex flex-col">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h3 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
+              <h3 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
                 <FileText className="text-[#10B981]" size={20} />
                 Content Published
               </h3>
-              <p className="text-xs text-[#e7bdb8] opacity-50">Total posts, news, and videos published globally per month.</p>
+              <p className="text-xs text-gray-500 opacity-50">Total posts, news, and videos published globally per month.</p>
             </div>
           </div>
           
           <div className="flex-1 min-h-[300px] flex items-end gap-2 sm:gap-4 relative pt-10">
             {/* Y-axis labels */}
-            <div className="absolute left-0 top-0 bottom-6 w-8 flex flex-col justify-between text-[10px] text-[#e7bdb8] opacity-40 text-right pr-2">
+            <div className="absolute left-0 top-0 bottom-6 w-8 flex flex-col justify-between text-[10px] text-gray-500 opacity-40 text-right pr-2">
               <span>{maxPostCount}</span>
               <span>{Math.round(maxPostCount / 2)}</span>
               <span>0</span>
@@ -185,26 +185,26 @@ const Analytics: React.FC = () => {
             {/* Grid lines */}
             <div className="absolute left-8 right-0 top-2 border-t border-[#ae888308]" />
             <div className="absolute left-8 right-0 top-1/2 border-t border-[#ae888308]" />
-            <div className="absolute left-8 right-0 bottom-6 border-t border-[#ae88831a]" />
+            <div className="absolute left-8 right-0 bottom-6 border-t border-gray-200" />
 
             {/* Bars */}
             <div className="flex-1 flex items-end justify-between ml-8 relative z-10 pb-6 h-full">
               {postsByMonth.map((data, idx) => {
-                const heightPercentage = data.count === 0 ? 0 : Math.max(5, (data.count / maxPostCount) * 100);
+                const heightPercentage = data.count === 0 ? 0 : Math.max(8, (data.count / maxPostCount) * 100);
                 return (
                   <div key={idx} className="flex flex-col items-center w-full group">
                     <div className="w-full max-w-[40px] px-1 h-full flex items-end relative">
                       {data.count > 0 && (
-                        <span className="absolute -top-7 left-1/2 -translate-x-1/2 text-[10px] font-bold text-white bg-black/60 px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-[10px] font-bold text-white bg-gray-900 shadow-xl px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity z-20">
                           {data.count}
                         </span>
                       )}
                       <div 
-                        className="w-full bg-gradient-to-t from-[#10B981]/20 to-[#10B981] rounded-t-sm transition-all duration-700 ease-out group-hover:to-[#34d399]"
-                        style={{ height: `${heightPercentage}%` }}
+                        className={`w-full transition-all duration-700 ease-out rounded-t-xl ${data.count === 0 ? 'bg-gray-100 h-[2%]' : 'bg-gradient-to-t from-emerald-100 to-[#10B981] group-hover:to-emerald-600'}`}
+                        style={{ height: data.count === 0 ? undefined : `${heightPercentage}%` }}
                       />
                     </div>
-                    <span className="text-[10px] text-[#e7bdb8] opacity-50 mt-3 font-medium uppercase tracking-wider">{data.month}</span>
+                    <span className="text-[10px] text-gray-500 opacity-50 mt-3 font-medium uppercase tracking-wider">{data.month}</span>
                   </div>
                 );
               })}

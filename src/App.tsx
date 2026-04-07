@@ -61,8 +61,8 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0b1326]">
-        <div className="animate-pulse text-white text-xl">Loading Sentinel...</div>
+      <div className="min-h-screen flex items-center justify-center bg-[#FAFBFF]">
+        <div className="animate-pulse text-gray-900 text-xl font-bold">Loading Sentinel...</div>
       </div>
     );
   }

@@ -52,8 +52,8 @@ const SettingsView: React.FC = () => {
     <div className="max-w-5xl mx-auto h-full flex flex-col">
       <div className="mb-10 flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Platform Settings</h1>
-          <p className="text-[#e7bdb8] opacity-60">Manage your administrative preferences and system configurations.</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Platform Settings</h1>
+          <p className="text-gray-500 opacity-60">Manage your administrative preferences and system configurations.</p>
         </div>
         <button
           onClick={handleSave}
@@ -83,8 +83,8 @@ const SettingsView: React.FC = () => {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-3 w-full p-4 rounded-xl font-semibold text-sm transition-all ${
                 activeTab === tab.id
-                  ? 'bg-white/10 text-white border border-white/10'
-                  : 'text-[#e7bdb8]/60 hover:bg-white/5 hover:text-[#e7bdb8]'
+                  ? 'bg-white/10 text-gray-900 border border-gray-200'
+                  : 'text-gray-500/60 hover:bg-gray-100 hover:text-gray-500'
               }`}
             >
               {tab.icon}
@@ -94,7 +94,7 @@ const SettingsView: React.FC = () => {
         </div>
 
         {/* Settings Content */}
-        <div className="flex-1 bg-[#171f3366] backdrop-blur-md border border-[#ae88831a] rounded-2xl p-8 overflow-y-auto custom-scrollbar pb-20">
+        <div className="flex-1 bg-white shadow-sm backdrop-blur-md border border-gray-200 rounded-2xl p-8 overflow-y-auto custom-scrollbar pb-20">
           <motion.div
             key={activeTab}
             initial={{ opacity: 0, y: 10 }}
@@ -104,46 +104,46 @@ const SettingsView: React.FC = () => {
             {activeTab === 'Profile' && (
               <div className="space-y-8">
                 <div>
-                  <h3 className="text-xl font-bold text-white mb-6">Profile Settings</h3>
+                  <h3 className="text-xl font-bold text-gray-900 mb-6">Profile Settings</h3>
                   <div className="flex items-center gap-6 mb-8 pb-8 border-b border-white/5">
-                    <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-[#E31E24] to-[#93000d] border-2 border-white/10 shadow-xl flex items-center justify-center text-3xl font-bold text-white">
+                    <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-[#E31E24] to-[#93000d] border-2 border-gray-200 shadow-xl flex items-center justify-center text-3xl font-bold text-white">
                       {profile.name.charAt(0)}
                     </div>
                     <div>
-                      <button className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm font-bold text-white transition-colors mb-2">
+                      <button className="px-4 py-2 bg-gray-100 hover:bg-white/10 border border-gray-200 rounded-lg text-sm font-bold text-gray-900 transition-colors mb-2">
                         Change Avatar
                       </button>
-                      <p className="text-xs text-[#e7bdb8] opacity-50">JPG, GIF or PNG. Max size of 800K</p>
+                      <p className="text-xs text-gray-500 opacity-50">JPG, GIF or PNG. Max size of 800K</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-[#e7bdb8] uppercase tracking-wider opacity-60">Full Name</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider opacity-60">Full Name</label>
                     <input
                       type="text"
                       value={profile.name}
                       onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                      className="w-full bg-[#0b1326] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#E31E24] transition-colors"
+                      className="w-full bg-[#FAFBFF] border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-[#E31E24] transition-colors"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-[#e7bdb8] uppercase tracking-wider opacity-60">Email Address</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider opacity-60">Email Address</label>
                     <input
                       type="email"
                       value={profile.email}
                       onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                      className="w-full bg-[#0b1326] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#E31E24] transition-colors"
+                      className="w-full bg-[#FAFBFF] border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-[#E31E24] transition-colors"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-[#e7bdb8] uppercase tracking-wider opacity-60">Role</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider opacity-60">Role</label>
                     <input
                       type="text"
                       value={profile.role}
                       disabled
-                      className="w-full bg-[#0b1326]/50 border border-white/5 rounded-xl px-4 py-3 text-white/50 cursor-not-allowed"
+                      className="w-full bg-[#FAFBFF]/50 border border-white/5 rounded-xl px-4 py-3 text-gray-500 cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -152,7 +152,7 @@ const SettingsView: React.FC = () => {
 
             {activeTab === 'Notifications' && (
               <div className="space-y-8">
-                <h3 className="text-xl font-bold text-white mb-6">Notification Preferences</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-6">Notification Preferences</h3>
                 
                 <div className="space-y-4">
                   {[
@@ -161,10 +161,10 @@ const SettingsView: React.FC = () => {
                     { key: 'dailyDigest', title: 'Daily Digest', desc: 'Summary of platform activity and growth' },
                     { key: 'newCreatorAlerts', title: 'New Creator Alerts', desc: 'Notify when a new creator applies' }
                   ].map((item) => (
-                    <div key={item.key} className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
+                    <div key={item.key} className="flex items-center justify-between p-4 rounded-xl bg-gray-100 border border-white/5">
                       <div>
-                        <h4 className="text-sm font-bold text-white mb-1">{item.title}</h4>
-                        <p className="text-xs text-[#e7bdb8] opacity-60">{item.desc}</p>
+                        <h4 className="text-sm font-bold text-gray-900 mb-1">{item.title}</h4>
+                        <p className="text-xs text-gray-500 opacity-60">{item.desc}</p>
                       </div>
                       <button
                         onClick={() => setNotifications({ ...notifications, [item.key]: !(notifications as any)[item.key] })}
@@ -185,34 +185,34 @@ const SettingsView: React.FC = () => {
 
             {activeTab === 'Appearance' && (
               <div className="space-y-8">
-                <h3 className="text-xl font-bold text-white mb-6">Theme Settings</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-6">Theme Settings</h3>
                 
                 <div className="space-y-6">
                   <div>
-                    <label className="text-xs font-bold text-[#e7bdb8] uppercase tracking-wider opacity-60 mb-4 block">Mode</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider opacity-60 mb-4 block">Mode</label>
                     <div className="grid grid-cols-2 gap-4">
                       <button
                         onClick={() => setTheme({ ...theme, darkMode: true })}
                         className={`p-4 rounded-xl border flex flex-col items-center gap-3 transition-colors ${
-                          theme.darkMode ? 'border-[#E31E24] bg-[#E31E24]/10' : 'border-white/10 bg-white/5'
+                          theme.darkMode ? 'border-[#E31E24] bg-[#E31E24]/10' : 'border-gray-200 bg-gray-100'
                         }`}
                       >
-                        <div className="w-16 h-12 bg-[#0b1326] rounded-md border border-white/10 flex items-center justify-center">
+                        <div className="w-16 h-12 bg-[#FAFBFF] rounded-md border border-gray-200 flex items-center justify-center">
                           <div className="w-8 h-2 bg-white/20 rounded-full" />
                         </div>
-                        <span className="text-sm font-bold text-white">Dark Mode</span>
+                        <span className="text-sm font-bold text-gray-900">Dark Mode</span>
                       </button>
                       <button
                         onClick={() => setTheme({ ...theme, darkMode: false })}
                         className={`p-4 rounded-xl border flex flex-col items-center gap-3 transition-colors opacity-50 cursor-not-allowed ${
-                          !theme.darkMode ? 'border-[#E31E24] bg-[#E31E24]/10' : 'border-white/10 bg-white/5'
+                          !theme.darkMode ? 'border-[#E31E24] bg-[#E31E24]/10' : 'border-gray-200 bg-gray-100'
                         }`}
                         title="Light mode coming soon"
                       >
                         <div className="w-16 h-12 bg-white rounded-md border border-gray-200 flex items-center justify-center">
                           <div className="w-8 h-2 bg-gray-200 rounded-full" />
                         </div>
-                        <span className="text-sm font-bold text-white">Light Mode (Soon)</span>
+                        <span className="text-sm font-bold text-gray-900">Light Mode (Soon)</span>
                       </button>
                     </div>
                   </div>
@@ -222,23 +222,23 @@ const SettingsView: React.FC = () => {
 
             {activeTab === 'Security' && (
               <div className="space-y-8">
-                <h3 className="text-xl font-bold text-white mb-6">Security Settings</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-6">Security Settings</h3>
                 
                 <div className="space-y-4">
-                  <div className="p-5 rounded-xl bg-white/5 border border-white/5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="p-5 rounded-xl bg-gray-100 border border-white/5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div>
-                      <h4 className="text-sm font-bold text-white mb-1">Password</h4>
-                      <p className="text-xs text-[#e7bdb8] opacity-60">Last changed 3 months ago</p>
+                      <h4 className="text-sm font-bold text-gray-900 mb-1">Password</h4>
+                      <p className="text-xs text-gray-500 opacity-60">Last changed 3 months ago</p>
                     </div>
-                    <button className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-bold text-white transition-colors">
+                    <button className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-bold text-gray-900 transition-colors">
                       Change Password
                     </button>
                   </div>
 
-                  <div className="p-5 rounded-xl bg-white/5 border border-white/5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="p-5 rounded-xl bg-gray-100 border border-white/5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div>
-                      <h4 className="text-sm font-bold text-white mb-1">Two-Factor Authentication</h4>
-                      <p className="text-xs text-[#e7bdb8] opacity-60">Protect your account with an extra layer of security</p>
+                      <h4 className="text-sm font-bold text-gray-900 mb-1">Two-Factor Authentication</h4>
+                      <p className="text-xs text-gray-500 opacity-60">Protect your account with an extra layer of security</p>
                     </div>
                     <button className="px-4 py-2 bg-[#E31E24]/20 text-[#E31E24] hover:bg-[#E31E24]/30 rounded-lg text-sm font-bold transition-colors">
                       Enable 2FA

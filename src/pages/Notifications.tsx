@@ -73,7 +73,7 @@ const Notifications: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full text-[#e7bdb8] opacity-60">
+      <div className="flex items-center justify-center h-full text-gray-500 opacity-60">
         <p className="text-xl italic">Loading notifications...</p>
       </div>
     );
@@ -82,41 +82,41 @@ const Notifications: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto h-full flex flex-col">
       <div className="mb-10">
-        <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
           <Bell className="text-[#E31E24]" />
           Live Notifications
         </h1>
-        <p className="text-[#e7bdb8] opacity-60">Real-time alerts for creator activity and new content publications.</p>
+        <p className="text-gray-500 opacity-60">Real-time alerts for creator activity and new content publications.</p>
       </div>
 
       <div className="flex-1 overflow-y-auto space-y-4 custom-scrollbar pr-4">
         <AnimatePresence>
           {notifications.length === 0 ? (
-            <p className="text-center text-[#e7bdb8] opacity-50 italic py-10">No notifications yet.</p>
+            <p className="text-center text-gray-500 opacity-50 italic py-10">No notifications yet.</p>
           ) : (
             notifications.map((notif) => (
               <motion.div
                 key={notif.id}
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`p-6 rounded-2xl border ${notif.isNew ? 'bg-[#E31E24]/10 border-[#E31E24]/30' : 'bg-[#171f3366] border-[#ae88831a]'} backdrop-blur-md flex items-start gap-4 transition-colors`}
+                className={`p-6 rounded-2xl border ${notif.isNew ? 'bg-[#E31E24]/10 border-[#E31E24]/30' : 'bg-white shadow-sm border-gray-200'} backdrop-blur-md flex items-start gap-4 transition-colors`}
               >
-                <div className={`p-3 rounded-xl ${notif.isNew ? 'bg-[#E31E24] text-white' : 'bg-white/5 text-[#E31E24]'}`}>
+                <div className={`p-3 rounded-xl ${notif.isNew ? 'bg-[#E31E24] text-white' : 'bg-gray-100 text-[#E31E24]'}`}>
                   <FileText size={20} />
                 </div>
                 <div className="flex-1">
                   <div className="flex justify-between items-start mb-1">
-                    <h3 className="text-white font-bold text-lg">
+                    <h3 className="text-gray-900 font-bold text-lg">
                       {notif.title}
                       {notif.isNew && <span className="ml-3 text-[10px] bg-[#E31E24] text-white px-2 py-0.5 rounded-full font-bold uppercase">New</span>}
                     </h3>
-                    <div className="flex items-center gap-1 text-xs text-[#e7bdb8] opacity-50">
+                    <div className="flex items-center gap-1 text-xs text-gray-500 opacity-50">
                       <Clock size={12} />
                       {new Date(notif.date).toLocaleString()}
                     </div>
                   </div>
-                  <p className="text-[#e7bdb8] opacity-80 mb-3">{notif.message}</p>
-                  <span className="text-[10px] font-bold px-3 py-1 rounded-full bg-white/5 text-[#e7bdb8]/60 uppercase tracking-wider border border-white/5">
+                  <p className="text-gray-500 opacity-80 mb-3">{notif.message}</p>
+                  <span className="text-[10px] font-bold px-3 py-1 rounded-full bg-gray-100 text-gray-500/60 uppercase tracking-wider border border-white/5">
                     {notif.type}
                   </span>
                 </div>

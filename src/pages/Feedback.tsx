@@ -35,38 +35,45 @@ const Feedback: React.FC = () => {
 
   const fetchFeedbacks = async () => {
     try {
-      // Try with standard relationship name 'User'
-      // If the FK points to "User" table, PostgREST usually maps it to "User"
-      const { data, error } = await supabase
+      // Fetch feedbacks without join (no FK relationship exists)
+      const { data: feedbacks, error } = await supabase
         .from('Feedback')
-        .select(`
-          *,
-          User (username, email, role, avatarUrl)
-        `)
+        .select('*')
         .order('createdAt', { ascending: false });
 
       if (error) {
-        console.error('Feedback fetch error details:', error);
-        
-        // Fallback: If it's a relationship error, try selecting without the join
-        if (error.message?.includes('relationship') || error.code === 'PGRST204') {
-          const { data: noJoinData, error: noJoinError } = await supabase
-            .from('Feedback')
-            .select('*')
-            .order('createdAt', { ascending: false });
-          
-          if (noJoinError) throw noJoinError;
-          setFeedbacks(noJoinData || []);
-          return;
-        }
-        // If table doesn't exist yet, just don't crash the UI
         if (error.code === '42P01' || error.message?.includes('not found')) {
           setFeedbacks([]);
           return;
         }
         throw error;
       }
-      setFeedbacks(data || []);
+
+      if (!feedbacks || feedbacks.length === 0) {
+        setFeedbacks([]);
+        return;
+      }
+
+      // Manually fetch associated users
+      const userIds = [...new Set(feedbacks.map((f: any) => f.userId).filter(Boolean))];
+
+      if (userIds.length > 0) {
+        const { data: users } = await supabase
+          .from('User')
+          .select('id, username, email, role, avatarUrl')
+          .in('id', userIds);
+
+        const userMap: Record<string, any> = {};
+        (users || []).forEach((u: any) => { userMap[u.id] = u; });
+
+        const merged = feedbacks.map((f: any) => ({
+          ...f,
+          User: f.userId ? (userMap[f.userId] || { username: 'Unknown User', role: 'CITIZEN' }) : { username: 'Anonymous', role: 'GUEST' }
+        }));
+        setFeedbacks(merged);
+      } else {
+        setFeedbacks(feedbacks);
+      }
     } catch (err) {
       console.error('Failed to fetch feedback:', err);
     } finally {
@@ -91,11 +98,11 @@ const Feedback: React.FC = () => {
   return (
     <div className="max-w-5xl mx-auto h-full flex flex-col">
       <div className="mb-10">
-        <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
           <MessageSquare className="text-blue-400" />
           User Feedback
         </h1>
-        <p className="text-[#e7bdb8] opacity-60">Insights, bug reports, and suggestions from application users.</p>
+        <p className="text-gray-500 opacity-60">Insights, bug reports, and suggestions from application users.</p>
       </div>
 
       <div className="flex-1 overflow-y-auto space-y-6 custom-scrollbar pr-4 pb-10">
@@ -104,9 +111,9 @@ const Feedback: React.FC = () => {
             <Loader2 className="w-10 h-10 animate-spin text-blue-400" />
           </div>
         ) : feedbacks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 bg-white/5 rounded-2xl border border-white/5">
-            <MessageSquare className="w-12 h-12 text-[#e7bdb8] opacity-30 mb-4" />
-            <p className="text-[#e7bdb8] opacity-60">No feedback entries yet.</p>
+          <div className="flex flex-col items-center justify-center py-20 bg-gray-100 rounded-2xl border border-white/5">
+            <MessageSquare className="w-12 h-12 text-gray-500 opacity-30 mb-4" />
+            <p className="text-gray-500 opacity-60">No feedback entries yet.</p>
           </div>
         ) : (
           <AnimatePresence>
@@ -119,7 +126,7 @@ const Feedback: React.FC = () => {
                   key={item.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-[#171f3366] backdrop-blur-md border border-[#ae88831a] rounded-2xl p-6 hover:bg-[#171f3399] transition-all"
+                  className="bg-white shadow-sm backdrop-blur-md border border-gray-200 rounded-2xl p-6 hover:bg-[#171f3399] transition-all"
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-4">
@@ -131,12 +138,12 @@ const Feedback: React.FC = () => {
                         </div>
                       )}
                       <div>
-                        <h3 className="text-lg font-bold text-white mb-0.5">{username}</h3>
+                        <h3 className="text-lg font-bold text-gray-900 mb-0.5">{username}</h3>
                         <div className="flex flex-wrap items-center gap-3">
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border ${
                             (role === 'ANALYST' || role === 'CREATOR') ? 'bg-[#E31E24]/10 border-[#E31E24]/20 text-[#E31E24]' : 
                             role === 'ADMIN' ? 'bg-purple-500/10 border-purple-500/20 text-purple-400' :
-                            'bg-white/5 border-white/10 text-[#e7bdb8]'
+                            'bg-gray-100 border-gray-200 text-gray-500'
                           }`}>
                             {role}
                           </span>
@@ -145,7 +152,7 @@ const Feedback: React.FC = () => {
                               {item.category}
                             </span>
                           )}
-                          <span className="text-[#e7bdb8] opacity-50 text-xs">
+                          <span className="text-gray-500 opacity-50 text-xs">
                             {getTimeAgo(item.createdAt)}
                           </span>
                         </div>
@@ -153,11 +160,11 @@ const Feedback: React.FC = () => {
                     </div>
                   </div>
                   
-                  <p className="text-white/90 text-sm leading-relaxed mb-5 mt-2 bg-black/20 p-4 rounded-xl border border-white/5 font-medium">
+                  <p className="text-gray-800 text-sm leading-relaxed mb-5 mt-2 bg-black/20 p-4 rounded-xl border border-white/5 font-medium">
                     {item.content || item.message}
                   </p>
 
-                  <div className="flex justify-end pt-4 border-t border-[#ae88830d]">
+                  <div className="flex justify-end pt-4 border-t border-gray-100">
                     <button className="flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 transition-colors font-bold uppercase tracking-wider">
                       <Reply size={14} />
                       Respond

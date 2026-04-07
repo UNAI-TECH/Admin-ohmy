@@ -110,48 +110,48 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
   ];
 
   return (
-    <div className="flex h-screen bg-[#0b1326] text-[#dae2fd] overflow-hidden">
+    <div className="flex h-screen bg-brand-bg text-brand-text overflow-hidden font-jakarta">
       {/* Sidebar Placeholder for absolute positioning */}
       {activeTab === 'Advertisement' && <div className="w-[88px] shrink-0 md:block hidden" />}
 
       {/* Side Navigation */}
       <aside 
-        className={`bg-[#131b2e] border-r border-[#ae88831a] hidden md:flex flex-col transition-all duration-300 z-50 group overflow-hidden whitespace-nowrap ${
-          activeTab === 'Advertisement' ? 'w-[88px] hover:w-64 absolute h-full shadow-[20px_0_30px_-10px_rgba(0,0,0,0.5)]' : 'w-64 relative'
+        className={`bg-brand-sidebar border-r border-brand-divider hidden md:flex flex-col transition-all duration-300 z-50 group overflow-hidden whitespace-nowrap shadow-[4px_0_24px_rgba(0,0,0,0.04)] ${
+          activeTab === 'Advertisement' ? 'w-[88px] hover:w-[248px] absolute h-full shadow-[0_8px_30px_rgba(0,0,0,0.08)]' : 'w-[248px] relative'
         }`}
       >
-        <div className="py-8 px-5 flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
-          <div className="flex items-center gap-3 mb-10 shrink-0">
-            <div className="w-10 h-10 shrink-0 bg-gradient-to-br from-[#E31E24] to-[#93000d] rounded-xl flex items-center justify-center shadow-lg shadow-red-900/20">
-              <ShieldAlert size={24} color="white" />
+        <div className="py-0 px-0 flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+          <div className="flex items-center gap-3 h-[72px] px-[16px] shrink-0">
+            <div className="w-10 h-10 shrink-0 bg-brand-card flex items-center justify-center">
+              <ShieldAlert size={24} className="text-brand-red" strokeWidth={2.5} />
             </div>
             <div className={`transition-opacity duration-300 min-w-[150px] ${activeTab === 'Advertisement' ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
-              <h2 className="text-xl font-bold tracking-tight text-white leading-tight">OMH Sentinel</h2>
-              <p className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-[0.2em] opacity-60">Enterprise Control</p>
+              <h2 className="text-lg font-bold font-jakarta text-brand-text leading-none">OMH Sentinel</h2>
+              <p className="text-[9px] font-mono font-medium text-brand-muted mt-1 uppercase tracking-[0.2em]">Enterprise Control</p>
             </div>
           </div>
 
-          <nav className="space-y-1 w-full max-w-[215px]">
-            <NavItem icon={<PieChart size={18} />} label="Overview" active={activeTab === 'Overview'} onClick={() => setActiveTab('Overview')} activeTab={activeTab} />
-            <NavItem icon={<Users size={18} />} label="Creator Requests" active={activeTab === 'Creator Requests'} onClick={() => setActiveTab('Creator Requests')} activeTab={activeTab} />
-            <NavItem icon={<Users size={18} />} label="Creators" active={activeTab === 'Creators'} onClick={() => setActiveTab('Creators')} activeTab={activeTab} />
-            <NavItem icon={<FileText size={18} />} label="Posts" active={activeTab === 'Posts'} onClick={() => setActiveTab('Posts')} activeTab={activeTab} />
-            <NavItem icon={<BarChart3 size={18} />} label="Analytics" active={activeTab === 'Analytics'} onClick={() => setActiveTab('Analytics')} activeTab={activeTab} />
-            <NavItem icon={<Megaphone size={18} />} label="Advertisement" active={activeTab === 'Advertisement'} onClick={() => setActiveTab('Advertisement')} activeTab={activeTab} />
-            <NavItem icon={<IndianRupee size={18} />} label="Payments" active={activeTab === 'Payments'} onClick={() => setActiveTab('Payments')} activeTab={activeTab} />
-            <NavItem icon={<Bell size={18} />} label="Notifications" active={activeTab === 'Notifications'} onClick={() => setActiveTab('Notifications')} activeTab={activeTab} />
-            <NavItem icon={<MessageSquare size={18} />} label="Feedback" active={activeTab === 'Feedback'} onClick={() => setActiveTab('Feedback')} activeTab={activeTab} />
-            <NavItem icon={<Settings size={18} />} label="Settings" active={activeTab === 'Settings'} onClick={() => setActiveTab('Settings')} activeTab={activeTab} />
+          <nav className="space-y-[2px] w-full px-[16px]">
+            <NavItem icon={<PieChart size={18} strokeWidth={2.5} />} label="Overview" active={activeTab === 'Overview'} onClick={() => setActiveTab('Overview')} activeTab={activeTab} />
+            <NavItem icon={<Users size={18} strokeWidth={2.5} />} label="Creator Requests" active={activeTab === 'Creator Requests'} onClick={() => setActiveTab('Creator Requests')} activeTab={activeTab} />
+            <NavItem icon={<Users size={18} strokeWidth={2.5} />} label="Creators" active={activeTab === 'Creators'} onClick={() => setActiveTab('Creators')} activeTab={activeTab} />
+            <NavItem icon={<FileText size={18} strokeWidth={2.5} />} label="Posts" active={activeTab === 'Posts'} onClick={() => setActiveTab('Posts')} activeTab={activeTab} />
+            <NavItem icon={<BarChart3 size={18} strokeWidth={2.5} />} label="Analytics" active={activeTab === 'Analytics'} onClick={() => setActiveTab('Analytics')} activeTab={activeTab} />
+            <NavItem icon={<Megaphone size={18} strokeWidth={2.5} />} label="Advertisement" active={activeTab === 'Advertisement'} onClick={() => setActiveTab('Advertisement')} activeTab={activeTab} />
+            <NavItem icon={<IndianRupee size={18} strokeWidth={2.5} />} label="Payments" active={activeTab === 'Payments'} onClick={() => setActiveTab('Payments')} activeTab={activeTab} />
+            <NavItem icon={<Bell size={18} strokeWidth={2.5} />} label="Notifications" active={activeTab === 'Notifications'} onClick={() => setActiveTab('Notifications')} activeTab={activeTab} />
+            <NavItem icon={<MessageSquare size={18} strokeWidth={2.5} />} label="Feedback" active={activeTab === 'Feedback'} onClick={() => setActiveTab('Feedback')} activeTab={activeTab} />
+            <NavItem icon={<Settings size={18} strokeWidth={2.5} />} label="Settings" active={activeTab === 'Settings'} onClick={() => setActiveTab('Settings')} activeTab={activeTab} />
           </nav>
         </div>
 
-        <div className="mt-auto px-5 py-6 space-y-2 border-t border-[#ae88830d] shrink-0 w-full max-w-[215px]">
-          <NavItem icon={<LifeBuoy size={18} className="shrink-0" />} label="Support" activeTab={activeTab} />
+        <div className="mt-auto px-[16px] py-[16px] space-y-[2px] border-t border-brand-divider shrink-0 w-full">
+
           <button 
             onClick={onLogout}
-            className={`flex items-center gap-4 w-full p-3.5 rounded-xl text-red-400 hover:bg-red-500/10 transition-all font-semibold text-sm group/logout overflow-hidden whitespace-nowrap`}
+            className={`flex items-center gap-4 w-full px-[16px] h-[46px] rounded-[6px] text-brand-red hover:bg-brand-redUltraLight transition-all duration-150 font-medium font-jakarta text-sm group/logout overflow-hidden whitespace-nowrap`}
           >
-            <LogOut size={18} className="shrink-0 group-hover/logout:translate-x-0.5 transition-transform" />
+            <LogOut size={18} strokeWidth={2} className="shrink-0" />
             <span className={`transition-opacity duration-300 ${activeTab === 'Advertisement' ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>Logout</span>
           </button>
         </div>
@@ -160,135 +160,141 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col overflow-hidden relative">
         {/* Top Header */}
-        <header className="h-20 bg-[#0b1326]/80 backdrop-blur-xl border-b border-[#ae88831a] flex items-center justify-between px-10 z-10">
+        <header className="h-[68px] bg-brand-card border-b border-brand-divider shadow-[0_1px_0_#F0F1F5] flex items-center justify-between px-10 z-10 shrink-0 sticky top-0 transition-colors">
           <div className="flex items-center gap-8 flex-1">
-            <Menu className="md:hidden text-[#e7bdb8]" />
-            <div className="max-w-md w-full relative group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#e7bdb8] opacity-40 group-focus-within:opacity-100 transition-opacity" size={18} />
+            <button className="md:hidden p-2 rounded-xl hover:bg-brand-redUltraLight text-brand-secondary transition-colors"><Menu size={20} /></button>
+            <div className="max-w-[480px] w-full relative group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-muted transition-colors group-focus-within:text-brand-red" size={16} strokeWidth={2} />
               <input 
                 type="text" 
                 placeholder="Search intelligence..." 
-                className="w-full bg-[#131b2e] border-none rounded-full py-2.5 pl-12 pr-4 text-sm focus:ring-1 ring-[#E31E24] transition-all"
+                className="w-full bg-brand-bg border border-brand-border rounded-[10px] py-2 pl-12 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-brand-red transition-all font-jakarta text-brand-text placeholder:text-brand-muted placeholder:font-mono"
               />
             </div>
           </div>
           
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-6">
             <button 
               onClick={() => setActiveTab('Notifications')}
-              className="relative p-2 rounded-xl hover:bg-white/5 transition-colors text-[#e7bdb8]"
+              className="relative p-2 rounded-full hover:bg-brand-redUltraLight transition-colors text-brand-secondary hover:text-brand-red"
             >
-              <Bell size={20} />
+              <Bell size={20} strokeWidth={2} />
               {stats?.pendingRequests > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#E31E24] rounded-full text-[10px] font-bold text-white flex items-center justify-center border-2 border-[#0b1326]">
-                  {stats.pendingRequests}
-                </span>
+                <span className="absolute top-1 right-1 w-[8px] h-[8px] bg-brand-red rounded-full shadow-[0_0_0_2px_#FFFFFF]"></span>
               )}
             </button>
-            <div className="flex items-center gap-4 pl-4 border-l border-[#ae88831a]">
+            <div className="h-8 w-px bg-brand-divider"></div>
+            <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-bold text-white">Administrator</p>
-                <p className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-wider opacity-60">Super Admin</p>
+                <p className="text-[14px] font-medium font-jakarta text-brand-text leading-tight">Administrator</p>
+                <p className="text-[9px] font-mono text-brand-muted uppercase tracking-[0.05em]">Super Admin</p>
               </div>
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#E31E24] to-[#93000d] border border-white/10 shadow-xl" />
+              <div className="w-9 h-9 rounded-full bg-brand-red flex items-center justify-center shrink-0 shadow-sm border border-brand-redLight">
+                <span className="text-white font-medium font-jakarta text-[14px]">AD</span>
+              </div>
             </div>
           </div>
         </header>
 
         {/* Dynamic Content */}
-        <div className={`p-10 overflow-y-auto custom-scrollbar bg-gradient-to-b from-[#0b1326] to-[#060e20] flex-1 ${activeTab === 'Advertisement' ? '!p-0' : ''}`}>
+        <div className={`p-10 overflow-y-auto custom-scrollbar flex-1 ${activeTab === 'Advertisement' ? '!p-0' : ''}`}>
           {activeTab === 'Overview' ? (
             <>
-              <div className="mb-10">
-                <h1 className="text-3xl font-bold text-white mb-2">Platform Overview</h1>
-                <p className="text-[#e7bdb8] opacity-60">Real-time intelligence and system performance metrics.</p>
+              <div className="mb-[40px]">
+                <h1 className="text-[32px] font-bold font-jakarta text-brand-text mb-1 tracking-tight">Platform Overview</h1>
+                <p className="text-[14px] font-outfit text-brand-secondary">Real-time intelligence and system performance metrics.</p>
               </div>
 
               {/* Stat Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-[40px]">
                 {statCards.map((stat, i) => (
                   <motion.div 
-                    key={i} 
-                    whileHover={{ y: -5 }}
-                    className="bg-[#171f3366] backdrop-blur-md border border-[#ae88831a] p-6 rounded-2xl relative overflow-hidden group"
+                    key={i}
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.08, duration: 0.4 }}
+                    whileHover={{ y: -2 }}
+                    className="bg-brand-card border border-brand-border p-6 rounded-[14px] relative group cursor-pointer hover:shadow-[0_8px_32px_rgba(232,70,42,0.08)] transition-all duration-200 ease-out flex flex-col justify-between"
                   >
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br opacity-[0.03] group-hover:opacity-[0.06] transition-opacity" style={{ backgroundImage: `linear-gradient(to bottom right, ${stat.color}, transparent)` }} />
+                    <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-brand-red to-transparent opacity-100 rounded-t-[14px]"></div>
                     <div className="flex items-center justify-between mb-6">
-                      <div className="p-3 rounded-xl bg-white/5 text-white/80" style={{ color: stat.color }}>
+                      <div className="w-[44px] h-[44px] rounded-[10px] bg-brand-bg flex items-center justify-center shrink-0" style={{ color: stat.color }}>
                         {stat.icon}
                       </div>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${stat.change.includes('+') ? 'bg-green-500/10 text-green-400' : 'bg-white/5 text-white/40'}`}>
+                      <span className="bg-[#ECFDF5] text-brand-success font-mono text-[11px] px-2 py-0.5 rounded-full inline-block group-hover:scale-105 transition-transform">
                         {stat.change}
                       </span>
                     </div>
-                    <p className="text-[#e7bdb8] text-[11px] font-bold uppercase tracking-widest mb-1 opacity-60">{stat.label}</p>
-                    <h3 className="text-3xl font-bold text-white tracking-tight">{stat.value}</h3>
+                    <div>
+                      <h3 className="text-[40px] font-extrabold font-jakarta text-brand-text leading-none mb-1">{stat.value}</h3>
+                      <p className="font-mono text-[10px] text-brand-muted uppercase tracking-[0.08em] mt-2">{stat.label}</p>
+                    </div>
                   </motion.div>
                 ))}
               </div>
 
               {/* Grid Layout */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Recent Posts */}
-                <div className="lg:col-span-2 bg-[#171f3366] backdrop-blur-md border border-[#ae88831a] rounded-2xl p-8">
-                  <div className="flex items-center justify-between mb-8">
+                <div className="lg:col-span-2 bg-brand-card border border-brand-border rounded-[14px] p-6 lg:p-[24px]">
+                  <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h3 className="text-xl font-bold text-white mb-1">Recent Content</h3>
-                      <p className="text-xs text-[#e7bdb8] opacity-50">Latest published content across the platform</p>
+                      <h3 className="text-[20px] font-bold font-jakarta text-brand-text mb-1">Recent Content</h3>
+                      <p className="font-outfit text-[13px] text-brand-secondary">Latest published content across the platform</p>
                     </div>
                     <button 
                       onClick={() => setActiveTab('Posts')}
-                      className="flex items-center gap-2 text-[10px] font-bold text-[#E31E24] hover:opacity-80 uppercase tracking-widest transition-all"
+                      className="flex items-center gap-1 font-mono text-[11px] text-brand-red uppercase font-semibold hover:opacity-80 transition-opacity"
                     >
-                      View All <ChevronRight size={14} />
+                      VIEW ALL <span className="text-[14px]">→</span>
                     </button>
                   </div>
 
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left">
+                    <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="border-b border-[#ae88830d]">
-                          <th className="pb-4 text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest opacity-40">Title</th>
-                          <th className="pb-4 text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest opacity-40">Author</th>
-                          <th className="pb-4 text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest opacity-40">Type</th>
-                          <th className="pb-4 text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest opacity-40 text-right">Date</th>
+                        <tr className="border-b border-brand-divider">
+                          <th className="pb-3 text-[10px] font-mono text-brand-muted uppercase tracking-[0.05em] font-normal">Title</th>
+                          <th className="pb-3 text-[10px] font-mono text-brand-muted uppercase tracking-[0.05em] font-normal">Author</th>
+                          <th className="pb-3 text-[10px] font-mono text-brand-muted uppercase tracking-[0.05em] font-normal">Type</th>
+                          <th className="pb-3 text-[10px] font-mono text-brand-muted uppercase tracking-[0.05em] font-normal text-right">Date</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[#ae88830d]">
+                      <tbody>
                         {loading ? (
                           <tr>
-                            <td colSpan={4} className="py-10 text-center text-[#e7bdb8] opacity-50 italic">
+                            <td colSpan={4} className="h-[52px] text-center text-brand-secondary text-[13px] italic border-b border-brand-bg font-outfit">
                               Loading...
                             </td>
                           </tr>
                         ) : recentPosts.length === 0 ? (
                           <tr>
-                            <td colSpan={4} className="py-10 text-center text-[#e7bdb8] opacity-50 italic">
+                            <td colSpan={4} className="h-[52px] text-center text-brand-secondary text-[13px] italic border-b border-brand-bg font-outfit">
                               No content published yet.
                             </td>
                           </tr>
                         ) : recentPosts.map((post, i) => (
-                          <tr key={post.id || i} className="group hover:bg-white/[0.02] transition-colors">
-                            <td className="py-5 pr-4">
-                              <p className="text-sm font-semibold text-white/90 group-hover:text-white transition-colors line-clamp-1">{post.title}</p>
+                          <tr key={post.id || i} className="group hover:bg-brand-redUltraLight transition-colors duration-120 border-b border-brand-bg last:border-0 h-[52px] cursor-pointer">
+                            <td className="pr-4 py-2">
+                              <p className="font-outfit text-[14px] font-medium text-brand-text line-clamp-1 group-hover:text-brand-red transition-colors">{post.title}</p>
                             </td>
-                            <td className="py-5">
+                            <td className="py-2">
                               <div className="flex items-center gap-2">
                                 {post.User?.avatarUrl ? (
-                                  <img src={post.User.avatarUrl} alt="avatar" className="w-6 h-6 rounded-full object-cover border border-white/10" />
+                                  <img src={post.User.avatarUrl} alt="avatar" className="w-[24px] h-[24px] rounded-full object-cover bg-brand-bg" />
                                 ) : (
-                                  <div className="w-6 h-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-bold text-white/70">
+                                  <div className="w-[24px] h-[24px] rounded-full bg-brand-divider flex items-center justify-center text-[10px] font-bold text-brand-secondary">
                                     {(post.User?.username || post.User?.email || '?').charAt(0).toUpperCase()}
                                   </div>
                                 )}
-                                <span className="text-xs text-[#e7bdb8]/70">{post.User?.username || post.User?.email || 'Unknown'}</span>
+                                <span className="font-outfit text-[13px] font-medium text-brand-text">{post.User?.username || post.User?.email || 'Unknown'}</span>
                               </div>
                             </td>
-                            <td className="py-5">
-                              <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-white/5 text-[#e7bdb8]/60 uppercase tracking-wider">{post.type}</span>
+                            <td className="py-2">
+                              <span className="border border-brand-border font-mono text-[10px] text-brand-secondary rounded-[4px] px-[8px] py-[4px] uppercase">{post.type}</span>
                             </td>
-                            <td className="py-5 text-right">
-                              <span className="text-xs text-[#e7bdb8]/40">{new Date(post.createdAt).toLocaleDateString()}</span>
+                            <td className="py-2 text-right">
+                              <span className="font-mono text-[12px] text-brand-muted">{new Date(post.createdAt).toLocaleDateString()}</span>
                             </td>
                           </tr>
                         ))}
@@ -298,25 +304,28 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
                 </div>
 
                 {/* Sidebar Widgets */}
-                <div className="space-y-10">
+                <div className="space-y-6">
                   {/* Creator List */}
-                  <div className="bg-[#171f3366] backdrop-blur-md border border-[#ae88831a] rounded-2xl p-8">
-                    <h3 className="text-lg font-bold text-white mb-6">Active Creators</h3>
-                    <div className="space-y-4">
+                  <div className="bg-brand-card border border-brand-border rounded-[14px] p-6 lg:p-[24px]">
+                    <h3 className="text-[20px] font-bold font-jakarta text-brand-text mb-6">Active Creators</h3>
+                    <div className="flex flex-col">
                       {creators.length === 0 ? (
-                        <p className="text-[#e7bdb8] opacity-40 text-sm italic">No creators yet</p>
+                        <p className="text-brand-muted text-[13px] font-outfit italic">No creators yet</p>
                       ) : creators.slice(0, 5).map((creator: any) => (
-                        <div key={creator.id} className="flex items-center gap-3">
+                        <div key={creator.id} className="flex items-center gap-3 h-[48px] px-2 -mx-2 hover:bg-brand-redUltraLight hover:rounded-[6px] transition-colors cursor-pointer group">
                           {creator.avatarUrl ? (
-                            <img src={creator.avatarUrl} alt={creator.username} className="w-8 h-8 rounded-lg object-cover bg-red-500/10 border border-white/10" />
+                            <img src={creator.avatarUrl} alt={creator.username} className="w-[38px] h-[38px] rounded-full object-cover bg-brand-divider shrink-0" />
                           ) : (
-                            <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-400 text-sm font-bold border border-white/10">
+                            <div className="w-[38px] h-[38px] rounded-full bg-brand-divider flex items-center justify-center text-brand-secondary text-sm font-bold shrink-0">
                               {(creator.username || creator.email || '?').charAt(0).toUpperCase()}
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-white truncate">{creator.username}</p>
-                            <p className="text-[10px] text-[#e7bdb8] opacity-40 truncate">{creator.email}</p>
+                            <p className="text-sm font-medium font-jakarta text-brand-text truncate flex items-center gap-2">
+                              {creator.username}
+                              <span className="w-[8px] h-[8px] bg-brand-success rounded-full block"></span>
+                            </p>
+                            <p className="text-[11px] font-mono text-brand-muted truncate mt-0.5">{creator.email}</p>
                           </div>
                         </div>
                       ))}
@@ -324,7 +333,7 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
                     {creators.length > 5 && (
                       <button 
                         onClick={() => setActiveTab('Creators')}
-                        className="mt-4 text-xs text-[#E31E24] font-bold hover:opacity-80 transition-all"
+                        className="mt-6 text-xs text-brand-red font-mono uppercase tracking-wide hover:opacity-80 transition-opacity w-full text-left"
                       >
                         View all {creators.length} creators →
                       </button>
@@ -333,12 +342,12 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
 
                   {/* Status Card */}
                   <div className="bg-gradient-to-br from-[#E31E24] to-[#93000d] rounded-2xl p-8 shadow-2xl shadow-red-900/20">
-                    <ShieldAlert className="text-white/40 mb-4" size={32} />
+                    <ShieldAlert className="text-white/80 mb-4" size={32} />
                     <h4 className="text-white font-bold mb-2">System Operational</h4>
-                    <p className="text-white/70 text-xs leading-relaxed mb-6">Real-time sync active. All services connected to Supabase.</p>
+                    <p className="text-white/80 text-xs leading-relaxed mb-6">Real-time sync active. All services connected to Supabase.</p>
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                      <span className="text-white/60 text-xs">Live Connection</span>
+                      <span className="text-white/80 text-xs">Live Connection</span>
                     </div>
                   </div>
                 </div>
@@ -363,14 +372,14 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
               <div className="w-20 h-20 bg-gradient-to-br from-[#E31E24] to-[#93000d] rounded-2xl flex items-center justify-center mb-6 shadow-2xl shadow-red-900/40">
                 <IndianRupee size={40} className="text-white" />
               </div>
-              <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">Payments Infrastructure</h2>
-              <p className="text-[#e7bdb8] opacity-60 max-w-md text-center">Global payout integrations, creator monetization, and finance dashboards are coming in the next platform update.</p>
-              <span className="mt-8 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-xs font-bold uppercase tracking-widest text-white/40">Coming Soon</span>
+              <h2 className="text-3xl font-bold text-gray-900 mb-2 tracking-tight">Payments Infrastructure</h2>
+              <p className="text-gray-500 opacity-60 max-w-md text-center">Global payout integrations, creator monetization, and finance dashboards are coming in the next platform update.</p>
+              <span className="mt-8 px-4 py-2 bg-gray-100 border border-gray-200 rounded-full text-xs font-bold uppercase tracking-widest text-gray-400">Coming Soon</span>
             </div>
           ) : activeTab === 'Settings' ? (
             <SettingsView />
           ) : (
-            <div className="flex items-center justify-center h-full text-[#e7bdb8] opacity-60">
+            <div className="flex items-center justify-center h-full text-gray-500 opacity-60">
               <p className="text-xl italic">The {activeTab} module is initializing...</p>
             </div>
           )}
@@ -381,17 +390,22 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
   );
 };
 
-const NavItem = ({ icon, label, active = false, onClick, activeTab }: { icon: any, label: string, active?: boolean, onClick?: () => void, activeTab?: string }) => (
-  <button 
-    onClick={onClick}
-    className={`flex items-center gap-4 w-full p-3 rounded-xl transition-all font-semibold text-sm overflow-hidden whitespace-nowrap shrink-0 group/pill ${
-      active 
-      ? 'bg-[#E31E24] text-white shadow-lg shadow-red-900/20' 
-      : 'text-[#e7bdb8]/60 hover:text-[#e7bdb8] hover:bg-white/5'
-    }`}>
-    <div className={`shrink-0 flex items-center justify-center`}>{icon}</div>
-    <span className={`transition-opacity duration-300 ${activeTab === 'Advertisement' ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>{label}</span>
-  </button>
-);
+const NavItem = ({ icon, label, active = false, onClick, activeTab }: { icon: any, label: string, active?: boolean, onClick?: () => void, activeTab?: string }) => {
+  const iconColor = active ? 'text-brand-red' : 'text-[#C4C9D4] group-hover/pill:text-brand-red';
+  const labelColor = active ? 'text-brand-red font-bold' : 'text-brand-secondary group-hover/pill:text-brand-text';
+  
+  return (
+    <button 
+      onClick={onClick}
+      className={`flex items-center gap-[16px] w-full px-[16px] h-[46px] transition-all duration-180 ease-in-out font-medium text-[14px] overflow-hidden whitespace-nowrap shrink-0 group/pill ${
+        active 
+        ? 'bg-brand-redLight border-l-[3px] border-brand-red rounded-r-[6px]' 
+        : 'hover:bg-brand-redUltraLight rounded-[6px]'
+      }`}>
+      <div className={`shrink-0 flex items-center justify-center transition-colors duration-180 ${iconColor}`}>{icon}</div>
+      <span className={`font-jakarta transition-colors duration-180 ${labelColor} ${activeTab === 'Advertisement' ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>{label}</span>
+    </button>
+  );
+};
 
 export default Dashboard;

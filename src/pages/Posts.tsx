@@ -52,31 +52,32 @@ const Posts: React.FC = () => {
     <div className="max-w-7xl mx-auto h-full flex flex-col">
       <div className="mb-6 flex flex-col sm:flex-row gap-4 items-end sm:items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
             <FileText className="text-[#10B981]" />
             Content Posts
           </h1>
-          <p className="text-[#e7bdb8] opacity-60">All published posts, news, blogs, and videos across the platform.</p>
+          <p className="text-gray-500 opacity-60">All published posts, news, blogs, and videos across the platform.</p>
         </div>
-        <div className="flex bg-[#171f3366] p-2 rounded-xl border border-[#ae88831a] gap-2">
+        <div className="flex sm:flex-row flex-col bg-white shadow-sm p-1.5 rounded-2xl sm:rounded-full border border-gray-200 gap-2 sm:overflow-hidden sm:min-w-[400px]">
           <input 
             type="text" 
-            placeholder="Filter Creator..." 
+            placeholder="Search creator..." 
             value={filterAuthor}
             onChange={(e) => setFilterAuthor(e.target.value)}
-            className="w-32 bg-transparent text-sm text-white px-3 py-1.5 focus:outline-none placeholder:text-white/30 border border-white/5 rounded-lg"
+            className="flex-1 bg-transparent text-sm text-gray-900 px-4 py-2 focus:outline-none placeholder:text-gray-400 border border-gray-100 sm:border-none rounded-xl sm:rounded-none transition-colors hover:bg-gray-50 focus:bg-gray-50"
           />
+          <div className="hidden sm:block w-px h-8 bg-gray-200 self-center" />
           <input 
             type="text" 
-            placeholder="Category..." 
+            placeholder="Any Category" 
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="w-28 bg-transparent text-sm text-white px-3 py-1.5 focus:outline-none placeholder:text-white/30 border border-white/5 rounded-lg"
+            className="w-full sm:w-36 bg-transparent text-sm text-gray-900 px-4 py-2 focus:outline-none placeholder:text-gray-400 border border-gray-100 sm:border-none rounded-xl sm:rounded-none transition-colors hover:bg-gray-50 focus:bg-gray-50"
           />
           <select 
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="w-28 bg-[#131b2e] text-sm text-white px-3 py-1.5 focus:outline-none border border-white/5 rounded-lg"
+            className="w-full sm:w-32 bg-gray-50 text-sm font-semibold text-gray-900 px-4 py-2 focus:outline-none border border-gray-200 sm:border-none rounded-xl sm:rounded-full cursor-pointer hover:bg-gray-100 transition-colors"
           >
             <option value="">All Types</option>
             <option value="NEWS">NEWS</option>
@@ -87,29 +88,29 @@ const Posts: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 bg-[#171f3366] backdrop-blur-md border border-[#ae88831a] rounded-2xl overflow-hidden flex flex-col">
+      <div className="flex-1 bg-white shadow-sm backdrop-blur-md border border-gray-200 rounded-2xl overflow-hidden flex flex-col">
         <div className="overflow-x-auto flex-1 custom-scrollbar">
           <table className="w-full text-left">
-            <thead className="sticky top-0 bg-[#0b1326]/90 backdrop-blur-sm z-10">
-              <tr className="border-b border-[#ae88830d]">
-                <th className="px-6 py-4 text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest opacity-40">Thumbnail</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest opacity-40">Title & Content</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest opacity-40">Author</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest opacity-40">Type/Category</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest opacity-40 text-right">Published</th>
+            <thead className="sticky top-0 bg-[#FAFBFF]/90 backdrop-blur-sm z-10">
+              <tr className="border-b border-gray-100">
+                <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest opacity-40">Thumbnail</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest opacity-40">Title & Content</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest opacity-40">Author</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest opacity-40">Type/Category</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest opacity-40 text-right">Published</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#ae88830d]">
+            <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="py-20 text-center text-[#e7bdb8] opacity-50">
+                  <td colSpan={5} className="py-20 text-center text-gray-500 opacity-50">
                     <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
                     Loading posts...
                   </td>
                 </tr>
               ) : filteredPosts.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-20 text-center text-[#e7bdb8] opacity-50 italic">
+                  <td colSpan={5} className="py-20 text-center text-gray-500 opacity-50 italic">
                     {posts.length === 0 ? 'No posts have been published yet.' : 'No posts match your filters.'}
                   </td>
                 </tr>
@@ -120,31 +121,31 @@ const Posts: React.FC = () => {
                       key={post.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="hover:bg-white/[0.02] transition-colors group"
+                      className="hover:bg-gray-50 transition-colors group"
                     >
                       <td className="px-6 py-4 w-32">
-                        <div className="w-24 h-16 bg-[#0b1326] rounded-xl overflow-hidden relative border border-white/5">
+                        <div className="w-24 h-16 bg-[#FAFBFF] rounded-xl overflow-hidden relative border border-white/5">
                           {post.thumbnail ? (
                             <img src={post.thumbnail} alt={post.title} className="w-full h-full object-cover" />
                           ) : post.type === 'VIDEO' || post.videoUrl ? (
-                            <div className="w-full h-full flex flex-col items-center justify-center bg-black/50 text-white/50">
+                            <div className="w-full h-full flex flex-col items-center justify-center bg-black/50 text-gray-500">
                               <PlayCircle size={20} />
                             </div>
                           ) : (
-                            <div className="w-full h-full flex flex-col items-center justify-center bg-[#131b2e] text-white/20">
+                            <div className="w-full h-full flex flex-col items-center justify-center bg-white text-white/20">
                               <FileText size={20} />
                             </div>
                           )}
                           {post.type === 'VIDEO' && post.videoDuration && (
-                            <div className="absolute bottom-1 right-1 bg-black/80 text-white text-[9px] px-1.5 py-0.5 rounded font-bold">
+                            <div className="absolute bottom-1 right-1 bg-black/80 text-gray-900 text-[9px] px-1.5 py-0.5 rounded font-bold">
                               {post.videoDuration}
                             </div>
                           )}
                         </div>
                       </td>
                       <td className="px-6 py-4 max-w-md">
-                        <h4 className="text-sm font-bold text-white mb-1 line-clamp-1">{post.title}</h4>
-                        <p className="text-xs text-[#e7bdb8] opacity-60 line-clamp-2">{post.subtitle || post.content?.replace(/<[^>]*>?/gm, '')}</p>
+                        <h4 className="text-sm font-bold text-gray-900 mb-1 line-clamp-1">{post.title}</h4>
+                        <p className="text-xs text-gray-500 opacity-60 line-clamp-2">{post.subtitle || post.content?.replace(/<[^>]*>?/gm, '')}</p>
                         {post.isTrending && (
                           <span className="inline-block mt-2 px-2 py-0.5 bg-yellow-500/10 text-yellow-500 text-[10px] font-bold rounded-sm uppercase tracking-wider border border-yellow-500/20">
                             Trending
@@ -161,24 +162,24 @@ const Posts: React.FC = () => {
                             </div>
                           )}
                           <div className="flex flex-col">
-                            <span className="text-sm text-white/90 font-medium">{post.User?.username || 'Unknown'}</span>
-                            <span className="text-[10px] text-[#e7bdb8] opacity-50">{post.User?.email || ''}</span>
+                            <span className="text-sm text-gray-800 font-medium">{post.User?.username || 'Unknown'}</span>
+                            <span className="text-[10px] text-gray-500 opacity-50">{post.User?.email || ''}</span>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-1 items-start">
-                          <span className="text-[10px] font-bold px-2 py-1 rounded-md bg-white/5 text-[#e7bdb8]/80 uppercase tracking-widest border border-white/5">
+                          <span className="text-[10px] font-bold px-2 py-1 rounded-md bg-gray-100 text-gray-500/80 uppercase tracking-widest border border-white/5">
                             {post.type || 'NEWS'}
                           </span>
                           {post.category && (
-                            <span className="text-xs text-[#e7bdb8]/50 capitalize">{post.category.toLowerCase()}</span>
+                            <span className="text-xs text-gray-500/50 capitalize">{post.category.toLowerCase()}</span>
                           )}
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <div className="flex flex-col items-end gap-1 text-[#e7bdb8] opacity-60">
-                          <div className="flex items-center gap-1 text-sm text-white/80">
+                        <div className="flex flex-col items-end gap-1 text-gray-500 opacity-60">
+                          <div className="flex items-center gap-1 text-sm text-gray-700">
                             <Clock size={12} />
                             {new Date(post.createdAt).toLocaleDateString()}
                           </div>

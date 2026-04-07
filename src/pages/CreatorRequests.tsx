@@ -211,8 +211,8 @@ export default function CreatorRequests() {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-10">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Creator Management</h1>
-            <p className="text-[#e7bdb8] opacity-60">Manage creator applications and directly create new creator accounts.</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2 tracking-tight">Creator Management</h1>
+            <p className="text-gray-500 opacity-60">Manage creator applications and directly create new creator accounts.</p>
           </div>
           <div className="flex gap-3">
             <button 
@@ -223,9 +223,9 @@ export default function CreatorRequests() {
             </button>
             <button 
               onClick={fetchRequests}
-              className="p-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all"
+              className="p-3 bg-gray-100 border border-gray-200 rounded-xl hover:bg-white/10 transition-all"
             >
-              <RefreshCw className={`w-5 h-5 text-[#e7bdb8] ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-5 h-5 text-gray-500 ${loading ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
@@ -239,8 +239,8 @@ export default function CreatorRequests() {
         </div>
 
         {/* Filter + Table */}
-        <div className="bg-[#171f3366] backdrop-blur-md border border-[#ae88831a] rounded-2xl overflow-hidden">
-          <div className="p-6 border-b border-[#ae88830d] flex gap-4">
+        <div className="bg-white shadow-sm backdrop-blur-md border border-gray-200 rounded-2xl overflow-hidden">
+          <div className="p-6 border-b border-gray-100 flex gap-4">
             <FilterButton active={filter === 'pending'} onClick={() => setFilter('pending')} label="Pending" />
             <FilterButton active={filter === 'approved'} onClick={() => setFilter('approved')} label="Approved" />
             <FilterButton active={filter === 'rejected'} onClick={() => setFilter('rejected')} label="Rejected" />
@@ -250,29 +250,29 @@ export default function CreatorRequests() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#ae88830d]">
-                  <th className="px-8 py-4 text-left text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest opacity-40">Creator Info</th>
-                  <th className="px-8 py-4 text-left text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest opacity-40">Status</th>
-                  <th className="px-8 py-4 text-left text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest opacity-40">Applied On</th>
-                  <th className="px-8 py-4 text-right text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest opacity-40">Actions</th>
+                <tr className="border-b border-gray-100">
+                  <th className="px-8 py-4 text-left text-[10px] font-bold text-gray-500 uppercase tracking-widest opacity-40">Creator Info</th>
+                  <th className="px-8 py-4 text-left text-[10px] font-bold text-gray-500 uppercase tracking-widest opacity-40">Status</th>
+                  <th className="px-8 py-4 text-left text-[10px] font-bold text-gray-500 uppercase tracking-widest opacity-40">Applied On</th>
+                  <th className="px-8 py-4 text-right text-[10px] font-bold text-gray-500 uppercase tracking-widest opacity-40">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#ae88830d]">
+              <tbody className="divide-y divide-gray-100">
                 {loading ? (
                   <tr>
-                    <td colSpan={4} className="py-20 text-center text-[#e7bdb8] opacity-50">
+                    <td colSpan={4} className="py-20 text-center text-gray-500 opacity-50">
                       <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
                       Loading requests...
                     </td>
                   </tr>
                 ) : filteredRequests.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="py-20 text-center text-[#e7bdb8] opacity-50">
+                    <td colSpan={4} className="py-20 text-center text-gray-500 opacity-50">
                       No applications found.
                     </td>
                   </tr>
                 ) : filteredRequests.map(request => (
-                  <tr key={request.id} className="hover:bg-white/[0.02] transition-colors group">
+                  <tr key={request.id} className="hover:bg-gray-50 transition-colors group">
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center font-bold text-xl uppercase">
@@ -280,15 +280,15 @@ export default function CreatorRequests() {
                         </div>
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
-                            <h4 className="font-bold text-white">{request.request_type === 'organization' ? request.channel_name : request.name}</h4>
+                            <h4 className="font-bold text-gray-900">{request.request_type === 'organization' ? request.channel_name : request.name}</h4>
                             {request.username && (
-                              <span className="text-[#e7bdb8] opacity-80 text-xs font-semibold">@{request.username}</span>
+                              <span className="text-gray-500 opacity-80 text-xs font-semibold">@{request.username}</span>
                             )}
                             <span className="px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase bg-white/10 rounded ml-2">
                               {request.request_type}
                             </span>
                           </div>
-                          <p className="text-sm text-[#e7bdb8] opacity-60 mt-1">
+                          <p className="text-sm text-gray-500 opacity-60 mt-1">
                             {request.request_type === 'organization' ? request.channel_email : request.email}
                           </p>
                         </div>
@@ -297,13 +297,13 @@ export default function CreatorRequests() {
                     <td className="px-8 py-6">
                       <StatusBadge status={request.status} />
                     </td>
-                    <td className="px-8 py-6 text-sm text-[#e7bdb8] opacity-60">
+                    <td className="px-8 py-6 text-sm text-gray-500 opacity-60">
                       {new Date(request.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-8 py-6 text-right">
                       <button 
                         onClick={() => setSelectedRequest(request)}
-                        className="px-4 py-2 bg-white/5 text-white rounded-xl text-sm font-bold hover:bg-white/10 transition-all opacity-0 group-hover:opacity-100 border border-white/10"
+                        className="px-4 py-2 bg-gray-100 text-gray-900 rounded-xl text-sm font-bold hover:bg-white/10 transition-all opacity-0 group-hover:opacity-100 border border-gray-200"
                       >
                         Review
                       </button>
@@ -324,7 +324,7 @@ export default function CreatorRequests() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-[#131b2e] rounded-2xl w-full max-w-2xl shadow-2xl border border-[#ae88831a] relative overflow-hidden"
+              className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl border border-gray-200 relative overflow-hidden"
             >
               <div className="p-10">
                 <div className="flex justify-between items-start mb-8">
@@ -334,20 +334,20 @@ export default function CreatorRequests() {
                     </div>
                     <div>
                       <div className="flex items-center gap-3">
-                        <h2 className="text-2xl font-bold text-white">
+                        <h2 className="text-2xl font-bold text-gray-900">
                           {selectedRequest.request_type === 'organization' ? selectedRequest.channel_name : selectedRequest.name}
                         </h2>
                         <span className="px-2.5 py-1 text-xs font-bold uppercase tracking-wider bg-white/10 rounded-md">
                           {selectedRequest.request_type}
                         </span>
                       </div>
-                      <p className="text-[#e7bdb8] opacity-60 mt-1">
+                      <p className="text-gray-500 opacity-60 mt-1">
                         {selectedRequest.request_type === 'organization' ? selectedRequest.channel_email : selectedRequest.email}
                         {selectedRequest.request_type === 'personal' && selectedRequest.username && ` • @${selectedRequest.username}`}
                       </p>
                     </div>
                   </div>
-                  <button onClick={() => setSelectedRequest(null)} className="text-[#e7bdb8] opacity-40 hover:opacity-100 transition-opacity">
+                  <button onClick={() => setSelectedRequest(null)} className="text-gray-500 opacity-40 hover:opacity-100 transition-opacity">
                     <XCircle className="w-8 h-8" />
                   </button>
                 </div>
@@ -356,15 +356,15 @@ export default function CreatorRequests() {
                   {selectedRequest.request_type === 'organization' ? (
                     <>
                       <div>
-                        <h4 className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest mb-2 flex items-center gap-2 opacity-60">
+                        <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-2 opacity-60">
                           <Info className="w-4 h-4" /> Organization Details
                         </h4>
-                        <p className="text-white/80 leading-relaxed text-sm"><span className="font-bold opacity-60">Bio:</span> {selectedRequest.channel_bio}</p>
-                        <p className="text-white/80 leading-relaxed text-sm mt-2"><span className="font-bold opacity-60">Categories:</span> {selectedRequest.category?.join(', ')}</p>
-                        <p className="text-white/80 leading-relaxed text-sm mt-2"><span className="font-bold opacity-60">Team Size:</span> {selectedRequest.employee_size}</p>
+                        <p className="text-gray-700 leading-relaxed text-sm"><span className="font-bold opacity-60">Bio:</span> {selectedRequest.channel_bio}</p>
+                        <p className="text-gray-700 leading-relaxed text-sm mt-2"><span className="font-bold opacity-60">Categories:</span> {selectedRequest.category?.join(', ')}</p>
+                        <p className="text-gray-700 leading-relaxed text-sm mt-2"><span className="font-bold opacity-60">Team Size:</span> {selectedRequest.employee_size}</p>
                       </div>
                       <div>
-                        <h4 className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest mb-2 flex items-center gap-2 opacity-60">
+                        <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-2 opacity-60">
                           <ExternalLink className="w-4 h-4" /> Links
                         </h4>
                         {selectedRequest.social_link ? (
@@ -372,20 +372,20 @@ export default function CreatorRequests() {
                             View Social Link <ExternalLink className="w-4 h-4" />
                           </a>
                         ) : (
-                          <p className="text-[#e7bdb8] opacity-40 italic text-sm">No link provided</p>
+                          <p className="text-gray-500 opacity-40 italic text-sm">No link provided</p>
                         )}
                       </div>
                     </>
                   ) : (
                     <>
                       <div>
-                        <h4 className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest mb-2 flex items-center gap-2 opacity-60">
+                        <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-2 opacity-60">
                           <Info className="w-4 h-4" /> About
                         </h4>
-                        <p className="text-white/80 leading-relaxed text-sm">{selectedRequest.bio}</p>
+                        <p className="text-gray-700 leading-relaxed text-sm">{selectedRequest.bio}</p>
                       </div>
                       <div>
-                        <h4 className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest mb-2 flex items-center gap-2 opacity-60">
+                        <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-2 opacity-60">
                           <ExternalLink className="w-4 h-4" /> Links
                         </h4>
                         {selectedRequest.social_link ? (
@@ -393,7 +393,7 @@ export default function CreatorRequests() {
                             View Social Link <ExternalLink className="w-4 h-4" />
                           </a>
                         ) : (
-                          <p className="text-[#e7bdb8] opacity-40 italic text-sm">No social link provided</p>
+                          <p className="text-gray-500 opacity-40 italic text-sm">No social link provided</p>
                         )}
                       </div>
                     </>
@@ -406,13 +406,13 @@ export default function CreatorRequests() {
                       placeholder="Add a message for the creator (optional)..."
                       value={adminMessage}
                       onChange={(e) => setAdminMessage(e.target.value)}
-                      className="w-full p-6 bg-white/5 border border-white/10 focus:border-[#E31E24] rounded-xl outline-none transition-all min-h-[100px] text-white placeholder-[#e7bdb8]/30"
+                      className="w-full p-6 bg-gray-100 border border-gray-200 focus:border-[#E31E24] rounded-xl outline-none transition-all min-h-[100px] text-gray-900 placeholder-[#e7bdb8]/30"
                     />
                     <div className="flex gap-4">
                       <button 
                         onClick={handleOpenApproveCredentials}
                         disabled={actionLoading}
-                        className="flex-1 py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                        className="flex-1 py-4 bg-green-600 text-gray-900 rounded-xl font-bold hover:bg-green-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                       >
                         <CheckCircle className="w-5 h-5" /> Approve
                       </button>
@@ -432,7 +432,7 @@ export default function CreatorRequests() {
                     <h4 className={`text-sm font-bold uppercase mb-2 ${selectedRequest.status === 'approved' ? 'text-green-400' : 'text-red-400'}`}>
                       Decision: {selectedRequest.status}
                     </h4>
-                    <p className="text-white/60 italic">"{selectedRequest.admin_message || 'No message provided'}"</p>
+                    <p className="text-gray-500 italic">"{selectedRequest.admin_message || 'No message provided'}"</p>
                   </div>
                 )}
               </div>
@@ -449,54 +449,54 @@ export default function CreatorRequests() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-[#131b2e] rounded-2xl w-full max-w-lg shadow-2xl border border-[#ae88831a] relative overflow-hidden"
+              className="bg-white rounded-2xl w-full max-w-lg shadow-2xl border border-gray-200 relative overflow-hidden"
             >
               <div className="p-10">
                 <div className="flex justify-between items-start mb-8">
                   <div>
-                    <h2 className="text-2xl font-bold text-white">Create Creator Account</h2>
-                    <p className="text-[#e7bdb8] opacity-60 text-sm mt-1">Manually provision a new creator</p>
+                    <h2 className="text-2xl font-bold text-gray-900">Create Creator Account</h2>
+                    <p className="text-gray-500 opacity-60 text-sm mt-1">Manually provision a new creator</p>
                   </div>
-                  <button onClick={() => setShowCreateModal(false)} className="text-[#e7bdb8] opacity-40 hover:opacity-100">
+                  <button onClick={() => setShowCreateModal(false)} className="text-gray-500 opacity-40 hover:opacity-100">
                     <XCircle className="w-8 h-8" />
                   </button>
                 </div>
 
                 <form onSubmit={handleCreateCreator} className="space-y-5">
                   <div>
-                    <label className="block text-sm font-medium text-[#e7bdb8] opacity-60 mb-2">Full Name</label>
+                    <label className="block text-sm font-medium text-gray-500 opacity-60 mb-2">Full Name</label>
                     <input 
                       type="text" required
-                      className="w-full p-3 bg-white/5 border border-white/10 focus:border-[#E31E24] rounded-xl outline-none text-white placeholder-[#e7bdb8]/30"
+                      className="w-full p-3 bg-gray-100 border border-gray-200 focus:border-[#E31E24] rounded-xl outline-none text-gray-900 placeholder-[#e7bdb8]/30"
                       placeholder="Creator's full name"
                       value={newCreator.fullName}
                       onChange={e => setNewCreator({...newCreator, fullName: e.target.value})}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#e7bdb8] opacity-60 mb-2">Email</label>
+                    <label className="block text-sm font-medium text-gray-500 opacity-60 mb-2">Email</label>
                     <input 
                       type="email" required
-                      className="w-full p-3 bg-white/5 border border-white/10 focus:border-[#E31E24] rounded-xl outline-none text-white placeholder-[#e7bdb8]/30"
+                      className="w-full p-3 bg-gray-100 border border-gray-200 focus:border-[#E31E24] rounded-xl outline-none text-gray-900 placeholder-[#e7bdb8]/30"
                       placeholder="creator@email.com"
                       value={newCreator.email}
                       onChange={e => setNewCreator({...newCreator, email: e.target.value})}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#e7bdb8] opacity-60 mb-2">Password</label>
+                    <label className="block text-sm font-medium text-gray-500 opacity-60 mb-2">Password</label>
                     <input 
                       type="text" required minLength={8}
-                      className="w-full p-3 bg-white/5 border border-white/10 focus:border-[#E31E24] rounded-xl outline-none text-white placeholder-[#e7bdb8]/30"
+                      className="w-full p-3 bg-gray-100 border border-gray-200 focus:border-[#E31E24] rounded-xl outline-none text-gray-900 placeholder-[#e7bdb8]/30"
                       placeholder="Minimum 8 characters"
                       value={newCreator.password}
                       onChange={e => setNewCreator({...newCreator, password: e.target.value})}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#e7bdb8] opacity-60 mb-2">Bio (optional)</label>
+                    <label className="block text-sm font-medium text-gray-500 opacity-60 mb-2">Bio (optional)</label>
                     <textarea 
-                      className="w-full p-3 bg-white/5 border border-white/10 focus:border-[#E31E24] rounded-xl outline-none text-white placeholder-[#e7bdb8]/30 min-h-[80px]"
+                      className="w-full p-3 bg-gray-100 border border-gray-200 focus:border-[#E31E24] rounded-xl outline-none text-gray-900 placeholder-[#e7bdb8]/30 min-h-[80px]"
                       placeholder="About this creator..."
                       value={newCreator.bio}
                       onChange={e => setNewCreator({...newCreator, bio: e.target.value})}
@@ -531,45 +531,45 @@ export default function CreatorRequests() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-[#131b2e] rounded-2xl w-full max-w-lg shadow-2xl border border-green-500/20 relative overflow-hidden"
+              className="bg-white rounded-2xl w-full max-w-lg shadow-2xl border border-green-500/20 relative overflow-hidden"
             >
               <div className="p-10">
                 <div className="flex justify-between items-start mb-8">
                   <div>
-                    <h2 className="text-2xl font-bold text-white">Create Login Credentials</h2>
-                    <p className="text-[#e7bdb8] opacity-60 text-sm mt-1">Set a password for <strong className="text-white">{requestToApprove.request_type === 'organization' ? requestToApprove.channel_name : requestToApprove.name}</strong></p>
+                    <h2 className="text-2xl font-bold text-gray-900">Create Login Credentials</h2>
+                    <p className="text-gray-500 opacity-60 text-sm mt-1">Set a password for <strong className="text-gray-900">{requestToApprove.request_type === 'organization' ? requestToApprove.channel_name : requestToApprove.name}</strong></p>
                   </div>
-                  <button onClick={() => { setShowApproveCredModal(false); setRequestToApprove(null); }} className="text-[#e7bdb8] opacity-40 hover:opacity-100">
+                  <button onClick={() => { setShowApproveCredModal(false); setRequestToApprove(null); }} className="text-gray-500 opacity-40 hover:opacity-100">
                     <XCircle className="w-8 h-8" />
                   </button>
                 </div>
 
-                <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
+                <div className="bg-gray-100 border border-gray-200 rounded-xl p-4 mb-6">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-green-500/10 text-green-400 rounded-xl flex items-center justify-center font-bold text-xl uppercase">
                       {(requestToApprove.request_type === 'organization' ? requestToApprove.channel_name : requestToApprove.name)?.charAt(0) || '?'}
                     </div>
                     <div>
-                      <p className="text-white font-bold">{requestToApprove.request_type === 'organization' ? requestToApprove.channel_name : requestToApprove.name}</p>
-                      <p className="text-[#e7bdb8] opacity-60 text-sm">{requestToApprove.request_type === 'organization' ? requestToApprove.channel_email : requestToApprove.email}</p>
+                      <p className="text-gray-900 font-bold">{requestToApprove.request_type === 'organization' ? requestToApprove.channel_name : requestToApprove.name}</p>
+                      <p className="text-gray-500 opacity-60 text-sm">{requestToApprove.request_type === 'organization' ? requestToApprove.channel_email : requestToApprove.email}</p>
                     </div>
                   </div>
                 </div>
 
                 <form onSubmit={handleConfirmApprove} className="space-y-5">
                   <div>
-                    <label className="block text-sm font-medium text-[#e7bdb8] opacity-60 mb-2">Email (auto-filled)</label>
+                    <label className="block text-sm font-medium text-gray-500 opacity-60 mb-2">Email (auto-filled)</label>
                     <input 
                       type="email" disabled
-                      className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white/50 cursor-not-allowed"
+                      className="w-full p-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-500 cursor-not-allowed"
                       value={requestToApprove.request_type === 'organization' ? requestToApprove.channel_email : requestToApprove.email}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#e7bdb8] opacity-60 mb-2">Set Password</label>
+                    <label className="block text-sm font-medium text-gray-500 opacity-60 mb-2">Set Password</label>
                     <input 
                       type="text" required minLength={8}
-                      className="w-full p-3 bg-white/5 border border-white/10 focus:border-green-500 rounded-xl outline-none text-white placeholder-[#e7bdb8]/30"
+                      className="w-full p-3 bg-gray-100 border border-gray-200 focus:border-green-500 rounded-xl outline-none text-gray-900 placeholder-[#e7bdb8]/30"
                       placeholder="Minimum 8 characters"
                       value={approvePassword}
                       onChange={e => setApprovePassword(e.target.value)}
@@ -577,9 +577,9 @@ export default function CreatorRequests() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#e7bdb8] opacity-60 mb-2">Admin Message (optional)</label>
+                    <label className="block text-sm font-medium text-gray-500 opacity-60 mb-2">Admin Message (optional)</label>
                     <textarea 
-                      className="w-full p-3 bg-white/5 border border-white/10 focus:border-green-500 rounded-xl outline-none text-white placeholder-[#e7bdb8]/30 min-h-[80px]"
+                      className="w-full p-3 bg-gray-100 border border-gray-200 focus:border-green-500 rounded-xl outline-none text-gray-900 placeholder-[#e7bdb8]/30 min-h-[80px]"
                       placeholder="Congratulations! Your application has been approved..."
                       value={adminMessage}
                       onChange={e => setAdminMessage(e.target.value)}
@@ -589,7 +589,7 @@ export default function CreatorRequests() {
                   <button 
                     type="submit"
                     disabled={actionLoading}
-                    className="w-full py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-full py-4 bg-green-600 text-gray-900 rounded-xl font-bold hover:bg-green-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CheckCircle size={18} /> Create Account</>}
                   </button>
@@ -608,36 +608,36 @@ export default function CreatorRequests() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-[#131b2e] rounded-2xl w-full max-w-md shadow-2xl border border-green-500/20 relative overflow-hidden"
+              className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-green-500/20 relative overflow-hidden"
             >
               <div className="p-10">
                 <div className="flex flex-col items-center mb-6">
                   <div className="w-16 h-16 bg-green-500/10 rounded-2xl flex items-center justify-center mb-4">
                     <CheckCircle className="w-8 h-8 text-green-500" />
                   </div>
-                  <h2 className="text-2xl font-bold text-white">Login Credentials</h2>
-                  <p className="text-[#e7bdb8] opacity-60 text-sm mt-2 text-center">
+                  <h2 className="text-2xl font-bold text-gray-900">Login Credentials</h2>
+                  <p className="text-gray-500 opacity-60 text-sm mt-2 text-center">
                     Your account has been approved. Use the following credentials to sign in and access the Creator Studio.
                   </p>
                 </div>
 
                 <div className="space-y-4 mb-6">
-                  <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
+                  <div className="bg-gray-100 border border-gray-200 rounded-xl p-4 flex items-center justify-between">
                     <div>
-                      <p className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest opacity-60 mb-1">Email</p>
-                      <p className="text-white font-mono text-sm">{createdCredentials.email}</p>
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest opacity-60 mb-1">Email</p>
+                      <p className="text-gray-900 font-mono text-sm">{createdCredentials.email}</p>
                     </div>
                     <button onClick={() => copyToClipboard(createdCredentials.email, 'email')} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                      {copiedField === 'email' ? <Check size={16} className="text-green-400" /> : <Copy size={16} className="text-[#e7bdb8]" />}
+                      {copiedField === 'email' ? <Check size={16} className="text-green-400" /> : <Copy size={16} className="text-gray-500" />}
                     </button>
                   </div>
-                  <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
+                  <div className="bg-gray-100 border border-gray-200 rounded-xl p-4 flex items-center justify-between">
                     <div>
-                      <p className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest opacity-60 mb-1">Password</p>
-                      <p className="text-white font-mono text-sm">{createdCredentials.password}</p>
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest opacity-60 mb-1">Password</p>
+                      <p className="text-gray-900 font-mono text-sm">{createdCredentials.password}</p>
                     </div>
                     <button onClick={() => copyToClipboard(createdCredentials.password, 'password')} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                      {copiedField === 'password' ? <Check size={16} className="text-green-400" /> : <Copy size={16} className="text-[#e7bdb8]" />}
+                      {copiedField === 'password' ? <Check size={16} className="text-green-400" /> : <Copy size={16} className="text-gray-500" />}
                     </button>
                   </div>
                 </div>
@@ -655,7 +655,7 @@ export default function CreatorRequests() {
                 <div className="flex gap-4">
                   <button 
                     onClick={handleCloseCredentials}
-                    className="flex-1 py-3 bg-white/5 border border-white/10 text-white rounded-xl font-bold hover:bg-white/10 transition-all flex items-center justify-center"
+                    className="flex-1 py-3 bg-gray-100 border border-gray-200 text-gray-900 rounded-xl font-bold hover:bg-white/10 transition-all flex items-center justify-center"
                   >
                     Close
                   </button>
@@ -684,13 +684,13 @@ function StatCard({ title, count, icon: Icon, color }: any) {
     red: 'bg-red-500/10 text-red-400'
   };
   return (
-    <div className="bg-[#171f3366] backdrop-blur-md border border-[#ae88831a] p-6 rounded-2xl flex items-center gap-6">
+    <div className="bg-white shadow-sm backdrop-blur-md border border-gray-200 p-6 rounded-2xl flex items-center gap-6">
       <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${colors[color]}`}>
         <Icon className="w-8 h-8" />
       </div>
       <div>
-        <p className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-widest opacity-40">{title}</p>
-        <h3 className="text-3xl font-bold text-white">{count}</h3>
+        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest opacity-40">{title}</p>
+        <h3 className="text-3xl font-bold text-gray-900">{count}</h3>
       </div>
     </div>
   );
@@ -701,7 +701,7 @@ function FilterButton({ active, onClick, label }: any) {
     <button 
       onClick={onClick}
       className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${
-        active ? 'bg-[#E31E24] text-white shadow-lg shadow-red-900/20' : 'text-[#e7bdb8]/60 hover:text-[#e7bdb8] hover:bg-white/5'
+        active ? 'bg-[#E31E24] text-white shadow-lg shadow-red-900/20' : 'text-gray-500/60 hover:text-gray-500 hover:bg-gray-100'
       }`}
     >
       {label}
@@ -716,7 +716,7 @@ function StatusBadge({ status }: { status: string }) {
     rejected: 'bg-red-500/10 text-red-400 border border-red-500/20'
   };
   return (
-    <span className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-wider ${styles[status] || 'bg-white/5'}`}>
+    <span className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-wider ${styles[status] || 'bg-gray-100'}`}>
       {status.toUpperCase()}
     </span>
   );

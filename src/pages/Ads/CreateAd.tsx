@@ -81,28 +81,28 @@ export default function CreateAd({ onAdCreated }: { onAdCreated: () => void }) {
   return (
     <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="mb-10">
-        <h1 className="text-4xl font-black text-white mb-2 tracking-tight">Deploy Campaign</h1>
-        <p className="text-[#e7bdb8] opacity-60">Initialize a new advertisement into the creator ecosystem.</p>
+        <h1 className="text-4xl font-black text-gray-900 mb-2 tracking-tight">Deploy Campaign</h1>
+        <p className="text-gray-500 opacity-60">Initialize a new advertisement into the creator ecosystem.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-[#171f3366] backdrop-blur-md border border-[#ae88831a] rounded-3xl p-10 shadow-2xl space-y-8">
+      <form onSubmit={handleSubmit} className="bg-white shadow-sm backdrop-blur-md border border-gray-200 rounded-3xl p-10 shadow-2xl space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           
           <div className="space-y-4 md:col-span-2">
-            <label className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-[0.2em] opacity-60">Creative Asset</label>
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] opacity-60">Creative Asset</label>
             <div className="relative">
               {!imagePreview ? (
-                <label className="flex flex-col items-center justify-center w-full h-48 bg-[#0b1326] border-2 border-dashed border-[#ae88831a] rounded-2xl hover:border-[#E31E24] hover:bg-[#131b2e] transition-all cursor-pointer group">
+                <label className="flex flex-col items-center justify-center w-full h-48 bg-[#FAFBFF] border-2 border-dashed border-gray-200 rounded-2xl hover:border-[#E31E24] hover:bg-white transition-all cursor-pointer group">
                   <div className="flex flex-col items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Upload className="text-[#e7bdb8]" size={24} />
+                    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Upload className="text-gray-500" size={24} />
                     </div>
-                    <span className="text-sm font-bold text-[#e7bdb8] opacity-60">Drop campaign media here or click to browse</span>
+                    <span className="text-sm font-bold text-gray-500 opacity-60">Drop campaign media here or click to browse</span>
                   </div>
                   <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
                 </label>
               ) : (
-                <div className="relative w-full h-64 rounded-2xl overflow-hidden border border-[#ae88831a] shadow-2xl">
+                <div className="relative w-full h-64 rounded-2xl overflow-hidden border border-gray-200 shadow-2xl">
                   <img src={imagePreview} className="w-full h-full object-cover" alt="Preview" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   <button 
@@ -118,75 +118,75 @@ export default function CreateAd({ onAdCreated }: { onAdCreated: () => void }) {
           </div>
 
           <div className="space-y-4 md:col-span-2">
-            <label className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-[0.2em] opacity-60">Ad Headline</label>
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] opacity-60">Ad Headline</label>
             <div className="relative flex items-center">
-              <Type className="absolute left-5 text-[#e7bdb8] opacity-40" size={20} />
+              <Type className="absolute left-5 text-gray-500 opacity-40" size={20} />
               <input 
                 required type="text" name="title" value={formData.title} onChange={handleChange}
-                className="w-full bg-[#0b1326] border border-[#ae88831a] rounded-2xl py-4 pl-14 pr-6 text-white text-lg font-medium focus:ring-2 focus:ring-[#E31E24]/50 outline-none transition-all placeholder:text-[#e7bdb8] placeholder:opacity-20"
+                className="w-full bg-[#FAFBFF] border border-gray-200 rounded-2xl py-4 pl-14 pr-6 text-gray-900 text-lg font-medium focus:ring-2 focus:ring-[#E31E24]/50 outline-none transition-all placeholder:text-gray-500 placeholder:opacity-20"
                 placeholder="Unstoppable Growth Starts Here"
               />
             </div>
           </div>
 
           <div className="space-y-4 md:col-span-2">
-            <label className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-[0.2em] opacity-60">Description Copy</label>
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] opacity-60">Description Copy</label>
             <div className="relative flex">
-              <AlignLeft className="absolute left-5 top-5 text-[#e7bdb8] opacity-40" size={20} />
+              <AlignLeft className="absolute left-5 top-5 text-gray-500 opacity-40" size={20} />
               <textarea 
                 required name="description" value={formData.description} onChange={handleChange} rows={3}
-                className="w-full bg-[#0b1326] border border-[#ae88831a] rounded-2xl py-4 pl-14 pr-6 text-white focus:ring-2 focus:ring-[#E31E24]/50 outline-none transition-all resize-none placeholder:text-[#e7bdb8] placeholder:opacity-20"
+                className="w-full bg-[#FAFBFF] border border-gray-200 rounded-2xl py-4 pl-14 pr-6 text-gray-900 focus:ring-2 focus:ring-[#E31E24]/50 outline-none transition-all resize-none placeholder:text-gray-500 placeholder:opacity-20"
                 placeholder="Hook your audience with a compelling story..."
               />
             </div>
           </div>
 
           <div className="space-y-4">
-            <label className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-[0.2em] opacity-60">Advertiser</label>
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] opacity-60">Advertiser</label>
             <div className="relative flex items-center">
-              <Target className="absolute left-5 text-[#e7bdb8] opacity-40" size={20} />
+              <Target className="absolute left-5 text-gray-500 opacity-40" size={20} />
               <input 
                 required type="text" name="advertiser_name" value={formData.advertiser_name} onChange={handleChange}
-                className="w-full bg-[#0b1326] border border-[#ae88831a] rounded-2xl py-4 pl-14 pr-6 text-white focus:ring-2 focus:ring-[#E31E24]/50 outline-none transition-all"
+                className="w-full bg-[#FAFBFF] border border-gray-200 rounded-2xl py-4 pl-14 pr-6 text-gray-900 focus:ring-2 focus:ring-[#E31E24]/50 outline-none transition-all"
                 placeholder="Brand Identity"
               />
             </div>
           </div>
 
           <div className="space-y-4">
-            <label className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-[0.2em] opacity-60">Redirect URL</label>
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] opacity-60">Redirect URL</label>
             <div className="relative flex items-center">
-              <LinkIcon className="absolute left-5 text-[#e7bdb8] opacity-40" size={20} />
+              <LinkIcon className="absolute left-5 text-gray-500 opacity-40" size={20} />
               <input 
                 required type="url" name="redirect_url" value={formData.redirect_url} onChange={handleChange}
-                className="w-full bg-[#0b1326] border border-[#ae88831a] rounded-2xl py-4 pl-14 pr-6 text-white focus:ring-2 focus:ring-[#E31E24]/50 outline-none transition-all"
+                className="w-full bg-[#FAFBFF] border border-gray-200 rounded-2xl py-4 pl-14 pr-6 text-gray-900 focus:ring-2 focus:ring-[#E31E24]/50 outline-none transition-all"
                 placeholder="https://brand.com/promo"
               />
             </div>
           </div>
 
-          <div className="space-y-4 md:col-span-2 pt-4 border-t border-[#ae88830d]">
-            <label className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-[0.2em] opacity-60">Economic Strategy</label>
+          <div className="space-y-4 md:col-span-2 pt-4 border-t border-gray-100">
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] opacity-60">Economic Strategy</label>
             <div className="grid grid-cols-2 gap-4">
               <button 
                 type="button"
                 onClick={() => setFormData(prev => ({ ...prev, pricing_model: 'cpc' }))}
-                className={`p-6 rounded-2xl border flex flex-col items-center gap-3 transition-all ${formData.pricing_model === 'cpc' ? 'bg-[#E31E24]/10 border-[#E31E24] shadow-[0_0_20px_rgba(227,30,36,0.1)]' : 'bg-[#0b1326] border-[#ae88831a] opacity-40 hover:opacity-100'}`}
+                className={`p-6 rounded-2xl border flex flex-col items-center gap-3 transition-all ${formData.pricing_model === 'cpc' ? 'bg-[#E31E24]/10 border-[#E31E24] shadow-[0_0_20px_rgba(227,30,36,0.1)]' : 'bg-[#FAFBFF] border-gray-200 opacity-40 hover:opacity-100'}`}
               >
-                <MousePointerClick size={32} className={formData.pricing_model === 'cpc' ? 'text-[#E31E24]' : 'text-white'} />
+                <MousePointerClick size={32} className={formData.pricing_model === 'cpc' ? 'text-[#E31E24]' : 'text-gray-900'} />
                 <div className="text-center">
-                  <p className="font-bold text-white text-lg">CPC</p>
+                  <p className="font-bold text-gray-900 text-lg">CPC</p>
                   <p className="text-[10px] uppercase font-black opacity-60">Cost Per Click</p>
                 </div>
               </button>
               <button 
                 type="button"
                 onClick={() => setFormData(prev => ({ ...prev, pricing_model: 'cpm' }))}
-                className={`p-6 rounded-2xl border flex flex-col items-center gap-3 transition-all ${formData.pricing_model === 'cpm' ? 'bg-[#E31E24]/10 border-[#E31E24] shadow-[0_0_20px_rgba(227,30,36,0.1)]' : 'bg-[#0b1326] border-[#ae88831a] opacity-40 hover:opacity-100'}`}
+                className={`p-6 rounded-2xl border flex flex-col items-center gap-3 transition-all ${formData.pricing_model === 'cpm' ? 'bg-[#E31E24]/10 border-[#E31E24] shadow-[0_0_20px_rgba(227,30,36,0.1)]' : 'bg-[#FAFBFF] border-gray-200 opacity-40 hover:opacity-100'}`}
               >
-                <Eye size={32} className={formData.pricing_model === 'cpm' ? 'text-[#E31E24]' : 'text-white'} />
+                <Eye size={32} className={formData.pricing_model === 'cpm' ? 'text-[#E31E24]' : 'text-gray-900'} />
                 <div className="text-center">
-                  <p className="font-bold text-white text-lg">CPM</p>
+                  <p className="font-bold text-gray-900 text-lg">CPM</p>
                   <p className="text-[10px] uppercase font-black opacity-60">Cost Per 1K Views</p>
                 </div>
               </button>
@@ -194,7 +194,7 @@ export default function CreateAd({ onAdCreated }: { onAdCreated: () => void }) {
           </div>
 
           <div className="space-y-4">
-            <label className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-[0.2em] opacity-60">
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] opacity-60">
               {formData.pricing_model === 'cpc' ? 'CPC Bid (INR)' : 'CPM Rate (INR)' }
             </label>
             <div className="relative flex items-center">
@@ -204,18 +204,18 @@ export default function CreateAd({ onAdCreated }: { onAdCreated: () => void }) {
                 name={formData.pricing_model === 'cpc' ? 'cpc_amount' : 'cpm_amount'} 
                 value={formData.pricing_model === 'cpc' ? formData.cpc_amount : formData.cpm_amount} 
                 onChange={handleChange}
-                className="w-full bg-[#131b2e] border border-[#ae88831a] rounded-2xl py-4 pl-14 pr-6 text-white text-xl font-black focus:ring-2 focus:ring-[#E31E24]/50 outline-none transition-all"
+                className="w-full bg-white border border-gray-200 rounded-2xl py-4 pl-14 pr-6 text-gray-900 text-xl font-black focus:ring-2 focus:ring-[#E31E24]/50 outline-none transition-all"
               />
             </div>
           </div>
 
           <div className="space-y-4">
-            <label className="text-[10px] font-bold text-[#e7bdb8] uppercase tracking-[0.2em] opacity-60">Total Budget (INR)</label>
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] opacity-60">Total Budget (INR)</label>
             <div className="relative flex items-center">
               <IndianRupee className="absolute left-5 text-[#E31E24]" size={20} />
               <input 
                 required type="number" step="0.01" min="0" name="budget_total" value={formData.budget_total} onChange={handleChange}
-                className="w-full bg-[#131b2e] border border-[#ae88831a] rounded-2xl py-4 pl-14 pr-6 text-white text-xl font-black focus:ring-2 focus:ring-[#E31E24]/50 outline-none transition-all"
+                className="w-full bg-white border border-gray-200 rounded-2xl py-4 pl-14 pr-6 text-gray-900 text-xl font-black focus:ring-2 focus:ring-[#E31E24]/50 outline-none transition-all"
               />
             </div>
           </div>
