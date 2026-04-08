@@ -76,10 +76,8 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
         {/* SECTION: TEXT CONTENT (LEFT) */}
         <div className="flex-1 text-center lg:text-left space-y-8 animate-in fade-in slide-in-from-left-4 duration-700">
           <div className="flex items-center justify-center lg:justify-start gap-3 mb-8">
-            <div className="w-12 h-12 bg-red-600 rounded-xl flex items-center justify-center shadow-lg shadow-red-200">
-              <ShieldAlert className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-xl font-bold tracking-tight text-gray-900 font-sans">OMH Sentinel</span>
+            <img src="/logo%20omh.png" alt="Admin HUB Logo" className="w-12 h-12 object-contain" />
+            <span className="text-xl font-bold tracking-tight text-gray-900 font-sans">Admin HUB</span>
           </div>
 
           <h1 className="text-5xl sm:text-7xl font-black text-gray-900 leading-[1.1] tracking-tight">

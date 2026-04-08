@@ -122,11 +122,9 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
       >
         <div className="py-0 px-0 flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
           <div className="flex items-center gap-3 h-[72px] px-[16px] shrink-0">
-            <div className="w-10 h-10 shrink-0 bg-brand-card flex items-center justify-center">
-              <ShieldAlert size={24} className="text-brand-red" strokeWidth={2.5} />
-            </div>
+            <img src="/logo%20omh.png" alt="Admin HUB Logo" className="w-10 h-10 shrink-0 object-contain" />
             <div className={`transition-opacity duration-300 min-w-[150px] ${activeTab === 'Advertisement' ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
-              <h2 className="text-lg font-bold font-jakarta text-brand-text leading-none">OMH Sentinel</h2>
+              <h2 className="text-lg font-bold font-jakarta text-brand-text leading-none">Admin HUB</h2>
               <p className="text-[9px] font-mono font-medium text-brand-muted mt-1 uppercase tracking-[0.2em]">Enterprise Control</p>
             </div>
           </div>
@@ -254,9 +252,9 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="border-b border-brand-divider">
-                          <th className="pb-3 text-[10px] font-mono text-brand-muted uppercase tracking-[0.05em] font-normal">Title</th>
-                          <th className="pb-3 text-[10px] font-mono text-brand-muted uppercase tracking-[0.05em] font-normal">Author</th>
-                          <th className="pb-3 text-[10px] font-mono text-brand-muted uppercase tracking-[0.05em] font-normal">Type</th>
+                          <th className="pb-3 pr-4 text-[10px] font-mono text-brand-muted uppercase tracking-[0.05em] font-normal">Title</th>
+                          <th className="pb-3 pr-6 text-[10px] font-mono text-brand-muted uppercase tracking-[0.05em] font-normal">Author</th>
+                          <th className="pb-3 pr-6 text-[10px] font-mono text-brand-muted uppercase tracking-[0.05em] font-normal">Type</th>
                           <th className="pb-3 text-[10px] font-mono text-brand-muted uppercase tracking-[0.05em] font-normal text-right">Date</th>
                         </tr>
                       </thead>
@@ -275,13 +273,13 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
                           </tr>
                         ) : recentPosts.map((post, i) => (
                           <tr key={post.id || i} className="group hover:bg-brand-redUltraLight transition-colors duration-120 border-b border-brand-bg last:border-0 h-[52px] cursor-pointer">
-                            <td className="pr-4 py-2">
+                            <td className="pr-6 py-2">
                               <p className="font-outfit text-[14px] font-medium text-brand-text line-clamp-1 group-hover:text-brand-red transition-colors">{post.title}</p>
                             </td>
-                            <td className="py-2">
-                              <div className="flex items-center gap-2">
+                            <td className="pr-6 py-2 whitespace-nowrap">
+                              <div className="flex items-center gap-2 min-w-[120px]">
                                 {post.User?.avatarUrl ? (
-                                  <img src={post.User.avatarUrl} alt="avatar" className="w-[24px] h-[24px] rounded-full object-cover bg-brand-bg" />
+                                  <img src={post.User.avatarUrl} alt="avatar" className="w-[24px] h-[24px] rounded-full object-cover bg-brand-bg border border-brand-divider" />
                                 ) : (
                                   <div className="w-[24px] h-[24px] rounded-full bg-brand-divider flex items-center justify-center text-[10px] font-bold text-brand-secondary">
                                     {(post.User?.username || post.User?.email || '?').charAt(0).toUpperCase()}
@@ -290,10 +288,10 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
                                 <span className="font-outfit text-[13px] font-medium text-brand-text">{post.User?.username || post.User?.email || 'Unknown'}</span>
                               </div>
                             </td>
-                            <td className="py-2">
+                            <td className="pr-6 py-2 whitespace-nowrap">
                               <span className="border border-brand-border font-mono text-[10px] text-brand-secondary rounded-[4px] px-[8px] py-[4px] uppercase">{post.type}</span>
                             </td>
-                            <td className="py-2 text-right">
+                            <td className="py-2 text-right whitespace-nowrap">
                               <span className="font-mono text-[12px] text-brand-muted">{new Date(post.createdAt).toLocaleDateString()}</span>
                             </td>
                           </tr>

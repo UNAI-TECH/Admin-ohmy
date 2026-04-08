@@ -177,6 +177,9 @@ export const adminService = {
         email_confirm: true,
       });
 
+      // Update the User table explicitly to store temporary_password
+      await supabaseAdmin.from('User').update({ temporary_password: payload.password }).eq('id', existingAuthUser.id);
+
       return existingAuthUser;
     }
 
@@ -209,7 +212,16 @@ export const adminService = {
     console.log('[Admin] Auth user created:', userId);
 
     // The DB triggers handle migrating this Auth user into the public."User" table
-    // (via handle_new_user and the handle_creator_approval trigger)
+    // (via handle_new_user and the handle_creator_approval trigger).
+    // Now we must update the User record with the plaintext password so the Admin can view it.
+    const { error: pwdErr } = await supabaseAdmin
+      .from('User')
+      .update({ temporary_password: payload.password })
+      .eq('id', userId);
+
+    if (pwdErr) {
+      console.warn('[Admin] Could not save temporary_password to User table:', pwdErr.message);
+    }
 
     console.log('[Admin] Creator auth account created for:', payload.email);
     return createData.user;
