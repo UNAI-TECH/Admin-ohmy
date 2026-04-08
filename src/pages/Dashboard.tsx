@@ -10,8 +10,6 @@ import {
   MessageSquare,
   ShieldAlert,
   Search,
-  ChevronRight,
-  LifeBuoy,
   IndianRupee,
   BarChart3,
   TrendingUp,
