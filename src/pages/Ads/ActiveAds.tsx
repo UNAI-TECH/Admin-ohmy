@@ -10,14 +10,19 @@ import {
   Eye, 
   Activity,
   ArrowUpRight,
-  Calendar
+  Calendar,
+  Trash2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useToast } from '../../context/ToastContext';
 
 export default function ActiveAds() {
   const [ads, setAds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [campaignToDelete, setCampaignToDelete] = useState<any>(null);
+  const { success, error: toastError } = useToast();
 
   const fetchAds = async () => {
     const { data } = await supabase
@@ -42,6 +47,26 @@ export default function ActiveAds() {
 
   const handlePause = async (id: string) => {
     await supabase.from('ads').update({ status: 'paused' }).eq('id', id);
+  };
+
+  const handleDelete = (ad: any) => {
+    setCampaignToDelete(ad);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteCampaign = async () => {
+    if (!campaignToDelete) return;
+    try {
+      const { error } = await supabase.from('ads').delete().eq('id', campaignToDelete.id);
+      if (error) throw error;
+      setAds(prev => prev.filter(c => c.id !== campaignToDelete.id));
+      success('Campaign deleted successfully');
+    } catch (err: any) {
+      toastError(err.message || 'Failed to delete campaign');
+    } finally {
+      setShowDeleteModal(false);
+      setCampaignToDelete(null);
+    }
   };
 
   const filtered = ads.filter(ad => 
@@ -167,23 +192,29 @@ export default function ActiveAds() {
                   </div>
                 </div>
 
-                {/* Vertical Control Bar */}
-                <div className="flex xl:flex-col gap-4 shrink-0 xl:border-l border-gray-100 xl:pl-8">
+                <div className="flex xl:flex-col gap-4 shrink-0 xl:border-l border-gray-100 xl:pl-8 justify-center">
                    <a 
                      href={ad.redirect_url} 
                      target="_blank" 
                      rel="noopener noreferrer"
-                     className="flex-1 xl:flex-none p-4 bg-gray-100 hover:bg-white/10 text-gray-900 rounded-2xl transition-all border border-white/5 shadow-lg group/link"
+                     className="flex-1 xl:flex-none p-4 bg-gray-100 hover:bg-white/10 text-gray-900 rounded-2xl transition-all border border-white/5 shadow-lg flex items-center justify-center group/link"
                      title="Audit Target URL"
                    >
                      <ArrowUpRight size={20} className="group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
                    </a>
                    <button 
                      onClick={() => handlePause(ad.id)}
-                     className="flex-1 xl:flex-none p-4 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 rounded-2xl transition-all border border-amber-500/10 shadow-lg group/pause"
+                     className="flex-1 xl:flex-none p-4 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 rounded-2xl transition-all border border-amber-500/10 shadow-lg flex items-center justify-center group/pause"
                      title="Suspend Relay"
                    >
                      <Pause size={20} className="group-hover/pause:scale-110 transition-transform" />
+                   </button>
+                   <button 
+                     onClick={() => handleDelete(ad)}
+                     className="flex-1 xl:flex-none p-4 bg-red-500/10 hover:bg-red-500/20 text-[#E31E24] rounded-2xl transition-all border border-red-500/10 shadow-lg flex items-center justify-center group/delete"
+                     title="Delete Campaign"
+                   >
+                     <Trash2 size={20} className="group-hover/delete:scale-110 transition-transform" />
                    </button>
                 </div>
               </motion.div>
@@ -191,6 +222,34 @@ export default function ActiveAds() {
           })
         )}
       </div>
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="w-12 h-12 rounded-full bg-red-50 text-[#E31E24] flex items-center justify-center mb-4 mx-auto">
+              <Trash2 size={24} />
+            </div>
+            <h3 className="text-xl font-black text-gray-900 text-center mb-2 tracking-tight">Delete Campaign?</h3>
+            <p className="text-sm text-gray-500 text-center mb-6 font-medium">
+              Are you sure you want to delete <span className="font-bold text-gray-700">"{campaignToDelete?.title}"</span>? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowDeleteModal(false); setCampaignToDelete(null); }}
+                className="flex-1 py-3 bg-gray-100 font-bold text-gray-700 rounded-xl hover:bg-gray-200 transition text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteCampaign}
+                className="flex-1 py-3 bg-[#E31E24] font-bold text-white rounded-xl hover:bg-red-700 transition text-sm"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

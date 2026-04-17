@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, PlusCircle, BarChart2, PlayCircle, PauseCircle, ChevronLeft } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, BarChart2, PlayCircle, PauseCircle, ChevronLeft, Film } from 'lucide-react';
 import AdsOverview from './AdsOverview';
 import CreateAd from './CreateAd';
 import AdsInsights from './AdsInsights';
 import ActiveAds from './ActiveAds';
 import PausedAds from './PausedAds';
+import VideoAds from './VideoAds';
 
 interface Props {
   onBack: () => void;
@@ -34,6 +35,7 @@ const AdsLayout: React.FC<Props> = ({ onBack }) => {
           <AdsNavItem icon={<BarChart2 size={18} />} label="Insights" active={activeTab === 'Insights'} onClick={() => setActiveTab('Insights')} />
           <AdsNavItem icon={<PlayCircle size={18} />} label="Active Ads" active={activeTab === 'Active Ads'} onClick={() => setActiveTab('Active Ads')} />
           <AdsNavItem icon={<PauseCircle size={18} />} label="Paused Ads" active={activeTab === 'Paused Ads'} onClick={() => setActiveTab('Paused Ads')} />
+          <AdsNavItem icon={<Film size={18} />} label="Video Ads" active={activeTab === 'Video Ads'} onClick={() => setActiveTab('Video Ads')} />
         </nav>
       </aside>
 
@@ -44,6 +46,7 @@ const AdsLayout: React.FC<Props> = ({ onBack }) => {
         {activeTab === 'Insights' && <AdsInsights />}
         {activeTab === 'Active Ads' && <ActiveAds />}
         {activeTab === 'Paused Ads' && <PausedAds />}
+        {activeTab === 'Video Ads' && <VideoAds />}
       </main>
     </div>
   );

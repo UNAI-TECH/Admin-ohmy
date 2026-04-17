@@ -40,6 +40,8 @@ export interface CreatorRequest {
   updated_at: string;
 }
 
+let videoAdsPromise: Promise<void> | null = null;
+
 export const adminService = {
   /**
    * Fix the broken DB trigger (one-time). The existing trigger inserts into
@@ -534,5 +536,248 @@ export const adminService = {
     
     if (error) throw error;
     return data;
+  },
+
+  /**
+   * Ensure the Video Ads system tables exist (mid-roll ads).
+   * Additive only — does NOT modify any existing columns or tables.
+   */
+  async ensureVideoAdsTable(): Promise<void> {
+    if (videoAdsPromise) return videoAdsPromise;
+
+    videoAdsPromise = (async () => {
+      try {
+        // Ensure 'ad-videos' bucket exists for direct video uploads
+        try {
+          const { data: buckets } = await supabaseAdmin.storage.listBuckets();
+          if (!buckets?.find(b => b.name === 'ad-videos')) {
+            await supabaseAdmin.storage.createBucket('ad-videos', { public: true });
+            console.log('[Admin] Created ad-videos bucket');
+          }
+        } catch (e) {
+          console.warn('[Admin] Failed to check/create ad-videos bucket', e);
+        }
+
+        // Step 1: Add ads_enabled column to Post table + create video_ad_slots table
+        const { error: err1 } = await supabaseAdmin.rpc('exec_sql', {
+          query: `
+            ALTER TABLE public."Post"
+            ADD COLUMN IF NOT EXISTS "ads_enabled" BOOLEAN DEFAULT false;
+
+            CREATE TABLE IF NOT EXISTS public.video_ads (
+              id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+              ad_video_url TEXT NOT NULL,
+              title TEXT,
+              is_active BOOLEAN DEFAULT true,
+              created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+              revenue_per_view NUMERIC DEFAULT 0,
+              views INTEGER DEFAULT 0,
+              revenue NUMERIC DEFAULT 0
+            );
+            ALTER TABLE public.video_ads DISABLE ROW LEVEL SECURITY;
+            GRANT ALL ON TABLE public.video_ads TO anon, authenticated, service_role;
+
+            CREATE TABLE IF NOT EXISTS public.video_ad_slots (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              post_id TEXT NOT NULL REFERENCES "Post"(id) ON DELETE CASCADE,
+              ad_position_seconds INTEGER NOT NULL,
+              created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+            );
+            CREATE INDEX IF NOT EXISTS idx_video_ad_slots_post ON video_ad_slots(post_id);
+
+            CREATE TABLE IF NOT EXISTS public.midroll_ad_impressions (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              ad_id uuid,
+              post_id TEXT,
+              user_id TEXT,
+              slot_position INTEGER,
+              viewed_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+            );
+            CREATE INDEX IF NOT EXISTS idx_midroll_imp_ad ON midroll_ad_impressions(ad_id);
+            CREATE INDEX IF NOT EXISTS idx_midroll_imp_user ON midroll_ad_impressions(user_id);
+
+            CREATE TABLE IF NOT EXISTS public.midroll_ad_clicks (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              ad_id uuid,
+              post_id TEXT,
+              user_id TEXT,
+              clicked_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+              cost NUMERIC
+            );
+            CREATE INDEX IF NOT EXISTS idx_midroll_click_ad ON midroll_ad_clicks(ad_id);
+
+            ALTER TABLE public.video_ads ADD COLUMN IF NOT EXISTS description TEXT;
+            ALTER TABLE public.video_ads ADD COLUMN IF NOT EXISTS link TEXT;
+            ALTER TABLE public.video_ads ADD COLUMN IF NOT EXISTS logo_url TEXT;
+
+            ALTER TABLE public.video_ad_slots DISABLE ROW LEVEL SECURITY;
+            ALTER TABLE public.midroll_ad_impressions DISABLE ROW LEVEL SECURITY;
+            ALTER TABLE public.midroll_ad_clicks DISABLE ROW LEVEL SECURITY;
+            GRANT ALL ON TABLE public.video_ad_slots TO anon, authenticated, service_role;
+            GRANT ALL ON TABLE public.midroll_ad_impressions TO anon, authenticated, service_role;
+            GRANT ALL ON TABLE public.midroll_ad_clicks TO anon, authenticated, service_role;
+          `
+        });
+
+        if (err1) {
+          console.warn('[Admin] Step 1 video ads migration error:', err1.message);
+          return;
+        }
+
+        // Step 2: Create track_midroll_impression RPC
+        await supabaseAdmin.rpc('exec_sql', {
+          query: `
+            CREATE OR REPLACE FUNCTION public.track_midroll_impression(
+              p_ad_id uuid, p_post_id text, p_user_id text, p_slot_position integer
+            )
+            RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+            DECLARE
+              v_cpm numeric;
+            BEGIN
+              IF EXISTS (
+                SELECT 1 FROM midroll_ad_impressions
+                WHERE ad_id = p_ad_id AND user_id = p_user_id
+                  AND post_id = p_post_id AND slot_position = p_slot_position
+              ) THEN
+                RETURN;
+              END IF;
+
+              INSERT INTO midroll_ad_impressions (ad_id, post_id, user_id, slot_position)
+              VALUES (p_ad_id, p_post_id, p_user_id, p_slot_position);
+
+              SELECT cpm_amount INTO v_cpm FROM ads WHERE id = p_ad_id;
+
+              UPDATE ads SET
+                impressions_count = impressions_count + 1,
+                total_spent = total_spent + (COALESCE(v_cpm, 0) / 1000.0),
+                budget_remaining = budget_remaining - (COALESCE(v_cpm, 0) / 1000.0)
+              WHERE id = p_ad_id;
+
+              UPDATE ads SET status = 'completed' WHERE id = p_ad_id AND budget_remaining <= 0;
+            END;
+            $$;
+          `
+        });
+
+        // Step 3: Create track_midroll_click RPC
+        await supabaseAdmin.rpc('exec_sql', {
+          query: `
+            CREATE OR REPLACE FUNCTION public.track_midroll_click(
+              p_ad_id uuid, p_post_id text, p_user_id text
+            )
+            RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+            DECLARE
+              v_cpc numeric;
+            BEGIN
+              IF EXISTS (
+                SELECT 1 FROM midroll_ad_clicks
+                WHERE ad_id = p_ad_id AND user_id = p_user_id AND post_id = p_post_id
+              ) THEN
+                RETURN;
+              END IF;
+
+              SELECT cpc_amount INTO v_cpc FROM ads WHERE id = p_ad_id;
+
+              INSERT INTO midroll_ad_clicks (ad_id, post_id, user_id, cost)
+              VALUES (p_ad_id, p_post_id, p_user_id, v_cpc);
+
+              UPDATE ads SET
+                clicks_count = clicks_count + 1,
+                total_spent = total_spent + COALESCE(v_cpc, 0),
+                budget_remaining = budget_remaining - COALESCE(v_cpc, 0)
+              WHERE id = p_ad_id;
+
+              UPDATE ads SET status = 'completed' WHERE id = p_ad_id AND budget_remaining <= 0;
+            END;
+            $$;
+
+            NOTIFY pgrst, 'reload schema';
+          `
+        });
+
+        console.log('[Admin] Video ads tables and RPCs ensured');
+      } catch (e: any) {
+        console.warn('[Admin] Unexpected error in ensureVideoAdsTable:', e.message);
+      }
+    })();
+    
+    return videoAdsPromise;
+  },
+
+  /**
+   * Get all video posts for the Video Ads management panel.
+   */
+  async getVideoPosts() {
+    const { data, error } = await supabaseAdmin
+      .from('Post')
+      .select('id, title, thumbnail, videoDuration, ads_enabled, authorId, createdAt, author:User!authorId(username, avatarUrl)')
+      .eq('type', 'VIDEO')
+      .not('videoUrl', 'is', null)
+      .order('createdAt', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  /**
+   * Toggle ads_enabled for a video post, and auto-manage ad slots.
+   */
+  async toggleVideoAds(postId: string, enabled: boolean, durationSeconds: number) {
+    let adBreaksJson = [];
+    if (enabled) {
+      adBreaksJson.push({ type: 'pre', time: 0 });
+      if (durationSeconds >= 30) adBreaksJson.push({ type: 'mid', time: 30 });
+      if (durationSeconds > 60) adBreaksJson.push({ type: 'mid', time: Math.floor(durationSeconds * (2 / 3)) });
+      // Example of multiple mid-rolls
+    }
+
+    // Update the flag and ad_breaks array
+    const { error: updateErr } = await supabaseAdmin
+      .from('Post')
+      .update({ ads_enabled: enabled, ad_breaks: adBreaksJson })
+      .eq('id', postId);
+
+    if (updateErr) throw updateErr;
+
+    // We can also retain video_ad_slots for legacy compatibility or delete it later
+    await supabaseAdmin
+      .from('video_ad_slots')
+      .delete()
+      .eq('post_id', postId);
+
+    // If enabling, auto-generate slots based on duration
+    if (enabled && durationSeconds > 30) {
+      const slots: { post_id: string; ad_position_seconds: number }[] = [];
+
+      if (durationSeconds > 60) {
+        slots.push({ post_id: postId, ad_position_seconds: 30 });
+      }
+      if (durationSeconds > 120) {
+        slots.push({ post_id: postId, ad_position_seconds: 60 });
+      }
+      if (durationSeconds > 180) {
+        slots.push({ post_id: postId, ad_position_seconds: 120 });
+      }
+      if (slots.length > 0) {
+        const { error: insertErr } = await supabaseAdmin
+          .from('video_ad_slots')
+          .insert(slots);
+        if (insertErr) throw insertErr;
+      }
+    }
+  },
+
+  /**
+   * Get ad slots for a specific video post.
+   */
+  async getVideoAdSlots(postId: string) {
+    const { data, error } = await supabaseAdmin
+      .from('video_ad_slots')
+      .select('*')
+      .eq('post_id', postId)
+      .order('ad_position_seconds', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
   },
 };

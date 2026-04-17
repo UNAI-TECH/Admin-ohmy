@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import { PauseCircle, Target, Link, Calendar, IndianRupee, Play, Search, CreditCard } from 'lucide-react';
+import { PauseCircle, Target, Link, Calendar, IndianRupee, Play, Search, CreditCard, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '../../context/ToastContext';
 
 export default function PausedAds() {
-  const { error: toastError } = useToast();
+  const { success, error: toastError } = useToast();
   const [ads, setAds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [campaignToDelete, setCampaignToDelete] = useState<any>(null);
 
   useEffect(() => {
     const fetchAds = async () => {
@@ -33,6 +35,26 @@ export default function PausedAds() {
     }
     await supabase.from('ads').update({ status: 'active' }).eq('id', id);
     setAds(prev => prev.filter(ad => ad.id !== id));
+  };
+
+  const handleDelete = (ad: any) => {
+    setCampaignToDelete(ad);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteCampaign = async () => {
+    if (!campaignToDelete) return;
+    try {
+      const { error } = await supabase.from('ads').delete().eq('id', campaignToDelete.id);
+      if (error) throw error;
+      setAds(prev => prev.filter(c => c.id !== campaignToDelete.id));
+      success('Campaign deleted successfully');
+    } catch (err: any) {
+      toastError(err.message || 'Failed to delete campaign');
+    } finally {
+      setShowDeleteModal(false);
+      setCampaignToDelete(null);
+    }
   };
 
   const filtered = ads.filter(ad => ad.title.toLowerCase().includes(search.toLowerCase()) || ad.advertiser_name.toLowerCase().includes(search.toLowerCase()));
@@ -100,7 +122,7 @@ export default function PausedAds() {
               </div>
 
               {/* Actions */}
-              <div className="flex flex-col justify-between shrink-0">
+              <div className="flex flex-col justify-between shrink-0 gap-3">
                  <a 
                    href={ad.redirect_url} 
                    target="_blank" 
@@ -118,11 +140,46 @@ export default function PausedAds() {
                  >
                    <Play size={18} />
                  </button>
+                 <button 
+                   onClick={() => handleDelete(ad)}
+                   className="p-3 bg-red-500/10 hover:bg-red-500/20 text-[#E31E24] rounded-xl transition-colors border border-red-500/10 text-center flex items-center justify-center"
+                   title="Delete Campaign"
+                 >
+                   <Trash2 size={18} />
+                 </button>
               </div>
             </motion.div>
           ))
         )}
       </div>
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="w-12 h-12 rounded-full bg-red-50 text-[#E31E24] flex items-center justify-center mb-4 mx-auto">
+              <Trash2 size={24} />
+            </div>
+            <h3 className="text-xl font-black text-gray-900 text-center mb-2 tracking-tight">Delete Campaign?</h3>
+            <p className="text-sm text-gray-500 text-center mb-6 font-medium">
+              Are you sure you want to delete <span className="font-bold text-gray-700">"{campaignToDelete?.title}"</span>? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowDeleteModal(false); setCampaignToDelete(null); }}
+                className="flex-1 py-3 bg-gray-100 font-bold text-gray-700 rounded-xl hover:bg-gray-200 transition text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteCampaign}
+                className="flex-1 py-3 bg-[#E31E24] font-bold text-white rounded-xl hover:bg-red-700 transition text-sm"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

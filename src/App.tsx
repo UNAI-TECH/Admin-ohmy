@@ -31,6 +31,7 @@ function App() {
            adminService.createFeedbackTable();
            adminService.ensureAdsBucket();
            adminService.ensureAdsTable();
+           adminService.ensureVideoAdsTable();
          } else {
           await supabase.auth.signOut();
         }

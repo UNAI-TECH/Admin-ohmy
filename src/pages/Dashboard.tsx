@@ -3,7 +3,6 @@ import {
   Users, 
   FileText, 
   PieChart, 
-  Settings, 
   LogOut, 
   Bell, 
   Menu,
@@ -24,7 +23,6 @@ import Feedback from './Feedback';
 import Posts from './Posts';
 import Creators from './Creators';
 import Analytics from './Analytics';
-import SettingsView from './Settings';
 import AdsLayout from './Ads/AdsLayout';
 
 
@@ -137,7 +135,6 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
             <NavItem icon={<IndianRupee size={18} strokeWidth={2.5} />} label="Payments" active={activeTab === 'Payments'} onClick={() => setActiveTab('Payments')} activeTab={activeTab} />
             <NavItem icon={<Bell size={18} strokeWidth={2.5} />} label="Notifications" active={activeTab === 'Notifications'} onClick={() => setActiveTab('Notifications')} activeTab={activeTab} />
             <NavItem icon={<MessageSquare size={18} strokeWidth={2.5} />} label="Feedback" active={activeTab === 'Feedback'} onClick={() => setActiveTab('Feedback')} activeTab={activeTab} />
-            <NavItem icon={<Settings size={18} strokeWidth={2.5} />} label="Settings" active={activeTab === 'Settings'} onClick={() => setActiveTab('Settings')} activeTab={activeTab} />
           </nav>
         </div>
 
@@ -372,8 +369,6 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
               <p className="text-gray-500 opacity-60 max-w-md text-center">Global payout integrations, creator monetization, and finance dashboards are coming in the next platform update.</p>
               <span className="mt-8 px-4 py-2 bg-gray-100 border border-gray-200 rounded-full text-xs font-bold uppercase tracking-widest text-gray-400">Coming Soon</span>
             </div>
-          ) : activeTab === 'Settings' ? (
-            <SettingsView />
           ) : (
             <div className="flex items-center justify-center h-full text-gray-500 opacity-60">
               <p className="text-xl italic">The {activeTab} module is initializing...</p>
