@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { getMemCache, setMemCache, invalidateMemCache } from './cache';
 // anon-key client (same as mobile app uses) removed as unused
 
 // Admin client — service_role key, no session persistence (for admin-only operations)
@@ -226,6 +227,11 @@ export const adminService = {
     }
 
     console.log('[Admin] Creator auth account created for:', payload.email);
+
+    // Invalidate admin caches
+    invalidateMemCache('admin:overview:stats');
+    invalidateMemCache('admin:all:creators');
+
     return createData.user;
   },
 
@@ -280,6 +286,10 @@ export const adminService = {
       .eq('id', requestId);
 
     if (error) throw error;
+
+    // Invalidate admin caches
+    invalidateMemCache('admin:overview:stats');
+    invalidateMemCache('admin:all:creators');
   },
 
   /**
@@ -296,12 +306,21 @@ export const adminService = {
       .eq('id', requestId);
 
     if (error) throw error;
+
+    // Invalidate admin caches
+    invalidateMemCache('admin:overview:stats');
+    invalidateMemCache('admin:all:creators');
   },
 
   /**
    * Platform analytics — uses service role to bypass RLS
    */
   async getOverviewStats() {
+    // Check in-memory cache (60s TTL)
+    const cacheKey = 'admin:overview:stats';
+    const cached = getMemCache<any>(cacheKey);
+    if (cached) return cached;
+
     const [
       { count: totalUsers },
       { count: totalCreators },
@@ -316,16 +335,24 @@ export const adminService = {
       supabaseAdmin.from('creator_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
     ]);
 
-    return {
+    const result = {
       totalUsers: totalUsers || 0,
       totalCreators: totalCreators || 0,
       totalPosts: totalPosts || 0,
       totalComments: totalComments || 0,
       pendingRequests: pendingRequests || 0,
     };
+
+    setMemCache(cacheKey, result, 60000);
+    return result;
   },
 
   async getRecentPosts(limit = 10) {
+    // Check in-memory cache (30s TTL)
+    const cacheKey = `admin:recent:posts:${limit}`;
+    const cached = getMemCache<any[]>(cacheKey);
+    if (cached) return cached;
+
     const { data, error } = await supabaseAdmin
       .from('Post')
       .select('*, User(username, email, avatarUrl)')
@@ -333,10 +360,17 @@ export const adminService = {
       .limit(limit);
 
     if (error) throw error;
-    return data || [];
+    const result = data || [];
+    setMemCache(cacheKey, result, 30000);
+    return result;
   },
 
   async getAllCreators() {
+    // Check in-memory cache (120s TTL)
+    const cacheKey = 'admin:all:creators';
+    const cached = getMemCache<any[]>(cacheKey);
+    if (cached) return cached;
+
     const { data, error } = await supabaseAdmin
       .from('User')
       .select('*')
@@ -344,7 +378,9 @@ export const adminService = {
       .order('createdAt', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    const result = data || [];
+    setMemCache(cacheKey, result, 120000);
+    return result;
   },
 
   /**

@@ -109,7 +109,7 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 focus:border-red-500/30 focus:bg-white rounded-2xl outline-none transition-all font-medium text-gray-900 placeholder:text-gray-300"
-                    placeholder="admin@ohmyhindustan.com"
+                    placeholder="admin@postsapp.com"
                     disabled={loading}
                   />
                   <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-red-500 transition-colors" />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Users, 
   FileText, 
@@ -36,6 +36,8 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
   const [recentPosts, setRecentPosts] = useState<any[]>([]);
   const [creators, setCreators] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const lastOverviewFetch = useRef<number>(0);
+  const OVERVIEW_COOLDOWN = 60000; // 60 seconds
 
   useEffect(() => {
     const fetchData = async () => {
@@ -54,6 +56,7 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
         setStats(statsData);
         setRecentPosts(postsData);
         setCreators(creatorsData);
+        lastOverviewFetch.current = Date.now();
       } catch (err) {
         console.error('Failed to fetch dashboard data:', err);
       } finally {
@@ -61,7 +64,10 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
       }
     };
 
-    if (activeTab === 'Overview') fetchData();
+    // Only re-fetch Overview data if cooldown has passed
+    if (activeTab === 'Overview' && (Date.now() - lastOverviewFetch.current > OVERVIEW_COOLDOWN)) {
+      fetchData();
+    }
   }, [activeTab]);
 
   // Real-time subscriptions for live updates
