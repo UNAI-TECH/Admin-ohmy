@@ -69,7 +69,7 @@ const Analytics: React.FC = () => {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <Loader2 className="w-10 h-10 animate-spin text-[#E31E24]" />
+        <Loader2 className="w-10 h-10 animate-spin text-[#D4191F]" />
       </div>
     );
   }
@@ -117,7 +117,7 @@ const Analytics: React.FC = () => {
           <div className="flex items-center justify-between mb-8">
             <div>
               <h3 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
-                <Users className="text-[#E31E24]" size={20} />
+                <Users className="text-[#D4191F]" size={20} />
                 Creators Onboarded
               </h3>
               <p className="text-xs text-gray-500 opacity-50">Total validated creators joining the platform per month.</p>
@@ -150,7 +150,7 @@ const Analytics: React.FC = () => {
                         </span>
                       )}
                       <div 
-                        className={`w-full transition-all duration-700 ease-out rounded-t-xl ${data.count === 0 ? 'bg-gray-100 h-[2%]' : 'bg-gradient-to-t from-red-100 to-[#E31E24] group-hover:to-red-600'}`}
+                        className={`w-full transition-all duration-700 ease-out rounded-t-xl ${data.count === 0 ? 'bg-gray-100 h-[2%]' : 'bg-gradient-to-t from-red-100 to-[#D4191F] group-hover:to-red-600'}`}
                         style={{ height: data.count === 0 ? undefined : `${heightPercentage}%` }}
                       />
                     </div>

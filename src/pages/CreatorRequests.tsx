@@ -217,7 +217,7 @@ export default function CreatorRequests() {
           <div className="flex gap-3">
             <button 
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-5 py-3 bg-[#E31E24] text-white rounded-xl font-bold text-sm hover:bg-red-700 transition-all shadow-lg shadow-red-900/20"
+              className="flex items-center gap-2 px-5 py-3 bg-[#D4191F] text-white rounded-xl font-bold text-sm hover:bg-red-700 transition-all shadow-lg shadow-red-900/20"
             >
               <UserPlus size={18} /> Create Creator
             </button>
@@ -406,7 +406,7 @@ export default function CreatorRequests() {
                       placeholder="Add a message for the creator (optional)..."
                       value={adminMessage}
                       onChange={(e) => setAdminMessage(e.target.value)}
-                      className="w-full p-6 bg-gray-100 border border-gray-200 focus:border-[#E31E24] rounded-xl outline-none transition-all min-h-[100px] text-gray-900 placeholder-[#e7bdb8]/30"
+                      className="w-full p-6 bg-gray-100 border border-gray-200 focus:border-[#D4191F] rounded-xl outline-none transition-all min-h-[100px] text-gray-900 placeholder-[#e7bdb8]/30"
                     />
                     <div className="flex gap-4">
                       <button 
@@ -467,7 +467,7 @@ export default function CreatorRequests() {
                     <label className="block text-sm font-medium text-gray-500 opacity-60 mb-2">Full Name</label>
                     <input 
                       type="text" required
-                      className="w-full p-3 bg-gray-100 border border-gray-200 focus:border-[#E31E24] rounded-xl outline-none text-gray-900 placeholder-[#e7bdb8]/30"
+                      className="w-full p-3 bg-gray-100 border border-gray-200 focus:border-[#D4191F] rounded-xl outline-none text-gray-900 placeholder-[#e7bdb8]/30"
                       placeholder="Creator's full name"
                       value={newCreator.fullName}
                       onChange={e => setNewCreator({...newCreator, fullName: e.target.value})}
@@ -477,7 +477,7 @@ export default function CreatorRequests() {
                     <label className="block text-sm font-medium text-gray-500 opacity-60 mb-2">Email</label>
                     <input 
                       type="email" required
-                      className="w-full p-3 bg-gray-100 border border-gray-200 focus:border-[#E31E24] rounded-xl outline-none text-gray-900 placeholder-[#e7bdb8]/30"
+                      className="w-full p-3 bg-gray-100 border border-gray-200 focus:border-[#D4191F] rounded-xl outline-none text-gray-900 placeholder-[#e7bdb8]/30"
                       placeholder="creator@email.com"
                       value={newCreator.email}
                       onChange={e => setNewCreator({...newCreator, email: e.target.value})}
@@ -487,7 +487,7 @@ export default function CreatorRequests() {
                     <label className="block text-sm font-medium text-gray-500 opacity-60 mb-2">Password</label>
                     <input 
                       type="text" required minLength={8}
-                      className="w-full p-3 bg-gray-100 border border-gray-200 focus:border-[#E31E24] rounded-xl outline-none text-gray-900 placeholder-[#e7bdb8]/30"
+                      className="w-full p-3 bg-gray-100 border border-gray-200 focus:border-[#D4191F] rounded-xl outline-none text-gray-900 placeholder-[#e7bdb8]/30"
                       placeholder="Minimum 8 characters"
                       value={newCreator.password}
                       onChange={e => setNewCreator({...newCreator, password: e.target.value})}
@@ -496,7 +496,7 @@ export default function CreatorRequests() {
                   <div>
                     <label className="block text-sm font-medium text-gray-500 opacity-60 mb-2">Bio (optional)</label>
                     <textarea 
-                      className="w-full p-3 bg-gray-100 border border-gray-200 focus:border-[#E31E24] rounded-xl outline-none text-gray-900 placeholder-[#e7bdb8]/30 min-h-[80px]"
+                      className="w-full p-3 bg-gray-100 border border-gray-200 focus:border-[#D4191F] rounded-xl outline-none text-gray-900 placeholder-[#e7bdb8]/30 min-h-[80px]"
                       placeholder="About this creator..."
                       value={newCreator.bio}
                       onChange={e => setNewCreator({...newCreator, bio: e.target.value})}
@@ -512,7 +512,7 @@ export default function CreatorRequests() {
                   <button 
                     type="submit"
                     disabled={createLoading}
-                    className="w-full py-4 bg-[#E31E24] text-white rounded-xl font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-full py-4 bg-[#D4191F] text-white rounded-xl font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {createLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><UserPlus size={18} /> Create Account</>}
                   </button>
@@ -662,7 +662,7 @@ export default function CreatorRequests() {
                   <button 
                     onClick={handleSendEmail}
                     disabled={isSendingEmail || !!emailSentMsg}
-                    className="flex-1 py-3 bg-[#E31E24] text-white rounded-xl font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="flex-1 py-3 bg-[#D4191F] text-white rounded-xl font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {isSendingEmail ? <Loader2 className="w-5 h-5 animate-spin" /> : "Send Email"}
                   </button>
@@ -701,7 +701,7 @@ function FilterButton({ active, onClick, label }: any) {
     <button 
       onClick={onClick}
       className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${
-        active ? 'bg-[#E31E24] text-white shadow-lg shadow-red-900/20' : 'text-gray-500/60 hover:text-gray-500 hover:bg-gray-100'
+        active ? 'bg-[#D4191F] text-white shadow-lg shadow-red-900/20' : 'text-gray-500/60 hover:text-gray-500 hover:bg-gray-100'
       }`}
     >
       {label}

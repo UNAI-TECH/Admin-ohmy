@@ -75,7 +75,7 @@ export default function PausedAds() {
             placeholder="Search campaigns..." 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="bg-[#FAFBFF] border border-gray-200 rounded-full py-2 pl-10 pr-4 text-sm text-gray-900 focus:ring-1 focus:ring-[#E31E24] outline-none transition-all placeholder:text-gray-500 placeholder:opacity-20"
+            className="bg-[#F5F5F7] border border-gray-200 rounded-full py-2 pl-10 pr-4 text-sm text-gray-900 focus:ring-1 focus:ring-[#D4191F] outline-none transition-all placeholder:text-gray-500 placeholder:opacity-20"
           />
         </div>
       </div>
@@ -97,7 +97,7 @@ export default function PausedAds() {
               className={`bg-white shadow-sm backdrop-blur-md border border-gray-200 rounded-2xl p-6 flex flex-col md:flex-row gap-6 relative group ${ad.status === 'ended' ? 'opacity-70' : ''}`}
             >
               {/* Image Preview */}
-              <div className="w-full md:w-64 aspect-video rounded-xl bg-[#FAFBFF] overflow-hidden border border-gray-200 shrink-0 relative grayscale">
+              <div className="w-full md:w-64 aspect-video rounded-xl bg-[#F5F5F7] overflow-hidden border border-gray-200 shrink-0 relative grayscale">
                  <img src={ad.image_url} alt={ad.title} className="w-full h-full object-cover opacity-60" />
                  <div className={`absolute top-2 left-2 text-white text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded ${ad.status === 'ended' ? 'bg-red-500' : 'bg-amber-500'}`}>
                    {ad.status}
@@ -142,7 +142,7 @@ export default function PausedAds() {
                  </button>
                  <button 
                    onClick={() => handleDelete(ad)}
-                   className="p-3 bg-red-500/10 hover:bg-red-500/20 text-[#E31E24] rounded-xl transition-colors border border-red-500/10 text-center flex items-center justify-center"
+                   className="p-3 bg-red-500/10 hover:bg-red-500/20 text-[#D4191F] rounded-xl transition-colors border border-red-500/10 text-center flex items-center justify-center"
                    title="Delete Campaign"
                  >
                    <Trash2 size={18} />
@@ -156,7 +156,7 @@ export default function PausedAds() {
       {showDeleteModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="w-12 h-12 rounded-full bg-red-50 text-[#E31E24] flex items-center justify-center mb-4 mx-auto">
+            <div className="w-12 h-12 rounded-full bg-red-50 text-[#D4191F] flex items-center justify-center mb-4 mx-auto">
               <Trash2 size={24} />
             </div>
             <h3 className="text-xl font-black text-gray-900 text-center mb-2 tracking-tight">Delete Campaign?</h3>
@@ -172,7 +172,7 @@ export default function PausedAds() {
               </button>
               <button
                 onClick={confirmDeleteCampaign}
-                className="flex-1 py-3 bg-[#E31E24] font-bold text-white rounded-xl hover:bg-red-700 transition text-sm"
+                className="flex-1 py-3 bg-[#D4191F] font-bold text-white rounded-xl hover:bg-red-700 transition text-sm"
               >
                 Delete
               </button>

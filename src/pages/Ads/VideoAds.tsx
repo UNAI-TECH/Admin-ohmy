@@ -294,7 +294,7 @@ export default function VideoAds() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-[#E31E24] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-[#D4191F] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -305,13 +305,13 @@ export default function VideoAds() {
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-black text-gray-900 mb-2 tracking-tight flex items-center gap-3">
-            Video Ads <Film className="text-[#E31E24]" size={28} />
+            Video Ads <Film className="text-[#D4191F]" size={28} />
           </h1>
           <p className="text-gray-500 opacity-60 font-medium">Manage actual video ads and creator content mid-roll slots.</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="px-6 py-3 bg-[#E31E24] text-white rounded-xl shadow-md hover:bg-red-700 transition flex items-center gap-2 font-bold uppercase tracking-wide text-xs"
+          className="px-6 py-3 bg-[#D4191F] text-white rounded-xl shadow-md hover:bg-red-700 transition flex items-center gap-2 font-bold uppercase tracking-wide text-xs"
         >
           <Plus size={16} strokeWidth={3} /> Create Video Ad
         </button>
@@ -322,7 +322,7 @@ export default function VideoAds() {
         <button
           onClick={() => setActiveTab('campaigns')}
           className={`pb-4 px-2 font-black uppercase tracking-widest text-xs transition-colors ${
-            activeTab === 'campaigns' ? 'border-b-2 border-[#E31E24] text-[#E31E24]' : 'text-gray-400 hover:text-gray-600'
+            activeTab === 'campaigns' ? 'border-b-2 border-[#D4191F] text-[#D4191F]' : 'text-gray-400 hover:text-gray-600'
           }`}
         >
           Ad Campaigns
@@ -330,7 +330,7 @@ export default function VideoAds() {
         <button
           onClick={() => setActiveTab('posts')}
           className={`pb-4 px-2 font-black uppercase tracking-widest text-xs transition-colors ${
-            activeTab === 'posts' ? 'border-b-2 border-[#E31E24] text-[#E31E24]' : 'text-gray-400 hover:text-gray-600'
+            activeTab === 'posts' ? 'border-b-2 border-[#D4191F] text-[#D4191F]' : 'text-gray-400 hover:text-gray-600'
           }`}
         >
           Creator Video Placements
@@ -342,7 +342,7 @@ export default function VideoAds() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
             <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
               <div className="flex items-center gap-3 mb-2">
-                <Film size={18} className="text-[#E31E24]" />
+                <Film size={18} className="text-[#D4191F]" />
                 <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest opacity-60">Total Videos</span>
               </div>
               <p className="text-3xl font-black text-gray-900">{videos.length}</p>
@@ -395,8 +395,8 @@ export default function VideoAds() {
                           onClick={() => handleTogglePostAds(video)}
                           className={isTooShort ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}
                         >
-                          {isToggling ? <div className="w-5 h-5 border-2 border-[#E31E24] border-t-transparent rounded-full animate-spin inline-block" /> 
-                            : video.ads_enabled ? <ToggleRight size={32} className="text-[#E31E24]" /> : <ToggleLeft size={32} className="text-gray-300" />}
+                          {isToggling ? <div className="w-5 h-5 border-2 border-[#D4191F] border-t-transparent rounded-full animate-spin inline-block" /> 
+                            : video.ads_enabled ? <ToggleRight size={32} className="text-[#D4191F]" /> : <ToggleLeft size={32} className="text-gray-300" />}
                         </button>
                       </td>
                     </tr>
@@ -433,7 +433,7 @@ export default function VideoAds() {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-center font-mono font-bold text-gray-900 text-sm">{camp.views.toLocaleString()}</td>
-                  <td className="px-6 py-4 text-center font-mono text-[#E31E24] text-xs font-bold">₹{camp.revenue_per_view.toFixed(2)}</td>
+                  <td className="px-6 py-4 text-center font-mono text-[#D4191F] text-xs font-bold">₹{camp.revenue_per_view.toFixed(2)}</td>
                   <td className="px-6 py-4 text-center font-mono text-green-600 text-sm font-bold">₹{camp.revenue.toFixed(2)}</td>
                   <td className="px-6 py-4 text-center">
                     <div className="flex items-center justify-center gap-3">
@@ -443,12 +443,12 @@ export default function VideoAds() {
                         className="cursor-pointer"
                         title={camp.is_active ? 'Pause Campaign' : 'Activate Campaign'}
                       >
-                        {toggling === `camp-${camp.id}` ? <div className="w-5 h-5 border-2 border-[#E31E24] border-t-transparent rounded-full animate-spin inline-block" />
+                        {toggling === `camp-${camp.id}` ? <div className="w-5 h-5 border-2 border-[#D4191F] border-t-transparent rounded-full animate-spin inline-block" />
                           : camp.is_active ? <ToggleRight size={32} className="text-green-500" /> : <ToggleLeft size={32} className="text-gray-300" />}
                       </button>
                       <button
                         onClick={() => handleDeleteCampaign(camp)}
-                        className="p-1.5 text-gray-400 hover:text-[#E31E24] hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-1.5 text-gray-400 hover:text-[#D4191F] hover:bg-red-50 rounded-lg transition-colors"
                         title="Delete Campaign"
                       >
                         <Trash2 size={18} />
@@ -485,7 +485,7 @@ export default function VideoAds() {
                   type="text"
                   value={newAdTitle}
                   onChange={e => setNewAdTitle(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-[#E31E24] focus:ring-1 focus:ring-[#E31E24]"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-[#D4191F] focus:ring-1 focus:ring-[#D4191F]"
                   placeholder="e.g. Diwali Mega Sale Ad"
                 />
               </div>
@@ -496,7 +496,7 @@ export default function VideoAds() {
                   type="text"
                   value={newAdDescription}
                   onChange={e => setNewAdDescription(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-[#E31E24] focus:ring-1 focus:ring-[#E31E24]"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-[#D4191F] focus:ring-1 focus:ring-[#D4191F]"
                   placeholder="Additional details about the ad..."
                 />
               </div>
@@ -508,7 +508,7 @@ export default function VideoAds() {
                     type="url"
                     value={newAdLink}
                     onChange={e => setNewAdLink(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-[#E31E24] focus:ring-1 focus:ring-[#E31E24]"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-[#D4191F] focus:ring-1 focus:ring-[#D4191F]"
                     placeholder="https://example.com"
                   />
                 </div>
@@ -580,7 +580,7 @@ export default function VideoAds() {
                       step="0.01"
                       value={newAdRevenue}
                       onChange={e => setNewAdRevenue(e.target.value)}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-[#E31E24] focus:ring-1 focus:ring-[#E31E24] font-mono"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-[#D4191F] focus:ring-1 focus:ring-[#D4191F] font-mono"
                     />
                   </div>
                   <div>
@@ -588,7 +588,7 @@ export default function VideoAds() {
                     <select
                       value={newAdType}
                       onChange={e => setNewAdType(e.target.value as 'both'|'pre'|'mid')}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-[#E31E24] focus:ring-1 focus:ring-[#E31E24]"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-[#D4191F] focus:ring-1 focus:ring-[#D4191F]"
                     >
                       <option value="both">Both (Pre & Mid)</option>
                       <option value="pre">Pre-roll Only</option>
@@ -616,7 +616,7 @@ export default function VideoAds() {
                         min="1"
                         value={newAdSkipAfter}
                         onChange={e => setNewAdSkipAfter(parseInt(e.target.value))}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-[#E31E24] focus:ring-1 focus:ring-[#E31E24] font-mono"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-[#D4191F] focus:ring-1 focus:ring-[#D4191F] font-mono"
                       />
                     </div>
                   )}
@@ -630,7 +630,7 @@ export default function VideoAds() {
                       min="1" max="10"
                       value={newAdPriority}
                       onChange={e => setNewAdPriority(parseInt(e.target.value))}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-[#E31E24] focus:ring-1 focus:ring-[#E31E24] font-mono"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-[#D4191F] focus:ring-1 focus:ring-[#D4191F] font-mono"
                     />
                   </div>
                   <div className="flex flex-col justify-center items-center">
@@ -647,7 +647,7 @@ export default function VideoAds() {
               <button
                 onClick={handleCreateAd}
                 disabled={uploading}
-                className="w-full bg-[#E31E24] text-white rounded-xl py-4 font-black uppercase tracking-widest text-xs mt-4 hover:bg-red-700 transition relative overflow-hidden"
+                className="w-full bg-[#D4191F] text-white rounded-xl py-4 font-black uppercase tracking-widest text-xs mt-4 hover:bg-red-700 transition relative overflow-hidden"
               >
                 {uploading && (
                   <div 
@@ -672,7 +672,7 @@ export default function VideoAds() {
       {showDeleteModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="w-12 h-12 rounded-full bg-red-50 text-[#E31E24] flex items-center justify-center mb-4 mx-auto">
+            <div className="w-12 h-12 rounded-full bg-red-50 text-[#D4191F] flex items-center justify-center mb-4 mx-auto">
               <Trash2 size={24} />
             </div>
             <h3 className="text-xl font-black text-gray-900 text-center mb-2 tracking-tight">Delete Campaign?</h3>
@@ -688,7 +688,7 @@ export default function VideoAds() {
               </button>
               <button
                 onClick={confirmDeleteCampaign}
-                className="flex-1 py-3 bg-[#E31E24] font-bold text-white rounded-xl hover:bg-red-700 transition text-sm"
+                className="flex-1 py-3 bg-[#D4191F] font-bold text-white rounded-xl hover:bg-red-700 transition text-sm"
               >
                 Delete
               </button>

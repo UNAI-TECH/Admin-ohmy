@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Loader2, Mail, Lock, ChevronRight } from 'lucide-react';
+import { Loader2, Mail, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
+import { AuthIllustration } from '../components/AuthIllustrations';
 
 interface Props {
   onLogin: (success: boolean) => void;
@@ -70,89 +71,82 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen soft-gradient flex flex-col items-center justify-center p-6 sm:p-12 font-sans selection:bg-red-100 selection:text-red-600">
-      <div className="max-w-6xl w-full flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-20">
-        
-        {/* SECTION: TEXT CONTENT (LEFT) */}
-        <div className="flex-1 text-center lg:text-left space-y-8 animate-in fade-in slide-in-from-left-4 duration-700">
-          <div className="flex items-center justify-center lg:justify-start gap-3 mb-8">
-            <img src="/logo%20omh.png" alt="Admin HUB Logo" className="w-12 h-12 object-contain" />
-            <span className="text-xl font-bold tracking-tight text-gray-900 font-sans">Admin HUB</span>
-          </div>
-
-          <h1 className="text-5xl sm:text-7xl font-black text-gray-900 leading-[1.1] tracking-tight">
-            Enterprise<br />
-            <span className="text-red-600">Control</span> Center.
-          </h1>
-          
-          <p className="text-gray-500 text-lg sm:text-xl max-w-lg mx-auto lg:mx-0 font-medium leading-relaxed">
-            Authorized personnel only. Monitor all platform activities, manage requests, and control the entire media ecosystem.
-          </p>
+    <div className="min-h-screen bg-[#F7F6F2] flex flex-col items-center justify-center p-6 font-sans selection:bg-red-100 selection:text-[#D4191F]">
+      <div className="max-w-6xl w-full flex flex-col items-center justify-center">
+        {/* Centered Logo & Badge directly above card */}
+        <div className="flex items-center justify-center gap-3 mb-5">
+          <img src="/logo-postsapp-light.png" alt="PostsApp" className="h-10 object-contain" />
+          <span className="px-2.5 py-0.5 rounded bg-[#D4191F] text-white text-[10px] font-extrabold tracking-widest uppercase">
+            ADMIN
+          </span>
         </div>
 
-        {/* SECTION: LOGIN CARD (RIGHT) */}
-        <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-          <div className="bg-white rounded-[40px] p-8 sm:p-12 card-shadow border border-gray-50 relative">
-            
-            <div className="mb-10 text-center lg:text-left">
-              <h2 className="text-3xl font-black text-gray-900 mb-2">Admin Login</h2>
-              <p className="text-gray-400 font-medium">Verify your credentials to continue</p>
+        {/* Center Stage with flanking red illustrations */}
+        <div className="w-full flex items-end justify-center relative">
+          <div className="hidden lg:block -mr-7 -mb-2 z-0">
+            <AuthIllustration side="left" />
+          </div>
+
+          <div className="w-full max-w-[420px] bg-white rounded-[20px] px-8 py-9 shadow-[0_14px_32px_rgba(15,23,42,0.06)] border border-[#E5E7EB] relative z-10">
+            <div className="mb-6">
+              <h1 className="text-[28px] leading-[34px] font-extrabold text-[#111827] tracking-tight mb-2">
+                Admin<br />Control Center
+              </h1>
+              <p className="text-[13px] text-[#6B7280]">
+                Verify your administrator credentials to continue
+              </p>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Email Address</label>
-                <div className="relative group">
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 focus:border-red-500/30 focus:bg-white rounded-2xl outline-none transition-all font-medium text-gray-900 placeholder:text-gray-300"
-                    placeholder="admin@postsapp.com"
-                    disabled={loading}
-                  />
-                  <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-red-500 transition-colors" />
-                </div>
+            <form onSubmit={handleLogin} className="space-y-3">
+              <div className="flex items-center bg-[#F3F4F6] border border-[#E5E7EB] focus-within:border-[#D4191F] focus-within:bg-white rounded-xl h-[52px] px-3.5 transition-colors">
+                <Mail size={18} className="text-[#18181B] mr-2.5 shrink-0" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  className="flex-1 bg-transparent outline-none text-sm text-[#111827] placeholder:text-[#6B7280]"
+                  placeholder="admin@postsapp.com"
+                  disabled={loading}
+                />
               </div>
 
-              <div className="space-y-2">
-                <div className="flex justify-between items-center px-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Password</label>
-                </div>
-                <div className="relative group">
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 focus:border-red-500/30 focus:bg-white rounded-2xl outline-none transition-all font-medium text-gray-900 placeholder:text-gray-300"
-                    placeholder="••••••••"
-                    disabled={loading}
-                  />
-                  <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-red-500 transition-colors" />
-                </div>
+              <div className="flex items-center bg-[#F3F4F6] border border-[#E5E7EB] focus-within:border-[#D4191F] focus-within:bg-white rounded-xl h-[52px] px-3.5 transition-colors">
+                <Lock size={18} className="text-[#18181B] mr-2.5 shrink-0" />
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="flex-1 bg-transparent outline-none text-sm text-[#111827] placeholder:text-[#6B7280]"
+                  placeholder="Your Password"
+                  disabled={loading}
+                />
               </div>
 
               {error && (
-                <div className="p-4 rounded-2xl bg-red-50 border border-red-100 text-red-600 text-sm font-bold flex items-center gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
-                  {error}
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-[#D4191F] text-xs font-semibold flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#D4191F] shrink-0" />
+                  <span>{error}</span>
                 </div>
               )}
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-4 bg-red-600 text-white rounded-2xl text-lg font-black tracking-widest uppercase hover:bg-red-700 transition-all shadow-xl shadow-red-500/20 flex items-center justify-center gap-3 disabled:opacity-70 group"
+                className="w-full h-[52px] mt-1 bg-[#D4191F] hover:bg-[#9E1111] text-white rounded-xl text-[15px] font-bold transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
               >
                 {loading ? (
-                  <Loader2 className="w-6 h-6 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
-                  <>Sign In <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" /></>
+                  'Sign In'
                 )}
               </button>
             </form>
+          </div>
+
+          <div className="hidden lg:block -ml-5 -mb-2 z-0">
+            <AuthIllustration side="right" />
           </div>
         </div>
       </div>

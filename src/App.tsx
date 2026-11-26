@@ -62,8 +62,9 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FAFBFF]">
-        <div className="animate-pulse text-gray-900 text-xl font-bold">Loading Sentinel...</div>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#F5F5F7]">
+        <img src="/logo-postsapp-light.png" alt="PostsApp" className="h-10 object-contain" />
+        <div className="animate-pulse text-gray-700 text-sm font-semibold tracking-wide">Loading PostsApp Admin...</div>
       </div>
     );
   }

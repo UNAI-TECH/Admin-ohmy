@@ -78,7 +78,7 @@ const Creators: React.FC = () => {
     <div className="max-w-7xl mx-auto h-full flex flex-col relative">
       <div className="mb-10">
         <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-          <Users className="text-[#E31E24]" />
+          <Users className="text-[#D4191F]" />
           Approved Creators
         </h1>
         <p className="text-gray-500 opacity-60">Directory of published analysts and creators. Manage their access and view their portfolios.</p>
@@ -86,7 +86,7 @@ const Creators: React.FC = () => {
 
       {loading ? (
         <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="w-10 h-10 animate-spin text-[#E31E24]" />
+          <Loader2 className="w-10 h-10 animate-spin text-[#D4191F]" />
         </div>
       ) : creators.length === 0 ? (
         <div className="flex-1 flex items-center justify-center text-gray-500 opacity-60 italic">
@@ -122,7 +122,7 @@ const Creators: React.FC = () => {
                     {creator.avatarUrl ? (
                       <img src={creator.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-2xl font-bold text-[#E31E24]">{creator.username?.charAt(0).toUpperCase()}</span>
+                      <span className="text-2xl font-bold text-[#D4191F]">{creator.username?.charAt(0).toUpperCase()}</span>
                     )}
                   </div>
                   
@@ -212,7 +212,7 @@ const Creators: React.FC = () => {
                       {selectedCreator.avatarUrl ? (
                         <img src={selectedCreator.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-3xl font-bold text-[#E31E24]">{selectedCreator.username?.charAt(0).toUpperCase()}</span>
+                        <span className="text-3xl font-bold text-[#D4191F]">{selectedCreator.username?.charAt(0).toUpperCase()}</span>
                       )}
                     </div>
                     
@@ -242,13 +242,13 @@ const Creators: React.FC = () => {
                 {/* Publications Feed */}
                 <div className="p-6">
                   <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-                    <LayoutTemplate className="text-[#E31E24]" size={20} />
+                    <LayoutTemplate className="text-[#D4191F]" size={20} />
                     Publications
                   </h3>
                   
                   {postsLoading ? (
                     <div className="flex justify-center py-10">
-                      <Loader2 className="w-8 h-8 animate-spin text-[#E31E24]" />
+                      <Loader2 className="w-8 h-8 animate-spin text-[#D4191F]" />
                     </div>
                   ) : creatorPosts.length === 0 ? (
                     <div className="text-center py-10 bg-[#FAFBFF] rounded-2xl border border-black/[0.04]">
@@ -269,7 +269,7 @@ const Creators: React.FC = () => {
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#E31E24]/20 text-[#E31E24] uppercase tracking-wider mb-1 inline-block">
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#D4191F]/20 text-[#D4191F] uppercase tracking-wider mb-1 inline-block">
                               {post.type}
                             </span>
                             <h4 className="text-sm font-bold text-gray-900 line-clamp-2 mb-1 leading-tight">{post.title}</h4>

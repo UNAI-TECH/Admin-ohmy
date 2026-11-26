@@ -50,7 +50,7 @@ export default function AdsInsights() {
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all ${filter === f ? 'bg-[#E31E24] text-white shadow-lg' : 'text-gray-500/40 hover:text-gray-500'}`}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all ${filter === f ? 'bg-[#D4191F] text-white shadow-lg' : 'text-gray-500/40 hover:text-gray-500'}`}
             >
               {f}
             </button>
@@ -115,7 +115,7 @@ export default function AdsInsights() {
               {loading ? (
                 <tr>
                   <td colSpan={6} className="py-20 text-center">
-                    <div className="w-8 h-8 border-4 border-[#E31E24] border-t-transparent rounded-full animate-spin mx-auto" />
+                    <div className="w-8 h-8 border-4 border-[#D4191F] border-t-transparent rounded-full animate-spin mx-auto" />
                   </td>
                 </tr>
               ) : filteredAds.length === 0 ? (
@@ -133,7 +133,7 @@ export default function AdsInsights() {
                             <img src={ad.media_url} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" alt={ad.title} />
                           </div>
                           <div>
-                            <p className="text-sm font-black text-gray-900 group-hover:text-[#E31E24] transition-colors">{ad.title}</p>
+                            <p className="text-sm font-black text-gray-900 group-hover:text-[#D4191F] transition-colors">{ad.title}</p>
                             <p className="text-[10px] font-bold text-gray-500 opacity-40 uppercase tracking-widest">{ad.advertiser_name}</p>
                           </div>
                         </div>

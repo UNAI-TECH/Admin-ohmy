@@ -10,7 +10,7 @@ const SettingsView: React.FC = () => {
   // Settings State
   const [profile, setProfile] = useState({
     name: 'Admin User',
-    email: 'admin@omhat.com',
+    email: 'admin@postsapp.com',
     role: 'Super Admin'
   });
 
@@ -23,12 +23,14 @@ const SettingsView: React.FC = () => {
 
   const [theme, setTheme] = useState({
     darkMode: true,
-    accentColor: '#E31E24'
+    accentColor: '#D4191F'
   });
 
-  // Load settings from localStorage
+  // Load settings from localStorage (with legacy key fallback)
   useEffect(() => {
-    const savedSettings = localStorage.getItem('omh_admin_settings');
+    const savedSettings =
+      localStorage.getItem('postsapp_admin_settings') ||
+      localStorage.getItem('omh_admin_settings');
     if (savedSettings) {
       const parsed = JSON.parse(savedSettings);
       if (parsed.profile) setProfile(parsed.profile);
@@ -39,9 +41,8 @@ const SettingsView: React.FC = () => {
 
   const handleSave = () => {
     setLoading(true);
-    // Simulate API call and save to local storage
     setTimeout(() => {
-      localStorage.setItem('omh_admin_settings', JSON.stringify({ profile, notifications, theme }));
+      localStorage.setItem('postsapp_admin_settings', JSON.stringify({ profile, notifications, theme }));
       setLoading(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -58,7 +59,7 @@ const SettingsView: React.FC = () => {
         <button
           onClick={handleSave}
           disabled={loading}
-          className="flex items-center gap-2 px-6 py-2.5 bg-[#E31E24] hover:bg-[#ff3a40] text-white font-bold rounded-xl transition-all shadow-lg shadow-red-900/20 disabled:opacity-50"
+          className="flex items-center gap-2 px-6 py-2.5 bg-[#D4191F] hover:bg-[#9E1111] text-white font-bold rounded-xl transition-all shadow-lg shadow-red-900/20 disabled:opacity-50"
         >
           {loading ? (
             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -106,7 +107,7 @@ const SettingsView: React.FC = () => {
                 <div>
                   <h3 className="text-xl font-bold text-gray-900 mb-6">Profile Settings</h3>
                   <div className="flex items-center gap-6 mb-8 pb-8 border-b border-white/5">
-                    <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-[#E31E24] to-[#93000d] border-2 border-gray-200 shadow-xl flex items-center justify-center text-3xl font-bold text-white">
+                    <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-[#D4191F] to-[#9E1111] border-2 border-gray-200 shadow-xl flex items-center justify-center text-3xl font-bold text-white">
                       {profile.name.charAt(0)}
                     </div>
                     <div>
@@ -125,7 +126,7 @@ const SettingsView: React.FC = () => {
                       type="text"
                       value={profile.name}
                       onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                      className="w-full bg-[#FAFBFF] border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-[#E31E24] transition-colors"
+                      className="w-full bg-[#F5F5F7] border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-[#D4191F] transition-colors"
                     />
                   </div>
                   <div className="space-y-2">
@@ -134,7 +135,7 @@ const SettingsView: React.FC = () => {
                       type="email"
                       value={profile.email}
                       onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                      className="w-full bg-[#FAFBFF] border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-[#E31E24] transition-colors"
+                      className="w-full bg-[#F5F5F7] border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-[#D4191F] transition-colors"
                     />
                   </div>
                   <div className="space-y-2">
@@ -143,7 +144,7 @@ const SettingsView: React.FC = () => {
                       type="text"
                       value={profile.role}
                       disabled
-                      className="w-full bg-[#FAFBFF]/50 border border-white/5 rounded-xl px-4 py-3 text-gray-500 cursor-not-allowed"
+                      className="w-full bg-[#F5F5F7]/50 border border-white/5 rounded-xl px-4 py-3 text-gray-500 cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -169,7 +170,7 @@ const SettingsView: React.FC = () => {
                       <button
                         onClick={() => setNotifications({ ...notifications, [item.key]: !(notifications as any)[item.key] })}
                         className={`w-12 h-6 rounded-full p-1 transition-colors ${
-                          (notifications as any)[item.key] ? 'bg-[#E31E24]' : 'bg-black/40'
+                          (notifications as any)[item.key] ? 'bg-[#D4191F]' : 'bg-black/40'
                         }`}
                       >
                         <motion.div
@@ -194,10 +195,10 @@ const SettingsView: React.FC = () => {
                       <button
                         onClick={() => setTheme({ ...theme, darkMode: true })}
                         className={`p-4 rounded-xl border flex flex-col items-center gap-3 transition-colors ${
-                          theme.darkMode ? 'border-[#E31E24] bg-[#E31E24]/10' : 'border-gray-200 bg-gray-100'
+                          theme.darkMode ? 'border-[#D4191F] bg-[#D4191F]/10' : 'border-gray-200 bg-gray-100'
                         }`}
                       >
-                        <div className="w-16 h-12 bg-[#FAFBFF] rounded-md border border-gray-200 flex items-center justify-center">
+                        <div className="w-16 h-12 bg-[#F5F5F7] rounded-md border border-gray-200 flex items-center justify-center">
                           <div className="w-8 h-2 bg-white/20 rounded-full" />
                         </div>
                         <span className="text-sm font-bold text-gray-900">Dark Mode</span>
@@ -205,7 +206,7 @@ const SettingsView: React.FC = () => {
                       <button
                         onClick={() => setTheme({ ...theme, darkMode: false })}
                         className={`p-4 rounded-xl border flex flex-col items-center gap-3 transition-colors opacity-50 cursor-not-allowed ${
-                          !theme.darkMode ? 'border-[#E31E24] bg-[#E31E24]/10' : 'border-gray-200 bg-gray-100'
+                          !theme.darkMode ? 'border-[#D4191F] bg-[#D4191F]/10' : 'border-gray-200 bg-gray-100'
                         }`}
                         title="Light mode coming soon"
                       >
@@ -240,7 +241,7 @@ const SettingsView: React.FC = () => {
                       <h4 className="text-sm font-bold text-gray-900 mb-1">Two-Factor Authentication</h4>
                       <p className="text-xs text-gray-500 opacity-60">Protect your account with an extra layer of security</p>
                     </div>
-                    <button className="px-4 py-2 bg-[#E31E24]/20 text-[#E31E24] hover:bg-[#E31E24]/30 rounded-lg text-sm font-bold transition-colors">
+                    <button className="px-4 py-2 bg-[#D4191F]/20 text-[#D4191F] hover:bg-[#D4191F]/30 rounded-lg text-sm font-bold transition-colors">
                       Enable 2FA
                     </button>
                   </div>

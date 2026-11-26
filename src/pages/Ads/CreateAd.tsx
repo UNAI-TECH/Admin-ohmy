@@ -92,7 +92,7 @@ export default function CreateAd({ onAdCreated }: { onAdCreated: () => void }) {
             <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] opacity-60">Creative Asset</label>
             <div className="relative">
               {!imagePreview ? (
-                <label className="flex flex-col items-center justify-center w-full h-48 bg-[#FAFBFF] border-2 border-dashed border-gray-200 rounded-2xl hover:border-[#E31E24] hover:bg-white transition-all cursor-pointer group">
+                <label className="flex flex-col items-center justify-center w-full h-48 bg-[#F5F5F7] border-2 border-dashed border-gray-200 rounded-2xl hover:border-[#D4191F] hover:bg-white transition-all cursor-pointer group">
                   <div className="flex flex-col items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Upload className="text-gray-500" size={24} />
@@ -123,7 +123,7 @@ export default function CreateAd({ onAdCreated }: { onAdCreated: () => void }) {
               <Type className="absolute left-5 text-gray-500 opacity-40" size={20} />
               <input 
                 required type="text" name="title" value={formData.title} onChange={handleChange}
-                className="w-full bg-[#FAFBFF] border border-gray-200 rounded-2xl py-4 pl-14 pr-6 text-gray-900 text-lg font-medium focus:ring-2 focus:ring-[#E31E24]/50 outline-none transition-all placeholder:text-gray-500 placeholder:opacity-20"
+                className="w-full bg-[#F5F5F7] border border-gray-200 rounded-2xl py-4 pl-14 pr-6 text-gray-900 text-lg font-medium focus:ring-2 focus:ring-[#D4191F]/50 outline-none transition-all placeholder:text-gray-500 placeholder:opacity-20"
                 placeholder="Unstoppable Growth Starts Here"
               />
             </div>
@@ -135,7 +135,7 @@ export default function CreateAd({ onAdCreated }: { onAdCreated: () => void }) {
               <AlignLeft className="absolute left-5 top-5 text-gray-500 opacity-40" size={20} />
               <textarea 
                 required name="description" value={formData.description} onChange={handleChange} rows={3}
-                className="w-full bg-[#FAFBFF] border border-gray-200 rounded-2xl py-4 pl-14 pr-6 text-gray-900 focus:ring-2 focus:ring-[#E31E24]/50 outline-none transition-all resize-none placeholder:text-gray-500 placeholder:opacity-20"
+                className="w-full bg-[#F5F5F7] border border-gray-200 rounded-2xl py-4 pl-14 pr-6 text-gray-900 focus:ring-2 focus:ring-[#D4191F]/50 outline-none transition-all resize-none placeholder:text-gray-500 placeholder:opacity-20"
                 placeholder="Hook your audience with a compelling story..."
               />
             </div>
@@ -147,7 +147,7 @@ export default function CreateAd({ onAdCreated }: { onAdCreated: () => void }) {
               <Target className="absolute left-5 text-gray-500 opacity-40" size={20} />
               <input 
                 required type="text" name="advertiser_name" value={formData.advertiser_name} onChange={handleChange}
-                className="w-full bg-[#FAFBFF] border border-gray-200 rounded-2xl py-4 pl-14 pr-6 text-gray-900 focus:ring-2 focus:ring-[#E31E24]/50 outline-none transition-all"
+                className="w-full bg-[#F5F5F7] border border-gray-200 rounded-2xl py-4 pl-14 pr-6 text-gray-900 focus:ring-2 focus:ring-[#D4191F]/50 outline-none transition-all"
                 placeholder="Brand Identity"
               />
             </div>
@@ -159,7 +159,7 @@ export default function CreateAd({ onAdCreated }: { onAdCreated: () => void }) {
               <LinkIcon className="absolute left-5 text-gray-500 opacity-40" size={20} />
               <input 
                 required type="url" name="redirect_url" value={formData.redirect_url} onChange={handleChange}
-                className="w-full bg-[#FAFBFF] border border-gray-200 rounded-2xl py-4 pl-14 pr-6 text-gray-900 focus:ring-2 focus:ring-[#E31E24]/50 outline-none transition-all"
+                className="w-full bg-[#F5F5F7] border border-gray-200 rounded-2xl py-4 pl-14 pr-6 text-gray-900 focus:ring-2 focus:ring-[#D4191F]/50 outline-none transition-all"
                 placeholder="https://brand.com/promo"
               />
             </div>
@@ -171,9 +171,9 @@ export default function CreateAd({ onAdCreated }: { onAdCreated: () => void }) {
               <button 
                 type="button"
                 onClick={() => setFormData(prev => ({ ...prev, pricing_model: 'cpc' }))}
-                className={`p-6 rounded-2xl border flex flex-col items-center gap-3 transition-all ${formData.pricing_model === 'cpc' ? 'bg-[#E31E24]/10 border-[#E31E24] shadow-[0_0_20px_rgba(227,30,36,0.1)]' : 'bg-[#FAFBFF] border-gray-200 opacity-40 hover:opacity-100'}`}
+                className={`p-6 rounded-2xl border flex flex-col items-center gap-3 transition-all ${formData.pricing_model === 'cpc' ? 'bg-[#D4191F]/10 border-[#D4191F] shadow-[0_0_20px_rgba(227,30,36,0.1)]' : 'bg-[#F5F5F7] border-gray-200 opacity-40 hover:opacity-100'}`}
               >
-                <MousePointerClick size={32} className={formData.pricing_model === 'cpc' ? 'text-[#E31E24]' : 'text-gray-900'} />
+                <MousePointerClick size={32} className={formData.pricing_model === 'cpc' ? 'text-[#D4191F]' : 'text-gray-900'} />
                 <div className="text-center">
                   <p className="font-bold text-gray-900 text-lg">CPC</p>
                   <p className="text-[10px] uppercase font-black opacity-60">Cost Per Click</p>
@@ -182,9 +182,9 @@ export default function CreateAd({ onAdCreated }: { onAdCreated: () => void }) {
               <button 
                 type="button"
                 onClick={() => setFormData(prev => ({ ...prev, pricing_model: 'cpm' }))}
-                className={`p-6 rounded-2xl border flex flex-col items-center gap-3 transition-all ${formData.pricing_model === 'cpm' ? 'bg-[#E31E24]/10 border-[#E31E24] shadow-[0_0_20px_rgba(227,30,36,0.1)]' : 'bg-[#FAFBFF] border-gray-200 opacity-40 hover:opacity-100'}`}
+                className={`p-6 rounded-2xl border flex flex-col items-center gap-3 transition-all ${formData.pricing_model === 'cpm' ? 'bg-[#D4191F]/10 border-[#D4191F] shadow-[0_0_20px_rgba(227,30,36,0.1)]' : 'bg-[#F5F5F7] border-gray-200 opacity-40 hover:opacity-100'}`}
               >
-                <Eye size={32} className={formData.pricing_model === 'cpm' ? 'text-[#E31E24]' : 'text-gray-900'} />
+                <Eye size={32} className={formData.pricing_model === 'cpm' ? 'text-[#D4191F]' : 'text-gray-900'} />
                 <div className="text-center">
                   <p className="font-bold text-gray-900 text-lg">CPM</p>
                   <p className="text-[10px] uppercase font-black opacity-60">Cost Per 1K Views</p>
@@ -198,13 +198,13 @@ export default function CreateAd({ onAdCreated }: { onAdCreated: () => void }) {
               {formData.pricing_model === 'cpc' ? 'CPC Bid (INR)' : 'CPM Rate (INR)' }
             </label>
             <div className="relative flex items-center">
-              <IndianRupee className="absolute left-5 text-[#E31E24]" size={20} />
+              <IndianRupee className="absolute left-5 text-[#D4191F]" size={20} />
               <input 
                 required type="number" step="0.01" min="0" 
                 name={formData.pricing_model === 'cpc' ? 'cpc_amount' : 'cpm_amount'} 
                 value={formData.pricing_model === 'cpc' ? formData.cpc_amount : formData.cpm_amount} 
                 onChange={handleChange}
-                className="w-full bg-white border border-gray-200 rounded-2xl py-4 pl-14 pr-6 text-gray-900 text-xl font-black focus:ring-2 focus:ring-[#E31E24]/50 outline-none transition-all"
+                className="w-full bg-white border border-gray-200 rounded-2xl py-4 pl-14 pr-6 text-gray-900 text-xl font-black focus:ring-2 focus:ring-[#D4191F]/50 outline-none transition-all"
               />
             </div>
           </div>
@@ -212,10 +212,10 @@ export default function CreateAd({ onAdCreated }: { onAdCreated: () => void }) {
           <div className="space-y-4">
             <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] opacity-60">Total Budget (INR)</label>
             <div className="relative flex items-center">
-              <IndianRupee className="absolute left-5 text-[#E31E24]" size={20} />
+              <IndianRupee className="absolute left-5 text-[#D4191F]" size={20} />
               <input 
                 required type="number" step="0.01" min="0" name="budget_total" value={formData.budget_total} onChange={handleChange}
-                className="w-full bg-white border border-gray-200 rounded-2xl py-4 pl-14 pr-6 text-gray-900 text-xl font-black focus:ring-2 focus:ring-[#E31E24]/50 outline-none transition-all"
+                className="w-full bg-white border border-gray-200 rounded-2xl py-4 pl-14 pr-6 text-gray-900 text-xl font-black focus:ring-2 focus:ring-[#D4191F]/50 outline-none transition-all"
               />
             </div>
           </div>
@@ -224,7 +224,7 @@ export default function CreateAd({ onAdCreated }: { onAdCreated: () => void }) {
         <button 
           disabled={loading}
           type="submit" 
-          className="w-full bg-[#E31E24] shadow-[0_10px_30px_rgba(227,30,36,0.2)] hover:bg-red-600 text-white font-black py-5 rounded-2xl flex items-center justify-center gap-3 text-lg transition-all active:scale-[0.98] disabled:opacity-50"
+          className="w-full bg-[#D4191F] shadow-[0_10px_30px_rgba(227,30,36,0.2)] hover:bg-red-600 text-white font-black py-5 rounded-2xl flex items-center justify-center gap-3 text-lg transition-all active:scale-[0.98] disabled:opacity-50"
         >
           {loading ? (
             <div className="flex items-center gap-2">

@@ -83,7 +83,7 @@ const Notifications: React.FC = () => {
     <div className="max-w-4xl mx-auto h-full flex flex-col">
       <div className="mb-10">
         <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-          <Bell className="text-[#E31E24]" />
+          <Bell className="text-[#D4191F]" />
           Live Notifications
         </h1>
         <p className="text-gray-500 opacity-60">Real-time alerts for creator activity and new content publications.</p>
@@ -99,16 +99,16 @@ const Notifications: React.FC = () => {
                 key={notif.id}
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`p-6 rounded-2xl border ${notif.isNew ? 'bg-[#E31E24]/10 border-[#E31E24]/30' : 'bg-white shadow-sm border-gray-200'} backdrop-blur-md flex items-start gap-4 transition-colors`}
+                className={`p-6 rounded-2xl border ${notif.isNew ? 'bg-[#D4191F]/10 border-[#D4191F]/30' : 'bg-white shadow-sm border-gray-200'} backdrop-blur-md flex items-start gap-4 transition-colors`}
               >
-                <div className={`p-3 rounded-xl ${notif.isNew ? 'bg-[#E31E24] text-white' : 'bg-gray-100 text-[#E31E24]'}`}>
+                <div className={`p-3 rounded-xl ${notif.isNew ? 'bg-[#D4191F] text-white' : 'bg-gray-100 text-[#D4191F]'}`}>
                   <FileText size={20} />
                 </div>
                 <div className="flex-1">
                   <div className="flex justify-between items-start mb-1">
                     <h3 className="text-gray-900 font-bold text-lg">
                       {notif.title}
-                      {notif.isNew && <span className="ml-3 text-[10px] bg-[#E31E24] text-white px-2 py-0.5 rounded-full font-bold uppercase">New</span>}
+                      {notif.isNew && <span className="ml-3 text-[10px] bg-[#D4191F] text-white px-2 py-0.5 rounded-full font-bold uppercase">New</span>}
                     </h3>
                     <div className="flex items-center gap-1 text-xs text-gray-500 opacity-50">
                       <Clock size={12} />

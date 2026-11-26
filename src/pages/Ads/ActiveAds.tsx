@@ -90,7 +90,7 @@ export default function ActiveAds() {
             placeholder="Search campaigns..." 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-white shadow-sm backdrop-blur-xl border border-gray-200 rounded-2xl py-4 pl-14 pr-6 text-gray-900 focus:ring-2 focus:ring-[#E31E24]/50 outline-none transition-all placeholder:text-gray-500 placeholder:opacity-20"
+            className="w-full bg-white shadow-sm backdrop-blur-xl border border-gray-200 rounded-2xl py-4 pl-14 pr-6 text-gray-900 focus:ring-2 focus:ring-[#D4191F]/50 outline-none transition-all placeholder:text-gray-500 placeholder:opacity-20"
           />
         </div>
       </div>
@@ -98,7 +98,7 @@ export default function ActiveAds() {
       <div className="space-y-6">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 space-y-4">
-            <div className="w-10 h-10 border-4 border-[#E31E24] border-t-transparent rounded-full animate-spin" />
+            <div className="w-10 h-10 border-4 border-[#D4191F] border-t-transparent rounded-full animate-spin" />
             <p className="text-gray-500 text-sm font-bold animate-pulse">Syncing with network...</p>
           </div>
         ) : filtered.length === 0 ? (
@@ -138,10 +138,10 @@ export default function ActiveAds() {
                   <div>
                     <div className="flex items-start justify-between gap-4 mb-4">
                       <div>
-                        <h3 className="text-2xl font-black text-gray-900 mb-1 tracking-tight group-hover:text-[#E31E24] transition-colors">{ad.title}</h3>
+                        <h3 className="text-2xl font-black text-gray-900 mb-1 tracking-tight group-hover:text-[#D4191F] transition-colors">{ad.title}</h3>
                         <div className="flex items-center gap-4">
                           <span className="text-xs font-black text-gray-500 opacity-60 flex items-center gap-2 uppercase tracking-widest">
-                            <Target size={14} className="text-[#E31E24]" /> {ad.advertiser_name}
+                            <Target size={14} className="text-[#D4191F]" /> {ad.advertiser_name}
                           </span>
                           <span className="text-xs font-black text-gray-500 opacity-60 flex items-center gap-2 uppercase tracking-widest">
                             <Calendar size={14} /> {new Date(ad.created_at).toLocaleDateString()}
@@ -186,7 +186,7 @@ export default function ActiveAds() {
                         initial={{ width: 0 }}
                         animate={{ width: `${spentPercent}%` }}
                         transition={{ duration: 1, ease: "easeOut" }}
-                        className={`h-full rounded-full ${spentPercent > 80 ? 'bg-amber-400' : 'bg-[#E31E24]'} shadow-[0_0_10px_rgba(227,30,36,0.3)]`}
+                        className={`h-full rounded-full ${spentPercent > 80 ? 'bg-amber-400' : 'bg-[#D4191F]'} shadow-[0_0_10px_rgba(227,30,36,0.3)]`}
                       />
                     </div>
                   </div>
@@ -211,7 +211,7 @@ export default function ActiveAds() {
                    </button>
                    <button 
                      onClick={() => handleDelete(ad)}
-                     className="flex-1 xl:flex-none p-4 bg-red-500/10 hover:bg-red-500/20 text-[#E31E24] rounded-2xl transition-all border border-red-500/10 shadow-lg flex items-center justify-center group/delete"
+                     className="flex-1 xl:flex-none p-4 bg-red-500/10 hover:bg-red-500/20 text-[#D4191F] rounded-2xl transition-all border border-red-500/10 shadow-lg flex items-center justify-center group/delete"
                      title="Delete Campaign"
                    >
                      <Trash2 size={20} className="group-hover/delete:scale-110 transition-transform" />
@@ -226,7 +226,7 @@ export default function ActiveAds() {
       {showDeleteModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="w-12 h-12 rounded-full bg-red-50 text-[#E31E24] flex items-center justify-center mb-4 mx-auto">
+            <div className="w-12 h-12 rounded-full bg-red-50 text-[#D4191F] flex items-center justify-center mb-4 mx-auto">
               <Trash2 size={24} />
             </div>
             <h3 className="text-xl font-black text-gray-900 text-center mb-2 tracking-tight">Delete Campaign?</h3>
@@ -242,7 +242,7 @@ export default function ActiveAds() {
               </button>
               <button
                 onClick={confirmDeleteCampaign}
-                className="flex-1 py-3 bg-[#E31E24] font-bold text-white rounded-xl hover:bg-red-700 transition text-sm"
+                className="flex-1 py-3 bg-[#D4191F] font-bold text-white rounded-xl hover:bg-red-700 transition text-sm"
               >
                 Delete
               </button>

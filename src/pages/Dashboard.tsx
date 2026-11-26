@@ -13,6 +13,7 @@ import {
   BarChart3,
   TrendingUp,
   Megaphone,
+  X,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabaseClient';
@@ -32,6 +33,7 @@ interface Props {
 
 const Dashboard: React.FC<Props> = ({ onLogout }) => {
   const [activeTab, setActiveTab] = React.useState('Overview');
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [stats, setStats] = useState<any>(null);
   const [recentPosts, setRecentPosts] = useState<any[]>([]);
   const [creators, setCreators] = useState<any[]>([]);
@@ -105,53 +107,76 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
   }, []);
 
   const statCards = [
-    { label: 'Total Users', value: stats?.totalUsers ?? '...', change: '+12%', icon: <Users size={20} />, color: '#8ecdff' },
-    { label: 'Active Creators', value: stats?.totalCreators ?? '...', change: '+8%', icon: <TrendingUp size={20} />, color: '#E31E24' },
-    { label: 'Total Posts', value: stats?.totalPosts ?? '...', change: '+15%', icon: <FileText size={20} />, color: '#10B981' },
-    { label: 'Total Comments', value: stats?.totalComments ?? '...', change: '+22%', icon: <MessageSquare size={20} />, color: '#F59E0B' },
+    { label: 'Total Users', value: stats?.totalUsers ?? '...', change: '+12%', icon: <Users size={20} />, color: '#2563EB' },
+    { label: 'Active Creators', value: stats?.totalCreators ?? '...', change: '+8%', icon: <TrendingUp size={20} />, color: '#D4191F' },
+    { label: 'Total Posts', value: stats?.totalPosts ?? '...', change: '+15%', icon: <FileText size={20} />, color: '#059669' },
+    { label: 'Total Comments', value: stats?.totalComments ?? '...', change: '+22%', icon: <MessageSquare size={20} />, color: '#D97706' },
   ];
 
+  const handleSelectTab = (tab: string) => {
+    setActiveTab(tab);
+    setMobileSidebarOpen(false);
+  };
+
   return (
-    <div className="flex h-screen bg-brand-bg text-brand-text overflow-hidden font-jakarta">
+    <div className="flex h-screen bg-[#F5F5F7] text-[#111827] overflow-hidden font-jakarta">
       {/* Sidebar Placeholder for absolute positioning */}
       {activeTab === 'Advertisement' && <div className="w-[88px] shrink-0 md:block hidden" />}
 
-      {/* Side Navigation */}
+      {/* Mobile Drawer Backdrop */}
+      {mobileSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 z-40 md:hidden"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
+
+      {/* Side Navigation (Dark PostsApp Studio Rail) */}
       <aside 
-        className={`bg-brand-sidebar border-r border-brand-divider hidden md:flex flex-col transition-all duration-300 z-50 group overflow-hidden whitespace-nowrap shadow-[4px_0_24px_rgba(0,0,0,0.04)] ${
-          activeTab === 'Advertisement' ? 'w-[88px] hover:w-[248px] absolute h-full shadow-[0_8px_30px_rgba(0,0,0,0.08)]' : 'w-[248px] relative'
+        className={`bg-[#141414] border-r border-[#262626] flex flex-col transition-all duration-300 z-50 group overflow-hidden whitespace-nowrap shadow-[4px_0_24px_rgba(0,0,0,0.18)] ${
+          mobileSidebarOpen
+            ? 'fixed inset-y-0 left-0 w-[248px] flex'
+            : activeTab === 'Advertisement'
+              ? 'hidden md:flex w-[88px] hover:w-[248px] absolute h-full'
+              : 'hidden md:flex w-[248px] relative'
         }`}
       >
         <div className="py-0 px-0 flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
-          <div className="flex items-center gap-3 h-[72px] px-[16px] shrink-0">
-            <img src="/logo%20omh.png" alt="Admin HUB Logo" className="w-10 h-10 shrink-0 object-contain" />
-            <div className={`transition-opacity duration-300 min-w-[150px] ${activeTab === 'Advertisement' ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
-              <h2 className="text-lg font-bold font-jakarta text-brand-text leading-none">Admin HUB</h2>
-              <p className="text-[9px] font-mono font-medium text-brand-muted mt-1 uppercase tracking-[0.2em]">Enterprise Control</p>
+          <div className="flex items-center justify-between h-[72px] px-[16px] shrink-0 border-b border-[#262626] mb-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <img src="/logo-postsapp-dark.png" alt="PostsApp Admin" className="h-7 shrink-0 object-contain" />
+              <span className={`px-2 py-0.5 rounded bg-[#D4191F] text-white text-[9px] font-extrabold tracking-widest uppercase transition-opacity duration-300 ${activeTab === 'Advertisement' && !mobileSidebarOpen ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
+                ADMIN
+              </span>
             </div>
+            <button
+              onClick={() => setMobileSidebarOpen(false)}
+              className="md:hidden p-1.5 rounded-lg text-[#A3A3A3] hover:text-white hover:bg-[#262626]"
+            >
+              <X size={18} />
+            </button>
           </div>
 
-          <nav className="space-y-[2px] w-full px-[16px]">
-            <NavItem icon={<PieChart size={18} strokeWidth={2.5} />} label="Overview" active={activeTab === 'Overview'} onClick={() => setActiveTab('Overview')} activeTab={activeTab} />
-            <NavItem icon={<Users size={18} strokeWidth={2.5} />} label="Creator Requests" active={activeTab === 'Creator Requests'} onClick={() => setActiveTab('Creator Requests')} activeTab={activeTab} />
-            <NavItem icon={<Users size={18} strokeWidth={2.5} />} label="Creators" active={activeTab === 'Creators'} onClick={() => setActiveTab('Creators')} activeTab={activeTab} />
-            <NavItem icon={<FileText size={18} strokeWidth={2.5} />} label="Posts" active={activeTab === 'Posts'} onClick={() => setActiveTab('Posts')} activeTab={activeTab} />
-            <NavItem icon={<BarChart3 size={18} strokeWidth={2.5} />} label="Analytics" active={activeTab === 'Analytics'} onClick={() => setActiveTab('Analytics')} activeTab={activeTab} />
-            <NavItem icon={<Megaphone size={18} strokeWidth={2.5} />} label="Advertisement" active={activeTab === 'Advertisement'} onClick={() => setActiveTab('Advertisement')} activeTab={activeTab} />
-            <NavItem icon={<IndianRupee size={18} strokeWidth={2.5} />} label="Payments" active={activeTab === 'Payments'} onClick={() => setActiveTab('Payments')} activeTab={activeTab} />
-            <NavItem icon={<Bell size={18} strokeWidth={2.5} />} label="Notifications" active={activeTab === 'Notifications'} onClick={() => setActiveTab('Notifications')} activeTab={activeTab} />
-            <NavItem icon={<MessageSquare size={18} strokeWidth={2.5} />} label="Feedback" active={activeTab === 'Feedback'} onClick={() => setActiveTab('Feedback')} activeTab={activeTab} />
+          <nav className="space-y-1 w-full px-[12px]">
+            <NavItem icon={<PieChart size={18} strokeWidth={2.2} />} label="Overview" active={activeTab === 'Overview'} onClick={() => handleSelectTab('Overview')} activeTab={activeTab} mobileOpen={mobileSidebarOpen} />
+            <NavItem icon={<Users size={18} strokeWidth={2.2} />} label="Creator Requests" active={activeTab === 'Creator Requests'} onClick={() => handleSelectTab('Creator Requests')} activeTab={activeTab} mobileOpen={mobileSidebarOpen} />
+            <NavItem icon={<Users size={18} strokeWidth={2.2} />} label="Creators" active={activeTab === 'Creators'} onClick={() => handleSelectTab('Creators')} activeTab={activeTab} mobileOpen={mobileSidebarOpen} />
+            <NavItem icon={<FileText size={18} strokeWidth={2.2} />} label="Posts" active={activeTab === 'Posts'} onClick={() => handleSelectTab('Posts')} activeTab={activeTab} mobileOpen={mobileSidebarOpen} />
+            <NavItem icon={<BarChart3 size={18} strokeWidth={2.2} />} label="Analytics" active={activeTab === 'Analytics'} onClick={() => handleSelectTab('Analytics')} activeTab={activeTab} mobileOpen={mobileSidebarOpen} />
+            <NavItem icon={<Megaphone size={18} strokeWidth={2.2} />} label="Advertisement" active={activeTab === 'Advertisement'} onClick={() => handleSelectTab('Advertisement')} activeTab={activeTab} mobileOpen={mobileSidebarOpen} />
+            <NavItem icon={<IndianRupee size={18} strokeWidth={2.2} />} label="Payments" active={activeTab === 'Payments'} onClick={() => handleSelectTab('Payments')} activeTab={activeTab} mobileOpen={mobileSidebarOpen} />
+            <NavItem icon={<Bell size={18} strokeWidth={2.2} />} label="Notifications" active={activeTab === 'Notifications'} onClick={() => handleSelectTab('Notifications')} activeTab={activeTab} mobileOpen={mobileSidebarOpen} />
+            <NavItem icon={<MessageSquare size={18} strokeWidth={2.2} />} label="Feedback" active={activeTab === 'Feedback'} onClick={() => handleSelectTab('Feedback')} activeTab={activeTab} mobileOpen={mobileSidebarOpen} />
           </nav>
         </div>
 
-        <div className="mt-auto px-[16px] py-[16px] space-y-[2px] border-t border-brand-divider shrink-0 w-full">
-
+        <div className="mt-auto px-[12px] py-[14px] space-y-[2px] border-t border-[#262626] shrink-0 w-full">
           <button 
             onClick={onLogout}
-            className={`flex items-center gap-4 w-full px-[16px] h-[46px] rounded-[6px] text-brand-red hover:bg-brand-redUltraLight transition-all duration-150 font-medium font-jakarta text-sm group/logout overflow-hidden whitespace-nowrap`}
+            className="flex items-center gap-4 w-full px-[14px] h-[44px] rounded-[8px] text-[#F87171] hover:bg-[#262626] transition-all duration-150 font-semibold font-jakarta text-sm overflow-hidden whitespace-nowrap"
           >
             <LogOut size={18} strokeWidth={2} className="shrink-0" />
-            <span className={`transition-opacity duration-300 ${activeTab === 'Advertisement' ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>Logout</span>
+            <span className={`transition-opacity duration-300 ${activeTab === 'Advertisement' && !mobileSidebarOpen ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>Logout</span>
           </button>
         </div>
       </aside>
@@ -159,37 +184,43 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col overflow-hidden relative">
         {/* Top Header */}
-        <header className="h-[68px] bg-brand-card border-b border-brand-divider shadow-[0_1px_0_#F0F1F5] flex items-center justify-between px-10 z-10 shrink-0 sticky top-0 transition-colors">
-          <div className="flex items-center gap-8 flex-1">
-            <button className="md:hidden p-2 rounded-xl hover:bg-brand-redUltraLight text-brand-secondary transition-colors"><Menu size={20} /></button>
+        <header className="h-[68px] bg-white border-b border-[#E5E7EB] flex items-center justify-between px-4 sm:px-10 z-10 shrink-0 sticky top-0 transition-colors">
+          <div className="flex items-center gap-4 sm:gap-8 flex-1">
+            <button
+              onClick={() => setMobileSidebarOpen(true)}
+              className="md:hidden p-2 rounded-lg hover:bg-gray-100 text-[#111827] transition-colors"
+              aria-label="Open navigation menu"
+            >
+              <Menu size={20} />
+            </button>
             <div className="max-w-[480px] w-full relative group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-muted transition-colors group-focus-within:text-brand-red" size={16} strokeWidth={2} />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9CA3AF] transition-colors group-focus-within:text-[#D4191F]" size={16} strokeWidth={2} />
               <input 
                 type="text" 
                 placeholder="Search intelligence..." 
-                className="w-full bg-brand-bg border border-brand-border rounded-[10px] py-2 pl-12 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-brand-red transition-all font-jakarta text-brand-text placeholder:text-brand-muted placeholder:font-mono"
+                className="w-full bg-[#F5F5F7] border border-[#E5E7EB] rounded-[8px] py-2 pl-12 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-[#D4191F] focus:border-[#D4191F] focus:bg-white transition-all font-jakarta text-[#111827] placeholder:text-[#9CA3AF] placeholder:font-mono"
               />
             </div>
           </div>
           
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 sm:gap-6">
             <button 
               onClick={() => setActiveTab('Notifications')}
-              className="relative p-2 rounded-full hover:bg-brand-redUltraLight transition-colors text-brand-secondary hover:text-brand-red"
+              className="relative p-2 rounded-full hover:bg-red-50 transition-colors text-[#6B7280] hover:text-[#D4191F]"
             >
               <Bell size={20} strokeWidth={2} />
               {stats?.pendingRequests > 0 && (
-                <span className="absolute top-1 right-1 w-[8px] h-[8px] bg-brand-red rounded-full shadow-[0_0_0_2px_#FFFFFF]"></span>
+                <span className="absolute top-1 right-1 w-[8px] h-[8px] bg-[#D4191F] rounded-full shadow-[0_0_0_2px_#FFFFFF]"></span>
               )}
             </button>
-            <div className="h-8 w-px bg-brand-divider"></div>
+            <div className="h-8 w-px bg-[#E5E7EB]"></div>
             <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
-                <p className="text-[14px] font-medium font-jakarta text-brand-text leading-tight">Administrator</p>
-                <p className="text-[9px] font-mono text-brand-muted uppercase tracking-[0.05em]">Super Admin</p>
+                <p className="text-[14px] font-semibold font-jakarta text-[#111827] leading-tight">Administrator</p>
+                <p className="text-[9px] font-mono text-[#6B7280] uppercase tracking-[0.05em]">Super Admin</p>
               </div>
-              <div className="w-9 h-9 rounded-full bg-brand-red flex items-center justify-center shrink-0 shadow-sm border border-brand-redLight">
-                <span className="text-white font-medium font-jakarta text-[14px]">AD</span>
+              <div className="w-9 h-9 rounded-full bg-[#D4191F] flex items-center justify-center shrink-0 shadow-sm">
+                <span className="text-white font-bold font-jakarta text-[13px]">AD</span>
               </div>
             </div>
           </div>
@@ -340,8 +371,8 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
                   </div>
 
                   {/* Status Card */}
-                  <div className="bg-gradient-to-br from-[#E31E24] to-[#93000d] rounded-2xl p-8 shadow-2xl shadow-red-900/20">
-                    <ShieldAlert className="text-white/80 mb-4" size={32} />
+                  <div className="bg-gradient-to-br from-[#D4191F] to-[#9E1111] rounded-2xl p-8 shadow-xl shadow-red-900/20">
+                    <ShieldAlert className="text-white/85 mb-4" size={32} />
                     <h4 className="text-white font-bold mb-2">System Operational</h4>
                     <p className="text-white/80 text-xs leading-relaxed mb-6">Real-time sync active. All services connected to Supabase.</p>
                     <div className="flex items-center gap-2">
@@ -368,7 +399,7 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
             <AdsLayout onBack={() => setActiveTab('Overview')} />
           ) : activeTab === 'Payments' ? (
             <div className="flex flex-col items-center justify-center h-full">
-              <div className="w-20 h-20 bg-gradient-to-br from-[#E31E24] to-[#93000d] rounded-2xl flex items-center justify-center mb-6 shadow-2xl shadow-red-900/40">
+              <div className="w-20 h-20 bg-gradient-to-br from-[#D4191F] to-[#9E1111] rounded-2xl flex items-center justify-center mb-6 shadow-xl shadow-red-900/30">
                 <IndianRupee size={40} className="text-white" />
               </div>
               <h2 className="text-3xl font-bold text-gray-900 mb-2 tracking-tight">Payments Infrastructure</h2>
@@ -387,20 +418,31 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
   );
 };
 
-const NavItem = ({ icon, label, active = false, onClick, activeTab }: { icon: any, label: string, active?: boolean, onClick?: () => void, activeTab?: string }) => {
-  const iconColor = active ? 'text-brand-red' : 'text-[#C4C9D4] group-hover/pill:text-brand-red';
-  const labelColor = active ? 'text-brand-red font-bold' : 'text-brand-secondary group-hover/pill:text-brand-text';
-  
+const NavItem = ({
+  icon,
+  label,
+  active = false,
+  onClick,
+  activeTab,
+  mobileOpen = false,
+}: {
+  icon: any;
+  label: string;
+  active?: boolean;
+  onClick?: () => void;
+  activeTab?: string;
+  mobileOpen?: boolean;
+}) => {
   return (
     <button 
       onClick={onClick}
-      className={`flex items-center gap-[16px] w-full px-[16px] h-[46px] transition-all duration-180 ease-in-out font-medium text-[14px] overflow-hidden whitespace-nowrap shrink-0 group/pill ${
+      className={`flex items-center gap-[14px] w-full px-[14px] h-[44px] rounded-[8px] transition-all duration-150 ease-in-out font-semibold text-[14px] overflow-hidden whitespace-nowrap shrink-0 group/pill ${
         active 
-        ? 'bg-brand-redLight border-l-[3px] border-brand-red rounded-r-[6px]' 
-        : 'hover:bg-brand-redUltraLight rounded-[6px]'
+        ? 'bg-[#D4191F] text-white shadow-sm' 
+        : 'text-[#A3A3A3] hover:text-white hover:bg-[#1F1F1F]'
       }`}>
-      <div className={`shrink-0 flex items-center justify-center transition-colors duration-180 ${iconColor}`}>{icon}</div>
-      <span className={`font-jakarta transition-colors duration-180 ${labelColor} ${activeTab === 'Advertisement' ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>{label}</span>
+      <div className={`shrink-0 flex items-center justify-center transition-colors duration-150 ${active ? 'text-white' : 'text-[#A3A3A3] group-hover/pill:text-white'}`}>{icon}</div>
+      <span className={`font-jakarta transition-opacity duration-200 ${activeTab === 'Advertisement' && !mobileOpen ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>{label}</span>
     </button>
   );
 };

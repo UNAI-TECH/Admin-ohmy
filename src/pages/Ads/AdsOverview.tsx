@@ -77,13 +77,13 @@ export default function AdsOverview() {
     { label: 'Total Revenue', value: `₹${stats.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, icon: <IndianRupee size={24} />, color: '#10B981', trend: '+14% growth' },
     { label: 'Total Impressions', value: stats.totalImpressions.toLocaleString(), icon: <Eye size={24} />, color: '#8ecdff', trend: 'Live reach' },
     { label: 'Total Clicks', value: stats.totalClicks.toLocaleString(), icon: <MousePointerClick size={24} />, color: '#F59E0B', trend: `${stats.avgCTR.toFixed(2)}% CTR` },
-    { label: 'Campaigns', value: stats.activeAds, icon: <Activity size={24} />, color: '#E31E24', trend: `${stats.totalAds} total` },
+    { label: 'Campaigns', value: stats.activeAds, icon: <Activity size={24} />, color: '#D4191F', trend: `${stats.totalAds} total` },
   ];
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-[#E31E24] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-[#D4191F] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -93,13 +93,13 @@ export default function AdsOverview() {
       <div className="mb-10 flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-black text-gray-900 mb-2 tracking-tight flex items-center gap-3">
-            Real-time Insights <Zap className="text-[#E31E24] fill-[#E31E24]" size={28} />
+            Real-time Insights <Zap className="text-[#D4191F] fill-[#D4191F]" size={28} />
           </h1>
           <p className="text-gray-500 opacity-60 font-medium">Live monitoring of your advertisement ecosystem.</p>
         </div>
-        <div className="px-4 py-2 bg-[#E31E24]/10 border border-[#E31E24]/20 rounded-full flex items-center gap-2">
+        <div className="px-4 py-2 bg-[#D4191F]/10 border border-[#D4191F]/20 rounded-full flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-[10px] font-black text-[#E31E24] uppercase tracking-widest">Network Live</span>
+          <span className="text-[10px] font-black text-[#D4191F] uppercase tracking-widest">Network Live</span>
         </div>
       </div>
 
@@ -113,7 +113,7 @@ export default function AdsOverview() {
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br opacity-[0.03] group-hover:opacity-[0.08] transition-opacity" style={{ backgroundImage: `linear-gradient(to bottom right, ${card.color}, transparent)` }} />
             
             <div className="flex items-center justify-between mb-8">
-              <div className="p-4 rounded-2xl bg-[#FAFBFF] shadow-sm border border-gray-100" style={{ color: card.color }}>
+              <div className="p-4 rounded-2xl bg-[#F5F5F7] shadow-sm border border-gray-100" style={{ color: card.color }}>
                 {card.icon}
               </div>
               <ArrowUpRight size={20} className="text-gray-500 opacity-20 group-hover:opacity-100 group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" />
@@ -138,7 +138,7 @@ export default function AdsOverview() {
               <h3 className="text-xl font-black text-gray-900 tracking-tight">Performance Curve</h3>
               <p className="text-xs text-gray-500 opacity-40">Live tracking of impressions vs conversion</p>
             </div>
-            <select className="bg-[#FAFBFF] border border-gray-200 rounded-xl px-4 py-2 text-xs font-bold text-gray-500 outline-none">
+            <select className="bg-[#F5F5F7] border border-gray-200 rounded-xl px-4 py-2 text-xs font-bold text-gray-500 outline-none">
               <option>Last 24 Hours</option>
               <option>Last 7 Days</option>
             </select>
@@ -151,7 +151,7 @@ export default function AdsOverview() {
                 initial={{ height: 0 }}
                 animate={{ height: `${h}%` }}
                 transition={{ delay: i * 0.05, duration: 0.5 }}
-                className="flex-1 bg-gradient-to-t from-red-100 to-[#E31E24] rounded-t-lg opacity-80 hover:opacity-100 transition-opacity relative group"
+                className="flex-1 bg-gradient-to-t from-red-100 to-[#D4191F] rounded-t-lg opacity-80 hover:opacity-100 transition-opacity relative group"
               >
                 <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-white text-gray-900 text-[10px] font-black px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                   {Math.floor(h * stats.totalImpressions / 100)}
@@ -169,17 +169,17 @@ export default function AdsOverview() {
         </div>
 
         <div className="bg-white shadow-sm backdrop-blur-xl border border-gray-200 p-10 rounded-3xl shadow-2xl flex flex-col items-center justify-center text-center">
-          <div className="w-20 h-20 bg-[#E31E24] rounded-3xl flex items-center justify-center mb-8 rotate-12 shadow-2xl shadow-red-900/40">
+          <div className="w-20 h-20 bg-[#D4191F] rounded-3xl flex items-center justify-center mb-8 rotate-12 shadow-2xl shadow-red-900/40">
             <TrendingUp size={40} className="text-white -rotate-12" />
           </div>
           <h3 className="text-2xl font-black text-gray-900 mb-2 tracking-tight">System Health</h3>
           <p className="text-sm text-gray-500 opacity-40 leading-relaxed mb-8">Your advertisement engine is operating at peak performance with zero latency detected.</p>
           <div className="w-full space-y-4">
-            <div className="bg-[#FAFBFF] p-4 rounded-2xl flex items-center justify-between shadow-sm border border-gray-100">
+            <div className="bg-[#F5F5F7] p-4 rounded-2xl flex items-center justify-between shadow-sm border border-gray-100">
               <span className="text-[10px] font-black text-gray-500 opacity-60 uppercase tracking-widest">Latency</span>
               <span className="text-sm font-bold text-green-500">12ms</span>
             </div>
-            <div className="bg-[#FAFBFF] p-4 rounded-2xl flex items-center justify-between shadow-sm border border-gray-100">
+            <div className="bg-[#F5F5F7] p-4 rounded-2xl flex items-center justify-between shadow-sm border border-gray-100">
               <span className="text-[10px] font-black text-gray-500 opacity-60 uppercase tracking-widest">Uptime</span>
               <span className="text-sm font-bold text-gray-900">99.9%</span>
             </div>

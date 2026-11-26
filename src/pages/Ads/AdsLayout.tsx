@@ -15,18 +15,18 @@ const AdsLayout: React.FC<Props> = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState('Overview');
 
   return (
-    <div className="flex h-full bg-[#FAFBFF]">
+    <div className="flex h-full bg-[#F5F5F7]">
       {/* Ads Manager Sidebar */}
-      <aside className="w-64 bg-[#FAFBFF] border-r border-gray-200 flex flex-col pt-6">
+      <aside className="w-64 bg-white border-r border-[#E5E7EB] flex flex-col pt-6">
         <div className="px-6 mb-6">
           <button 
             onClick={onBack}
-            className="flex items-center gap-2 text-xs font-bold text-gray-500 opacity-60 hover:opacity-100 transition-opacity uppercase tracking-widest mb-6"
+            className="flex items-center gap-2 text-xs font-bold text-[#6B7280] hover:text-[#D4191F] transition-colors uppercase tracking-widest mb-6"
           >
-            <ChevronLeft size={14} /> Back to Sentinel
+            <ChevronLeft size={14} /> Back to PostsApp Admin
           </button>
-          <h2 className="text-xl font-black text-gray-900 tracking-tight leading-tight">Ads Manager</h2>
-          <p className="text-[10px] font-bold text-[#E31E24] uppercase tracking-[0.2em]">Campaign Hub</p>
+          <h2 className="text-xl font-black text-[#111827] tracking-tight leading-tight">Ads Manager</h2>
+          <p className="text-[10px] font-bold text-[#D4191F] uppercase tracking-[0.2em]">Campaign Hub</p>
         </div>
 
         <nav className="flex-1 space-y-1 px-4">

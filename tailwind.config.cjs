@@ -8,20 +8,21 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          red: '#E8462A',
-          bg: '#F5F6FA',
-          sidebar: '#FFFFFF',
+          red: '#D4191F',
+          deepCrimson: '#9E1111',
+          bg: '#F5F5F7',
+          sidebar: '#141414',
           card: '#FFFFFF',
-          border: '#E8EAF0',
+          border: '#E5E7EB',
           divider: '#F0F1F5',
-          text: '#0F1117',
+          text: '#111827',
           secondary: '#6B7280',
           muted: '#9CA3AF',
           success: '#059669',
           warning: '#D97706',
           info: '#2563EB',
-          redLight: 'rgba(232, 70, 42, 0.08)',
-          redUltraLight: 'rgba(232, 70, 42, 0.04)'
+          redLight: 'rgba(212, 25, 31, 0.14)',
+          redUltraLight: 'rgba(212, 25, 31, 0.06)'
         }
       },
       fontFamily: {
