@@ -127,7 +127,7 @@ const Creators: React.FC = () => {
                   </div>
                   
                   <h3 className="text-lg font-extrabold tracking-tight text-gray-900 leading-tight flex items-center gap-2">
-                    {creator.username || 'Unnamed'}
+                    {creator.channel_name || creator.username || 'Unnamed'}
                     <svg className="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-8.1 7.9z"/></svg>
                   </h3>
                   <p className="text-[10px] text-gray-400 font-medium tracking-wide mb-4">{creator.email}</p>
@@ -217,7 +217,7 @@ const Creators: React.FC = () => {
                     </div>
                     
                     <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2 mb-1">
-                      {selectedCreator.username}
+                      {selectedCreator.channel_name || selectedCreator.username}
                       <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-8.1 7.9z"/></svg>
                     </h2>
                     <p className="text-sm text-gray-500 opacity-60 mb-4">{selectedCreator.email}</p>

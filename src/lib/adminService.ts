@@ -162,43 +162,50 @@ export const adminService = {
    * The trigger may fail (500) but the auth user is sometimes still created.
    */
   async createCreatorAccount(payload: CreateCreatorPayload, _isOrganization: boolean = false) {
-    const rawUsername = payload.email.split('@')[0];
+    const email = payload.email.trim().toLowerCase();
+    const rawUsername = email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') || 'creator';
 
-    // Step 1: Check if this email already exists in auth (from previous failed attempts)
+    // Step 1: Check if this email already exists in auth
     let existingAuthUser = null;
     try {
-      const { data: usersList } = await supabaseAdmin.auth.admin.listUsers();
-      existingAuthUser = usersList?.users?.find((u: any) => u.email === payload.email);
+      const { data: usersList } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      existingAuthUser = usersList?.users?.find((u: any) => (u.email || '').toLowerCase() === email);
     } catch (e) {
       console.warn('[Admin] Could not list users:', e);
     }
 
     if (existingAuthUser) {
-      console.log('[Admin] Auth user already exists, updating profile...');
-      await supabaseAdmin.auth.admin.updateUserById(existingAuthUser.id, {
+      console.log('[Admin] Auth user already exists, updating password and creator role...');
+      const { error: updateAuthErr } = await supabaseAdmin.auth.admin.updateUserById(existingAuthUser.id, {
         password: payload.password,
         email_confirm: true,
+        user_metadata: {
+          ...(existingAuthUser.user_metadata || {}),
+          full_name: payload.fullName || existingAuthUser.user_metadata?.full_name,
+        },
       });
+      if (updateAuthErr) {
+        throw new Error(updateAuthErr.message || 'Failed to update existing auth account');
+      }
 
-      // Update the User table explicitly to store temporary_password
-      await supabaseAdmin.from('User').update({ temporary_password: payload.password }).eq('id', existingAuthUser.id);
+      await this._ensureProfile(existingAuthUser.id, { ...payload, email });
+
+      invalidateMemCache('admin:overview:stats');
+      invalidateMemCache('admin:all:creators');
 
       return existingAuthUser;
     }
 
-    // To prevent the `handle_new_user` DB trigger from crashing due to a unique
-    // constraint violation in `public.profiles` (which happens if there are orphaned rows),
-    // we pass a highly unique dummy username in the metadata. The trigger will use
-    // this to insert into `profiles` successfully.
+    // Pass a unique username in metadata so auth triggers never hit unique username collisions.
     const uniqueDummyUsername = rawUsername + '_' + Date.now();
 
     const { data: createData, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email: payload.email,
+      email,
       password: payload.password,
       email_confirm: true,
       user_metadata: {
         full_name: payload.fullName,
-        username: uniqueDummyUsername, // Passes trigger's unique username constraint
+        username: uniqueDummyUsername,
       },
     });
 
@@ -214,19 +221,10 @@ export const adminService = {
     const userId = createData.user.id;
     console.log('[Admin] Auth user created:', userId);
 
-    // The DB triggers handle migrating this Auth user into the public."User" table
-    // (via handle_new_user and the handle_creator_approval trigger).
-    // Now we must update the User record with the plaintext password so the Admin can view it.
-    const { error: pwdErr } = await supabaseAdmin
-      .from('User')
-      .update({ temporary_password: payload.password })
-      .eq('id', userId);
+    // Ensure the public."User" record exists with CREATOR role, channel_name, bio, and temporary_password
+    await this._ensureProfile(userId, { ...payload, email });
 
-    if (pwdErr) {
-      console.warn('[Admin] Could not save temporary_password to User table:', pwdErr.message);
-    }
-
-    console.log('[Admin] Creator auth account created for:', payload.email);
+    console.log('[Admin] Creator auth account and profile provisioned for:', email);
 
     // Invalidate admin caches
     invalidateMemCache('admin:overview:stats');
@@ -236,21 +234,76 @@ export const adminService = {
   },
 
   /**
-   * Ensure a profile exists for the given user ID
+   * Ensure a creator profile exists in public."User" with CREATOR role
    */
   async _ensureProfile(userId: string, payload: CreateCreatorPayload) {
+    const email = payload.email.trim().toLowerCase();
+    const baseUsername = (email.split('@')[0] || 'creator').toLowerCase().replace(/[^a-z0-9_]/g, '') || 'creator';
+    const now = new Date().toISOString();
+
+    const { data: existingRow } = await supabaseAdmin
+      .from('User')
+      .select('id, username, role, bio, channel_name')
+      .eq('id', userId)
+      .maybeSingle();
+
+    const resolveUniqueUsername = async (preferred: string): Promise<string> => {
+      const { data: conflict } = await supabaseAdmin
+        .from('User')
+        .select('id')
+        .eq('username', preferred)
+        .neq('id', userId)
+        .maybeSingle();
+      if (!conflict) return preferred;
+      return `${preferred}_${Date.now().toString().slice(-5)}`;
+    };
+
+    const targetRole = existingRow?.role === 'ADMIN' ? 'ADMIN' : 'CREATOR';
+    const hasDummyUsername = !existingRow?.username || /_\d{10,}$/.test(existingRow.username);
+
+    if (existingRow) {
+      const nextUsername = hasDummyUsername
+        ? await resolveUniqueUsername(baseUsername)
+        : existingRow.username;
+
+      const { error } = await supabaseAdmin
+        .from('User')
+        .update({
+          role: targetRole,
+          username: nextUsername,
+          channel_name: existingRow.channel_name || payload.fullName?.trim() || nextUsername,
+          bio: payload.bio?.trim() ? payload.bio.trim() : existingRow.bio || '',
+          temporary_password: payload.password,
+          updatedAt: now,
+        })
+        .eq('id', userId);
+
+      if (error) {
+        console.error('[Admin] Profile update error:', error);
+        throw new Error(error.message || 'Failed to assign creator role to user profile');
+      }
+      return;
+    }
+
+    const uniqueUsername = await resolveUniqueUsername(baseUsername);
     const { error } = await supabaseAdmin
       .from('User')
-      .upsert({
+      .insert({
         id: userId,
-        email: payload.email,
-        username: payload.email.split('@')[0],
-        bio: payload.bio || '',
+        email,
+        username: uniqueUsername,
+        password: '',
+        channel_name: payload.fullName?.trim() || uniqueUsername,
+        bio: payload.bio?.trim() || '',
         role: 'CREATOR',
-      }, { onConflict: 'id' });
+        temporary_password: payload.password,
+        createdAt: now,
+        updatedAt: now,
+      });
 
     if (error) {
-      console.error('Profile creation error:', error);
+      console.error('[Admin] Profile creation error:', error);
+      throw new Error(error.message || 'Failed to create creator user profile');
     }
   },
 
