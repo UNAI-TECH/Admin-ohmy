@@ -61,7 +61,7 @@ export default function SeoCenter() {
     load();
   };
 
-  const counts = audit?.summary || {};
+  const counts = audit?.counts || audit?.summary || {};
   const issues = audit?.issues || [];
 
   return (
@@ -111,17 +111,24 @@ export default function SeoCenter() {
                 <p className="text-xs text-emerald-700 font-semibold py-6">All published articles have complete SEO metadata!</p>
               ) : (
                 <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
-                  {issues.map((item: any) => (
-                    <div key={item.id} className="py-3 space-y-1">
-                      <p className="text-xs font-bold text-gray-900 line-clamp-1">{item.title}</p>
-                      <div className="flex flex-wrap gap-1.5 text-[10px] font-bold">
-                        <span className="px-1.5 py-0.5 bg-gray-900 text-white rounded uppercase">{item.language}</span>
-                        {item.missingSeoTitle && <span className="px-2 py-0.5 bg-amber-50 text-amber-800 rounded">Missing SEO Title</span>}
-                        {item.missingMetaDescription && <span className="px-2 py-0.5 bg-amber-50 text-amber-800 rounded">Missing Meta Desc</span>}
-                        {item.missingAltText && <span className="px-2 py-0.5 bg-red-50 text-red-700 rounded">Missing Alt Text</span>}
+                  {issues.map((item: any) => {
+                    const missingTitle = !item.seo_title || !String(item.seo_title).trim();
+                    const missingDesc =
+                      (!item.seo_description || !String(item.seo_description).trim()) &&
+                      (!item.short_description || !String(item.short_description).trim());
+                    const missingAlt = !item.featured_image_alt || !String(item.featured_image_alt).trim();
+                    return (
+                      <div key={item.id} className="py-3 space-y-1">
+                        <p className="text-xs font-bold text-gray-900 line-clamp-1">{item.title}</p>
+                        <div className="flex flex-wrap gap-1.5 text-[10px] font-bold">
+                          <span className="px-1.5 py-0.5 bg-gray-900 text-white rounded uppercase">{item.language}</span>
+                          {missingTitle && <span className="px-2 py-0.5 bg-amber-50 text-amber-800 rounded">Missing SEO Title</span>}
+                          {missingDesc && <span className="px-2 py-0.5 bg-amber-50 text-amber-800 rounded">Missing Meta Desc</span>}
+                          {missingAlt && <span className="px-2 py-0.5 bg-red-50 text-red-700 rounded">Missing Alt Text</span>}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

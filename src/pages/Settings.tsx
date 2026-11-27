@@ -9,33 +9,33 @@ export default function SettingsView() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  const [rawSettings, setRawSettings] = useState<any>(null);
   const [siteName, setSiteName] = useState('PostsApp');
-  const [taglineEn, setTaglineEn] = useState('Independent Bilingual Journalism · English & தமிழ்');
-  const [taglineTa, setTaglineTa] = useState('சுயாதீன இருமொழி செய்தித் தளம் · English & தமிழ்');
+  const [taglineEn, setTaglineEn] = useState('Independent Digital Magazine & Wire');
+  const [taglineTa, setTaglineTa] = useState('சுயாதீன டிஜிட்டல் செய்தி மற்றும் பகுப்பாய்வு தளம்');
   const [contactEmail, setContactEmail] = useState('editorial@postsapp.com');
   const [ga4MeasurementId, setGa4MeasurementId] = useState('');
   const [gscVerification, setGscVerification] = useState('');
   const [defaultSeoDescEn, setDefaultSeoDescEn] = useState('');
   const [defaultSeoDescTa, setDefaultSeoDescTa] = useState('');
-  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [allowIndexing, setAllowIndexing] = useState(true);
 
   useEffect(() => {
     const loadSettings = async () => {
       setLoading(true);
-      const { data } = await supabase.from('site_settings').select('key, value');
-      const map: Record<string, any> = {};
-      (data || []).forEach((r: any) => {
-        map[r.key] = r.value;
-      });
-      if (map.site_name) setSiteName(String(map.site_name));
-      if (map.tagline_en) setTaglineEn(String(map.tagline_en));
-      if (map.tagline_ta) setTaglineTa(String(map.tagline_ta));
-      if (map.contact_email) setContactEmail(String(map.contact_email));
-      if (map.ga4_measurement_id) setGa4MeasurementId(String(map.ga4_measurement_id));
-      if (map.gsc_verification) setGscVerification(String(map.gsc_verification));
-      if (map.default_seo_description_en) setDefaultSeoDescEn(String(map.default_seo_description_en));
-      if (map.default_seo_description_ta) setDefaultSeoDescTa(String(map.default_seo_description_ta));
-      if (map.maintenance_mode !== undefined) setMaintenanceMode(Boolean(map.maintenance_mode));
+      const { data } = await supabase.from('site_settings').select('*').eq('id', 1).maybeSingle();
+      if (data) {
+        setRawSettings(data);
+        if (data.general?.siteName) setSiteName(String(data.general.siteName));
+        if (data.general?.tagline_en) setTaglineEn(String(data.general.tagline_en));
+        if (data.general?.tagline_ta) setTaglineTa(String(data.general.tagline_ta));
+        if (data.contact?.email) setContactEmail(String(data.contact.email));
+        if (data.integrations?.ga4MeasurementId) setGa4MeasurementId(String(data.integrations.ga4MeasurementId));
+        if (data.integrations?.gscVerification) setGscVerification(String(data.integrations.gscVerification));
+        if (data.seo?.defaultMetaDescription_en) setDefaultSeoDescEn(String(data.seo.defaultMetaDescription_en));
+        if (data.seo?.defaultMetaDescription_ta) setDefaultSeoDescTa(String(data.seo.defaultMetaDescription_ta));
+        if (data.seo?.allowIndexing !== undefined) setAllowIndexing(Boolean(data.seo.allowIndexing));
+      }
       setLoading(false);
     };
     loadSettings();
@@ -46,20 +46,35 @@ export default function SettingsView() {
     setSaving(true);
     try {
       const now = new Date().toISOString();
-      const rows = [
-        { key: 'site_name', value: siteName.trim(), updated_at: now },
-        { key: 'tagline_en', value: taglineEn.trim(), updated_at: now },
-        { key: 'tagline_ta', value: taglineTa.trim(), updated_at: now },
-        { key: 'contact_email', value: contactEmail.trim(), updated_at: now },
-        { key: 'ga4_measurement_id', value: ga4MeasurementId.trim(), updated_at: now },
-        { key: 'gsc_verification', value: gscVerification.trim(), updated_at: now },
-        { key: 'default_seo_description_en', value: defaultSeoDescEn.trim(), updated_at: now },
-        { key: 'default_seo_description_ta', value: defaultSeoDescTa.trim(), updated_at: now },
-        { key: 'maintenance_mode', value: maintenanceMode, updated_at: now },
-      ];
-      const { error } = await supabase.from('site_settings').upsert(rows, { onConflict: 'key' });
+      const payload = {
+        id: 1,
+        general: {
+          ...(rawSettings?.general || {}),
+          siteName: siteName.trim(),
+          tagline_en: taglineEn.trim(),
+          tagline_ta: taglineTa.trim(),
+        },
+        contact: {
+          ...(rawSettings?.contact || {}),
+          email: contactEmail.trim(),
+        },
+        integrations: {
+          ...(rawSettings?.integrations || {}),
+          ga4MeasurementId: ga4MeasurementId.trim(),
+          gscVerification: gscVerification.trim(),
+        },
+        seo: {
+          ...(rawSettings?.seo || {}),
+          defaultMetaDescription_en: defaultSeoDescEn.trim(),
+          defaultMetaDescription_ta: defaultSeoDescTa.trim(),
+          allowIndexing,
+        },
+        updated_at: now,
+      };
+      const { error } = await supabase.from('site_settings').upsert(payload, { onConflict: 'id' });
       if (error) throw error;
-      await adminService.writeAudit('settings.update', 'site_settings', null, null, { siteName, maintenanceMode }).catch(() => {});
+      setRawSettings(payload);
+      await adminService.writeAudit('settings.update', 'site_settings', '1', null, payload).catch(() => {});
       success('Global site settings persisted to PostgreSQL.');
     } catch (err: any) {
       toastError(err?.message || 'Failed to save settings');
@@ -143,11 +158,11 @@ export default function SettingsView() {
         <div className="flex items-center gap-3">
           <Shield size={20} className="text-amber-600" />
           <div>
-            <p className="text-sm font-bold text-gray-900">Maintenance Banner Mode</p>
-            <p className="text-xs text-gray-500">Show public maintenance notice across portals when scheduled work occurs.</p>
+            <p className="text-sm font-bold text-gray-900">Allow Search Engine Indexing</p>
+            <p className="text-xs text-gray-500">Controls global search engine indexing defaults in site settings SEO config.</p>
           </div>
         </div>
-        <input type="checkbox" checked={maintenanceMode} onChange={(e) => setMaintenanceMode(e.target.checked)} className="w-5 h-5 accent-[#D4191F]" />
+        <input type="checkbox" checked={allowIndexing} onChange={(e) => setAllowIndexing(e.target.checked)} className="w-5 h-5 accent-[#D4191F]" />
       </div>
     </form>
   );
