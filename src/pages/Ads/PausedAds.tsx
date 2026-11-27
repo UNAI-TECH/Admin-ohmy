@@ -18,7 +18,7 @@ export default function PausedAds() {
       const { data } = await supabase
         .from('ads')
         .select('*')
-        .in('status', ['paused', 'ended'])
+        .in('status', ['paused', 'completed'])
         .order('created_at', { ascending: false });
 
       if (data) setAds(data);
@@ -98,8 +98,8 @@ export default function PausedAds() {
             >
               {/* Image Preview */}
               <div className="w-full md:w-64 aspect-video rounded-xl bg-[#F5F5F7] overflow-hidden border border-gray-200 shrink-0 relative grayscale">
-                 <img src={ad.image_url} alt={ad.title} className="w-full h-full object-cover opacity-60" />
-                 <div className={`absolute top-2 left-2 text-white text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded ${ad.status === 'ended' ? 'bg-red-500' : 'bg-amber-500'}`}>
+                 <img src={ad.media_url} alt={ad.title} className="w-full h-full object-cover opacity-60" />
+                 <div className={`absolute top-2 left-2 text-white text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded ${ad.status === 'completed' ? 'bg-red-500' : 'bg-amber-500'}`}>
                    {ad.status}
                  </div>
               </div>
@@ -116,7 +116,7 @@ export default function PausedAds() {
 
                 <div className="flex items-center gap-6 text-xs text-gray-500 font-bold">
                   <span className="flex items-center gap-1.5 opacity-80"><IndianRupee size={14} className="text-green-400" /> CPC: ₹{ad.cpc_amount}</span>
-                  <span className="flex items-center gap-1.5 opacity-80"><CreditCard size={14} className="text-red-400" /> Spent: ₹{ad.total_spent} / ₹{ad.budget}</span>
+                  <span className="flex items-center gap-1.5 opacity-80"><CreditCard size={14} className="text-red-400" /> Spent: ₹{ad.total_spent} / ₹{ad.budget_total}</span>
                   <span className="flex items-center gap-1.5 opacity-80"><Calendar size={14} className="text-amber-400" /> Created {new Date(ad.created_at).toLocaleDateString()}</span>
                 </div>
               </div>
@@ -124,7 +124,7 @@ export default function PausedAds() {
               {/* Actions */}
               <div className="flex flex-col justify-between shrink-0 gap-3">
                  <a 
-                   href={ad.redirect_url} 
+                   href={ad.target_url} 
                    target="_blank" 
                    rel="noopener noreferrer"
                    className="p-3 bg-gray-100 hover:bg-white/10 text-gray-900 rounded-xl transition-colors border border-white/5 text-center flex items-center justify-center"
@@ -133,8 +133,8 @@ export default function PausedAds() {
                    <Link size={18} />
                  </a>
                  <button 
-                   onClick={() => handleResume(ad.id, ad.budget, ad.total_spent)}
-                   disabled={ad.status === 'ended' && ad.total_spent >= ad.budget}
+                   onClick={() => handleResume(ad.id, ad.budget_total, ad.total_spent)}
+                   disabled={ad.status === 'completed' && ad.total_spent >= ad.budget_total}
                    className="p-3 bg-green-500/10 hover:bg-green-500/20 text-green-500 rounded-xl transition-colors border border-green-500/10 text-center flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
                    title="Resume Campaign"
                  >

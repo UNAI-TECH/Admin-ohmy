@@ -17,7 +17,11 @@ export default function CreatorRequests() {
   const [actionLoading, setActionLoading] = useState(false);
   const [adminMessage, setAdminMessage] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createdCredentials, setCreatedCredentials] = useState<{email: string; password: string} | null>(null);
+  const [createdInvite, setCreatedInvite] = useState<{
+    email: string;
+    actionLink: string | null;
+    type: 'invite' | 'recovery';
+  } | null>(null);
   const [showApproveCredModal, setShowApproveCredModal] = useState(false);
   const [approvePassword, setApprovePassword] = useState('');
   const [requestToApprove, setRequestToApprove] = useState<CreatorRequest | null>(null);
@@ -104,10 +108,10 @@ export default function CreatorRequests() {
       const userName = isOrg ? (requestToApprove.channel_name || '') : requestToApprove.name;
       const userBio = isOrg ? (requestToApprove.channel_bio || '') : requestToApprove.bio;
 
-      // Create the creator account with the admin-set password
-      await adminService.createCreatorAccount({
+      // Create the creator account (generates secure invite/recovery link if password omitted)
+      const created = await adminService.createCreatorAccount({
         email: userEmail,
-        password: approvePassword,
+        ...(approvePassword.trim().length >= 8 ? { password: approvePassword.trim() } : {}),
         fullName: userName,
         bio: userBio,
       }, isOrg);
@@ -115,11 +119,18 @@ export default function CreatorRequests() {
       // Update the request status to approved
       await adminService.approveRequestStatus(requestToApprove.id, adminMessage);
 
-      setCreatedCredentials({
+      let inviteLink = created.actionLink || null;
+      if (!inviteLink) {
+        const resetRes = await adminService.sendPasswordReset(userEmail).catch(() => null);
+        inviteLink = resetRes?.actionLink || null;
+      }
+
+      setCreatedInvite({
         email: userEmail,
-        password: approvePassword,
+        actionLink: inviteLink,
+        type: 'invite',
       });
-      toastSuccess('Account created and application approved!');
+      toastSuccess('Account provisioned and application approved!');
       setShowApproveCredModal(false);
       setRequestToApprove(null);
       setAdminMessage('');
@@ -153,10 +164,23 @@ export default function CreatorRequests() {
     setCreateLoading(true);
     setCreateError('');
     try {
-      await adminService.createCreatorAccount(newCreator);
-      setCreatedCredentials({
+      const created = await adminService.createCreatorAccount({
         email: newCreator.email,
-        password: newCreator.password,
+        fullName: newCreator.fullName,
+        bio: newCreator.bio,
+        ...(newCreator.password && newCreator.password.trim().length >= 8
+          ? { password: newCreator.password.trim() }
+          : {}),
+      });
+      let inviteLink = created.actionLink || null;
+      if (!inviteLink) {
+        const resetRes = await adminService.sendPasswordReset(newCreator.email).catch(() => null);
+        inviteLink = resetRes?.actionLink || null;
+      }
+      setCreatedInvite({
+        email: newCreator.email,
+        actionLink: inviteLink,
+        type: 'invite',
       });
       setShowCreateModal(false);
       setNewCreator({ email: '', password: '', fullName: '', bio: '' });
@@ -175,19 +199,24 @@ export default function CreatorRequests() {
   };
 
   const handleSendEmail = async () => {
-    if (!createdCredentials) return;
+    if (!createdInvite) return;
+    if (!createdInvite.actionLink) {
+      toastError('No secure invite link available. Generate a reset link from the Creators directory.');
+      return;
+    }
     setIsSendingEmail(true);
     setEmailSentMsg('');
     try {
-      await adminService.sendCreatorCredentialsEmail(
-        createdCredentials.email,
-        createdCredentials.password
+      await adminService.sendCreatorInviteEmail(
+        createdInvite.email,
+        createdInvite.actionLink,
+        createdInvite.type
       );
 
-      toastSuccess('Login credentials sent via email');
-      setEmailSentMsg('Email sent successfully');
+      toastSuccess('Secure onboarding invitation sent via email');
+      setEmailSentMsg('Invitation email sent successfully');
       setTimeout(() => {
-        setCreatedCredentials(null);
+        setCreatedInvite(null);
         setEmailSentMsg('');
       }, 2000);
     } catch (err: any) {
@@ -198,7 +227,7 @@ export default function CreatorRequests() {
   };
 
   const handleCloseCredentials = () => {
-    setCreatedCredentials(null);
+    setCreatedInvite(null);
     setEmailSentMsg('');
   };
 
@@ -484,12 +513,12 @@ export default function CreatorRequests() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-500 opacity-60 mb-2">Password</label>
+                    <label className="block text-sm font-medium text-gray-500 opacity-60 mb-2">Initial Password (optional — leave blank for secure invite link)</label>
                     <input 
-                      type="text" required minLength={8}
+                      type="password" minLength={8}
                       className="w-full p-3 bg-gray-100 border border-gray-200 focus:border-[#D4191F] rounded-xl outline-none text-gray-900 placeholder-[#e7bdb8]/30"
-                      placeholder="Minimum 8 characters"
-                      value={newCreator.password}
+                      placeholder="Optional (min 8 chars) or leave blank"
+                      value={newCreator.password || ''}
                       onChange={e => setNewCreator({...newCreator, password: e.target.value})}
                     />
                   </div>
@@ -566,11 +595,11 @@ export default function CreatorRequests() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-500 opacity-60 mb-2">Set Password</label>
+                    <label className="block text-sm font-medium text-gray-500 opacity-60 mb-2">Initial Password (optional — leave blank to issue invite link)</label>
                     <input 
-                      type="text" required minLength={8}
+                      type="password" minLength={8}
                       className="w-full p-3 bg-gray-100 border border-gray-200 focus:border-green-500 rounded-xl outline-none text-gray-900 placeholder-[#e7bdb8]/30"
-                      placeholder="Minimum 8 characters"
+                      placeholder="Optional (min 8 chars) or leave blank for invite link"
                       value={approvePassword}
                       onChange={e => setApprovePassword(e.target.value)}
                       autoFocus
@@ -589,9 +618,9 @@ export default function CreatorRequests() {
                   <button 
                     type="submit"
                     disabled={actionLoading}
-                    className="w-full py-4 bg-green-600 text-gray-900 rounded-xl font-bold hover:bg-green-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-full py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                   >
-                    {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CheckCircle size={18} /> Create Account</>}
+                    {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CheckCircle size={18} /> Approve & Provision Account</>}
                   </button>
                 </form>
               </div>
@@ -600,9 +629,9 @@ export default function CreatorRequests() {
         )}
       </AnimatePresence>
 
-      {/* Credentials Display / Mail Preview Modal */}
+      {/* Onboarding Invite Link Modal */}
       <AnimatePresence>
-        {createdCredentials && (
+        {createdInvite && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -615,57 +644,63 @@ export default function CreatorRequests() {
                   <div className="w-16 h-16 bg-green-500/10 rounded-2xl flex items-center justify-center mb-4">
                     <CheckCircle className="w-8 h-8 text-green-500" />
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-900">Login Credentials</h2>
-                  <p className="text-gray-500 opacity-60 text-sm mt-2 text-center">
-                    Your account has been approved. Use the following credentials to sign in and access the Creator Studio.
+                  <h2 className="text-2xl font-bold text-gray-900">Creator Provisioned</h2>
+                  <p className="text-gray-500 opacity-75 text-sm mt-2 text-center">
+                    Send this one-time secure setup link so the creator can activate their password and sign in to Creator Studio.
                   </p>
                 </div>
 
                 <div className="space-y-4 mb-6">
                   <div className="bg-gray-100 border border-gray-200 rounded-xl p-4 flex items-center justify-between">
-                    <div>
+                    <div className="min-w-0 flex-1 pr-2">
                       <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest opacity-60 mb-1">Email</p>
-                      <p className="text-gray-900 font-mono text-sm">{createdCredentials.email}</p>
+                      <p className="text-gray-900 font-mono text-sm truncate">{createdInvite.email}</p>
                     </div>
-                    <button onClick={() => copyToClipboard(createdCredentials.email, 'email')} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                      {copiedField === 'email' ? <Check size={16} className="text-green-400" /> : <Copy size={16} className="text-gray-500" />}
+                    <button onClick={() => copyToClipboard(createdInvite.email, 'email')} className="p-2 hover:bg-white rounded-lg transition-colors">
+                      {copiedField === 'email' ? <Check size={16} className="text-green-600" /> : <Copy size={16} className="text-gray-500" />}
                     </button>
                   </div>
                   <div className="bg-gray-100 border border-gray-200 rounded-xl p-4 flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest opacity-60 mb-1">Password</p>
-                      <p className="text-gray-900 font-mono text-sm">{createdCredentials.password}</p>
+                    <div className="min-w-0 flex-1 pr-2">
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest opacity-60 mb-1">One-Time Setup Link</p>
+                      <p className="text-gray-900 font-mono text-xs truncate">
+                        {createdInvite.actionLink || 'Account provisioned with initial password.'}
+                      </p>
                     </div>
-                    <button onClick={() => copyToClipboard(createdCredentials.password, 'password')} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                      {copiedField === 'password' ? <Check size={16} className="text-green-400" /> : <Copy size={16} className="text-gray-500" />}
-                    </button>
+                    {createdInvite.actionLink && (
+                      <button onClick={() => copyToClipboard(createdInvite.actionLink!, 'link')} className="p-2 hover:bg-white rounded-lg transition-colors">
+                        {copiedField === 'link' ? <Check size={16} className="text-green-600" /> : <Copy size={16} className="text-gray-500" />}
+                      </button>
+                    )}
                   </div>
                 </div>
 
                 {emailSentMsg ? (
-                  <div className="p-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-sm mb-6 text-center font-bold">
+                  <div className="p-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-700 text-sm mb-6 text-center font-bold">
                     {emailSentMsg}
                   </div>
                 ) : (
-                  <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs mb-6">
-                    ⚠️ This password won't be shown again. Make sure to copy it or send the email now.
+                  <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-700 text-xs mb-6">
+                    No plaintext passwords are stored or emailed. This link expires automatically after use.
                   </div>
                 )}
 
                 <div className="flex gap-4">
                   <button 
                     onClick={handleCloseCredentials}
-                    className="flex-1 py-3 bg-gray-100 border border-gray-200 text-gray-900 rounded-xl font-bold hover:bg-white/10 transition-all flex items-center justify-center"
+                    className="flex-1 py-3 bg-gray-100 border border-gray-200 text-gray-900 rounded-xl font-bold hover:bg-gray-200 transition-all flex items-center justify-center"
                   >
                     Close
                   </button>
-                  <button 
-                    onClick={handleSendEmail}
-                    disabled={isSendingEmail || !!emailSentMsg}
-                    className="flex-1 py-3 bg-[#D4191F] text-white rounded-xl font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    {isSendingEmail ? <Loader2 className="w-5 h-5 animate-spin" /> : "Send Email"}
-                  </button>
+                  {createdInvite.actionLink && (
+                    <button 
+                      onClick={handleSendEmail}
+                      disabled={isSendingEmail || !!emailSentMsg}
+                      className="flex-1 py-3 bg-[#D4191F] text-white rounded-xl font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isSendingEmail ? <Loader2 className="w-5 h-5 animate-spin" /> : "Send Invite Email"}
+                    </button>
+                  )}
                 </div>
               </div>
             </motion.div>

@@ -1,201 +1,466 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { adminService } from '../lib/adminService';
 import { supabase } from '../lib/supabaseClient';
-import { FileText, Loader2, PlayCircle, Clock } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useToast } from '../context/ToastContext';
+import {
+  FileText,
+  Loader2,
+  PlayCircle,
+  Clock,
+  Edit3,
+  Trash2,
+  Star,
+  Flame,
+  Award,
+  X,
+  Save,
+  Eye,
+} from 'lucide-react';
 
-const Posts: React.FC = () => {
+export default function Posts() {
+  const { success, error: toastError } = useToast();
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterAuthor, setFilterAuthor] = useState('');
-  const [filterCategory, setFilterCategory] = useState('');
+
+  const [filterSearch, setFilterSearch] = useState('');
+  const [filterLang, setFilterLang] = useState<'ALL' | 'en' | 'ta'>('ALL');
+  const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [filterType, setFilterType] = useState('');
 
-  const filteredPosts = posts.filter(post => {
-    const authorMatch = !filterAuthor || (post.User?.username || '').toLowerCase().includes(filterAuthor.toLowerCase());
-    const categoryMatch = !filterCategory || (post.category || '').toLowerCase().includes(filterCategory.toLowerCase());
-    const typeMatch = !filterType || (post.type || 'NEWS').toLowerCase() === filterType.toLowerCase();
-    return authorMatch && categoryMatch && typeMatch;
-  });
+  // Quick Edit Drawer State
+  const [editingPost, setEditingPost] = useState<any | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editSubtitle, setEditSubtitle] = useState('');
+  const [editSlug, setEditSlug] = useState('');
+  const [editLanguage, setEditLanguage] = useState<'en' | 'ta'>('en');
+  const [editStatus, setEditStatus] = useState('PUBLISHED');
+  const [editCategory, setEditCategory] = useState('');
+  const [editSeoTitle, setEditSeoTitle] = useState('');
+  const [editSeoDesc, setEditSeoDesc] = useState('');
+  const [editRobots, setEditRobots] = useState(true);
+  const [editActive, setEditActive] = useState(true);
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const fetchPosts = async () => {
+    setLoading(true);
+    try {
+      const data = await adminService.getRecentPosts(250);
+      setPosts(data);
+    } catch (err: any) {
+      toastError(err?.message || 'Failed to fetch posts');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        const data = await adminService.getRecentPosts(100);
-        setPosts(data);
-      } catch (err) {
-        console.error('Failed to fetch posts:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchPosts();
-
     const channel = supabase
       .channel('admin-posts-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'Post' }, async (payload) => {
-        const newPost = payload.new as any;
-        try {
-          const { data: user } = await supabase.from('User').select('username, email, avatarUrl').eq('id', newPost.authorId).single();
-          newPost.User = user || { username: 'Unknown' };
-        } catch(e) {}
-        setPosts(prev => [newPost, ...prev]);
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'Post' }, () => {
+        fetchPosts();
       })
       .subscribe();
-
     return () => {
       supabase.removeChannel(channel);
     };
   }, []);
 
+  const filteredPosts = useMemo(() => {
+    const q = filterSearch.trim().toLowerCase();
+    return posts.filter((post) => {
+      if (filterLang !== 'ALL' && (post.language || 'en') !== filterLang) return false;
+      if (filterStatus !== 'ALL' && (post.status || 'PUBLISHED') !== filterStatus) return false;
+      if (filterType && (post.type || 'NEWS').toLowerCase() !== filterType.toLowerCase()) return false;
+      if (q) {
+        const hit =
+          (post.title || '').toLowerCase().includes(q) ||
+          (post.slug || '').toLowerCase().includes(q) ||
+          (post.User?.username || '').toLowerCase().includes(q) ||
+          (post.category || '').toLowerCase().includes(q);
+        if (!hit) return false;
+      }
+      return true;
+    });
+  }, [posts, filterSearch, filterLang, filterStatus, filterType]);
+
+  const openEditor = (post: any) => {
+    setEditingPost(post);
+    setEditTitle(post.title || '');
+    setEditSubtitle(post.subtitle || '');
+    setEditSlug(post.slug || '');
+    setEditLanguage(post.language === 'ta' ? 'ta' : 'en');
+    setEditStatus(post.status || 'PUBLISHED');
+    setEditCategory(post.category || 'General');
+    setEditSeoTitle(post.seo_title || '');
+    setEditSeoDesc(post.seo_description || '');
+    setEditRobots(post.robots_index !== false);
+    setEditActive(post.is_active !== false);
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPost) return;
+    setSavingEdit(true);
+    try {
+      const updated = await adminService.adminUpdatePost(editingPost.id, {
+        title: editTitle.trim(),
+        subtitle: editSubtitle.trim() || null,
+        slug: editSlug.trim() || undefined,
+        language: editLanguage,
+        status: editStatus,
+        category: editCategory,
+        seo_title: editSeoTitle.trim() || null,
+        seo_description: editSeoDesc.trim() || null,
+        robots_index: editRobots,
+        is_active: editActive,
+      });
+      setPosts((prev) => prev.map((p) => (p.id === editingPost.id ? { ...p, ...updated } : p)));
+      setEditingPost(null);
+      success('Post updated & audited.');
+    } catch (err: any) {
+      toastError(err?.message || 'Update failed');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const toggleFlag = async (post: any, field: 'is_breaking' | 'is_featured' | 'is_editors_pick' | 'is_active') => {
+    const next = !post[field];
+    try {
+      await adminService.adminUpdatePost(post.id, { [field]: next });
+      setPosts((prev) => prev.map((p) => (p.id === post.id ? { ...p, [field]: next } : p)));
+      success('Editorial flag updated.');
+    } catch (err: any) {
+      toastError(err?.message || 'Flag update failed');
+    }
+  };
+
+  const handleDelete = async (post: any) => {
+    if (!window.confirm(`Permanently delete "${post.title}"? This action is audited.`)) return;
+    try {
+      await adminService.adminDeletePost(post.id);
+      setPosts((prev) => prev.filter((p) => p.id !== post.id));
+      success('Post permanently deleted.');
+    } catch (err: any) {
+      toastError(err?.message || 'Delete failed');
+    }
+  };
+
   return (
-    <div className="max-w-7xl mx-auto h-full flex flex-col">
-      <div className="mb-6 flex flex-col sm:flex-row gap-4 items-end sm:items-center justify-between">
+    <div className="max-w-7xl mx-auto h-full flex flex-col space-y-6">
+      <div className="flex flex-col lg:flex-row gap-4 lg:items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-            <FileText className="text-[#10B981]" />
-            Content Posts
+          <h1 className="text-3xl font-bold text-gray-900 mb-1 flex items-center gap-3">
+            <FileText className="text-[#D4191F]" />
+            Global Content Management
           </h1>
-          <p className="text-gray-500 opacity-60">All published posts, news, blogs, and videos across the platform.</p>
+          <p className="text-gray-500 text-sm">
+            Moderate, edit SEO/slugs, toggle Breaking/Featured/Editor&apos;s Picks, publish, archive, or remove any story.
+          </p>
         </div>
-        <div className="flex sm:flex-row flex-col bg-white shadow-sm p-1.5 rounded-2xl sm:rounded-full border border-gray-200 gap-2 sm:overflow-hidden sm:min-w-[400px]">
-          <input 
-            type="text" 
-            placeholder="Search creator..." 
-            value={filterAuthor}
-            onChange={(e) => setFilterAuthor(e.target.value)}
-            className="flex-1 bg-transparent text-sm text-gray-900 px-4 py-2 focus:outline-none placeholder:text-gray-400 border border-gray-100 sm:border-none rounded-xl sm:rounded-none transition-colors hover:bg-gray-50 focus:bg-gray-50"
+
+        <div className="flex flex-wrap gap-2 items-center">
+          <input
+            type="text"
+            placeholder="Search title, slug, creator..."
+            value={filterSearch}
+            onChange={(e) => setFilterSearch(e.target.value)}
+            className="bg-white border border-gray-200 rounded-xl text-sm px-4 py-2 outline-none focus:border-[#D4191F] w-56"
           />
-          <div className="hidden sm:block w-px h-8 bg-gray-200 self-center" />
-          <input 
-            type="text" 
-            placeholder="Any Category" 
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-            className="w-full sm:w-36 bg-transparent text-sm text-gray-900 px-4 py-2 focus:outline-none placeholder:text-gray-400 border border-gray-100 sm:border-none rounded-xl sm:rounded-none transition-colors hover:bg-gray-50 focus:bg-gray-50"
-          />
-          <select 
+          <select
+            value={filterLang}
+            onChange={(e) => setFilterLang(e.target.value as any)}
+            className="bg-white border border-gray-200 rounded-xl text-xs font-bold px-3 py-2.5 outline-none"
+          >
+            <option value="ALL">All Languages</option>
+            <option value="en">EN</option>
+            <option value="ta">TA</option>
+          </select>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="bg-white border border-gray-200 rounded-xl text-xs font-bold px-3 py-2.5 outline-none"
+          >
+            <option value="ALL">All Statuses</option>
+            <option value="PUBLISHED">PUBLISHED</option>
+            <option value="DRAFT">DRAFT</option>
+            <option value="SCHEDULED">SCHEDULED</option>
+            <option value="ARCHIVED">ARCHIVED</option>
+          </select>
+          <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="w-full sm:w-32 bg-gray-50 text-sm font-semibold text-gray-900 px-4 py-2 focus:outline-none border border-gray-200 sm:border-none rounded-xl sm:rounded-full cursor-pointer hover:bg-gray-100 transition-colors"
+            className="bg-white border border-gray-200 rounded-xl text-xs font-bold px-3 py-2.5 outline-none"
           >
             <option value="">All Types</option>
             <option value="NEWS">NEWS</option>
             <option value="BLOG">BLOG</option>
             <option value="VIDEO">VIDEO</option>
-            <option value="STORY">STORY</option>
           </select>
         </div>
       </div>
 
-      <div className="flex-1 bg-white shadow-sm backdrop-blur-md border border-gray-200 rounded-2xl overflow-hidden flex flex-col">
+      <div className="flex-1 bg-white shadow-sm border border-gray-200 rounded-2xl overflow-hidden flex flex-col">
         <div className="overflow-x-auto flex-1 custom-scrollbar">
           <table className="w-full text-left">
-            <thead className="sticky top-0 bg-[#FAFBFF]/90 backdrop-blur-sm z-10">
-              <tr className="border-b border-gray-100">
-                <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest opacity-40">Thumbnail</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest opacity-40">Title & Content</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest opacity-40">Author</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest opacity-40">Type/Category</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest opacity-40 text-right">Published</th>
+            <thead className="sticky top-0 bg-[#FAFBFF] z-10 border-b border-gray-100">
+              <tr className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                <th className="px-5 py-4">Story</th>
+                <th className="px-4 py-4">Author</th>
+                <th className="px-4 py-4">Lang / Status</th>
+                <th className="px-4 py-4">Editorial Flags</th>
+                <th className="px-4 py-4">Stats</th>
+                <th className="px-5 py-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 text-sm">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="py-20 text-center text-gray-500 opacity-50">
-                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-                    Loading posts...
+                  <td colSpan={6} className="py-20 text-center">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#D4191F]" />
                   </td>
                 </tr>
               ) : filteredPosts.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-20 text-center text-gray-500 opacity-50 italic">
-                    {posts.length === 0 ? 'No posts have been published yet.' : 'No posts match your filters.'}
+                  <td colSpan={6} className="py-16 text-center text-gray-500">
+                    No matching content found.
                   </td>
                 </tr>
               ) : (
-                <AnimatePresence>
-                  {filteredPosts.map(post => (
-                    <motion.tr 
-                      key={post.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="hover:bg-gray-50 transition-colors group"
-                    >
-                      <td className="px-6 py-4 w-32">
-                        <div className="w-24 h-16 bg-[#FAFBFF] rounded-xl overflow-hidden relative border border-white/5">
-                          {post.thumbnail ? (
-                            <img src={post.thumbnail} alt={post.title} className="w-full h-full object-cover" />
-                          ) : post.type === 'VIDEO' || post.videoUrl ? (
-                            <div className="w-full h-full flex flex-col items-center justify-center bg-black/50 text-gray-500">
-                              <PlayCircle size={20} />
-                            </div>
-                          ) : (
-                            <div className="w-full h-full flex flex-col items-center justify-center bg-white text-white/20">
-                              <FileText size={20} />
-                            </div>
-                          )}
-                          {post.type === 'VIDEO' && post.videoDuration && (
-                            <div className="absolute bottom-1 right-1 bg-black/80 text-gray-900 text-[9px] px-1.5 py-0.5 rounded font-bold">
-                              {post.videoDuration}
-                            </div>
+                filteredPosts.map((post) => (
+                  <tr key={post.id} className="hover:bg-gray-50">
+                    <td className="px-5 py-4 max-w-xs">
+                      <div className="flex items-center gap-3">
+                        <div className="w-16 h-11 rounded-lg bg-gray-100 overflow-hidden shrink-0 relative">
+                          {post.thumbnail && <img src={post.thumbnail} alt="" className="w-full h-full object-cover" />}
+                          {post.type === 'VIDEO' && (
+                            <PlayCircle size={14} className="text-white absolute bottom-1 right-1 drop-shadow" />
                           )}
                         </div>
-                      </td>
-                      <td className="px-6 py-4 max-w-md">
-                        <h4 className="text-sm font-bold text-gray-900 mb-1 line-clamp-1">{post.title}</h4>
-                        <p className="text-xs text-gray-500 opacity-60 line-clamp-2">{post.subtitle || post.content?.replace(/<[^>]*>?/gm, '')}</p>
-                        {post.isTrending && (
-                          <span className="inline-block mt-2 px-2 py-0.5 bg-yellow-500/10 text-yellow-500 text-[10px] font-bold rounded-sm uppercase tracking-wider border border-yellow-500/20">
-                            Trending
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          {post.User?.avatarUrl ? (
-                            <img src={post.User.avatarUrl} alt="author" className="w-8 h-8 rounded-full object-cover border border-red-500/20" />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 font-bold text-sm border border-red-500/20">
-                              {(post.User?.username || post.User?.email || '?').charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          <div className="flex flex-col">
-                            <span className="text-sm text-gray-800 font-medium">{post.User?.username || 'Unknown'}</span>
-                            <span className="text-[10px] text-gray-500 opacity-50">{post.User?.email || ''}</span>
-                          </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-gray-900 line-clamp-1">{post.title}</p>
+                          <p className="text-[11px] font-mono text-gray-400 truncate">
+                            {post.category} · /{post.language || 'en'}/article/{post.slug || post.id}
+                          </p>
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col gap-1 items-start">
-                          <span className="text-[10px] font-bold px-2 py-1 rounded-md bg-gray-100 text-gray-500/80 uppercase tracking-widest border border-white/5">
-                            {post.type || 'NEWS'}
-                          </span>
-                          {post.category && (
-                            <span className="text-xs text-gray-500/50 capitalize">{post.category.toLowerCase()}</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex flex-col items-end gap-1 text-gray-500 opacity-60">
-                          <div className="flex items-center gap-1 text-sm text-gray-700">
-                            <Clock size={12} />
-                            {new Date(post.createdAt).toLocaleDateString()}
-                          </div>
-                          <span className="text-xs">{new Date(post.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </AnimatePresence>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 text-xs font-semibold text-gray-700 whitespace-nowrap">
+                      {post.User?.channel_name || post.User?.username || 'Unknown'}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5">
+                        <span className="px-1.5 py-0.5 bg-gray-900 text-white rounded text-[10px] font-bold uppercase">
+                          {post.language || 'en'}
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                            post.status === 'PUBLISHED'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : post.status === 'SCHEDULED'
+                              ? 'bg-blue-100 text-blue-800'
+                              : post.status === 'ARCHIVED'
+                              ? 'bg-gray-200 text-gray-700'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
+                          {post.status || 'PUBLISHED'}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => toggleFlag(post, 'is_breaking')}
+                          title="Toggle Breaking Ticker"
+                          className={`p-1.5 rounded-lg border text-[10px] font-bold ${
+                            post.is_breaking ? 'bg-red-100 text-red-700 border-red-300' : 'bg-gray-50 text-gray-400 border-gray-200'
+                          }`}
+                        >
+                          <Flame size={13} />
+                        </button>
+                        <button
+                          onClick={() => toggleFlag(post, 'is_featured')}
+                          title="Toggle Featured"
+                          className={`p-1.5 rounded-lg border text-[10px] font-bold ${
+                            post.is_featured ? 'bg-amber-100 text-amber-700 border-amber-300' : 'bg-gray-50 text-gray-400 border-gray-200'
+                          }`}
+                        >
+                          <Star size={13} />
+                        </button>
+                        <button
+                          onClick={() => toggleFlag(post, 'is_editors_pick')}
+                          title="Toggle Editor's Pick"
+                          className={`p-1.5 rounded-lg border text-[10px] font-bold ${
+                            post.is_editors_pick ? 'bg-purple-100 text-purple-700 border-purple-300' : 'bg-gray-50 text-gray-400 border-gray-200'
+                          }`}
+                        >
+                          <Award size={13} />
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 text-xs text-gray-600 whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1"><Eye size={12} /> {post.views_count || 0}</span>
+                      <span className="ml-2 text-gray-400">
+                        <Clock size={11} className="inline mr-0.5" />
+                        {new Date(post.createdAt).toLocaleDateString()}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-right space-x-1.5 whitespace-nowrap">
+                      <button
+                        onClick={() => openEditor(post)}
+                        className="px-3 py-1.5 bg-gray-900 hover:bg-black text-white rounded-lg text-xs font-bold inline-flex items-center gap-1"
+                      >
+                        <Edit3 size={12} /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(post)}
+                        className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg inline-flex items-center"
+                        title="Delete permanently"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Editorial Edit Drawer */}
+      {editingPost && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-end">
+          <div className="bg-white w-full max-w-xl h-full overflow-y-auto p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-gray-200 pb-4">
+              <h2 className="text-xl font-bold text-gray-900">Edit Story &amp; SEO Metadata</h2>
+              <button onClick={() => setEditingPost(null)} className="p-2 hover:bg-gray-100 rounded-full">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Headline</label>
+                <input
+                  type="text"
+                  required
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold outline-none focus:border-[#D4191F]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Subtitle</label>
+                <input
+                  type="text"
+                  value={editSubtitle}
+                  onChange={(e) => setEditSubtitle(e.target.value)}
+                  className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Language</label>
+                  <select
+                    value={editLanguage}
+                    onChange={(e) => setEditLanguage(e.target.value as 'en' | 'ta')}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold"
+                  >
+                    <option value="en">English (en)</option>
+                    <option value="ta">Tamil (ta)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Status</label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold"
+                  >
+                    <option value="PUBLISHED">PUBLISHED</option>
+                    <option value="DRAFT">DRAFT</option>
+                    <option value="SCHEDULED">SCHEDULED</option>
+                    <option value="ARCHIVED">ARCHIVED</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-600 uppercase mb-1">URL Slug</label>
+                <input
+                  type="text"
+                  value={editSlug}
+                  onChange={(e) => setEditSlug(e.target.value)}
+                  className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-mono outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Category</label>
+                <input
+                  type="text"
+                  value={editCategory}
+                  onChange={(e) => setEditCategory(e.target.value)}
+                  className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-600 uppercase mb-1">SEO Title</label>
+                <input
+                  type="text"
+                  value={editSeoTitle}
+                  onChange={(e) => setEditSeoTitle(e.target.value)}
+                  className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-600 uppercase mb-1">SEO Meta Description</label>
+                <textarea
+                  rows={3}
+                  value={editSeoDesc}
+                  onChange={(e) => setEditSeoDesc(e.target.value)}
+                  className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none"
+                />
+              </div>
+
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 text-xs font-bold text-gray-700">
+                  <input type="checkbox" checked={editActive} onChange={(e) => setEditActive(e.target.checked)} />
+                  Publicly Visible (is_active)
+                </label>
+                <label className="flex items-center gap-2 text-xs font-bold text-gray-700">
+                  <input type="checkbox" checked={editRobots} onChange={(e) => setEditRobots(e.target.checked)} />
+                  Search Indexable
+                </label>
+              </div>
+
+              <div className="pt-4 border-t border-gray-200 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setEditingPost(null)}
+                  className="flex-1 py-2.5 bg-gray-100 rounded-xl text-sm font-bold text-gray-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="flex-1 py-2.5 bg-[#D4191F] hover:bg-red-700 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2"
+                >
+                  {savingEdit ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
-};
-
-export default Posts;
+}

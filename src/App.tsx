@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from './lib/supabaseClient';
 import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
-import { adminService } from './lib/adminService';
 import { ToastProvider } from './context/ToastContext';
 import './index.css';
 
@@ -25,14 +24,7 @@ function App() {
 
         if (profile?.role === 'ADMIN') {
           setIsLoggedIn(true);
-          // Run migrations quietly
-           adminService.migratePostTable();
-           adminService.migrateUserTable();
-           adminService.createFeedbackTable();
-           adminService.ensureAdsBucket();
-           adminService.ensureAdsTable();
-           adminService.ensureVideoAdsTable();
-         } else {
+        } else {
           await supabase.auth.signOut();
         }
       }

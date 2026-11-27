@@ -75,7 +75,6 @@ export default function VideoAds() {
 
   const fetchPosts = async () => {
     try {
-      await adminService.ensureVideoAdsTable();
       const data = await adminService.getVideoPosts();
       setVideos(data as VideoPost[]);
     } catch (err: any) {

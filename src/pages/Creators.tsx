@@ -1,21 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { adminService } from '../lib/adminService';
 import { supabase } from '../lib/supabaseClient';
-import { Users, Loader2, Key, LayoutTemplate, FileText, XCircle } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
+import {
+  Users,
+  Loader2,
+  Mail,
+  LayoutTemplate,
+  FileText,
+  XCircle,
+  ShieldAlert,
+  ShieldCheck,
+  Search,
+  Copy,
+  Check,
+  ExternalLink,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Creators: React.FC = () => {
+  const { success: toastSuccess, error: toastError } = useToast();
   const [creators, setCreators] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // States for viewing a profile
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'active' | 'suspended'>('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+
   const [selectedCreator, setSelectedCreator] = useState<any | null>(null);
   const [creatorPosts, setCreatorPosts] = useState<any[]>([]);
   const [followerCount, setFollowerCount] = useState(0);
   const [postsLoading, setPostsLoading] = useState(false);
 
-  // States for revealing credentials
-  const [revealedCredsId, setRevealedCredsId] = useState<string | null>(null);
+  const [actionBusyId, setActionBusyId] = useState<string | null>(null);
+  const [resetLinkModal, setResetLinkModal] = useState<{ email: string; actionLink: string } | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   useEffect(() => {
     fetchCreators();
@@ -26,8 +43,8 @@ const Creators: React.FC = () => {
     try {
       const data = await adminService.getAllCreators();
       setCreators(data);
-    } catch (err) {
-      console.error('Failed to fetch creators:', err);
+    } catch (err: any) {
+      toastError(err?.message || 'Failed to load creators');
     } finally {
       setLoading(false);
     }
@@ -38,14 +55,12 @@ const Creators: React.FC = () => {
     setPostsLoading(true);
     setFollowerCount(0);
     try {
-      // Fetch posts for this creator
       const postsPromise = supabase
         .from('Post')
-        .select('*')
+        .select('id, title, thumbnail, type, status, language, views_count, createdAt')
         .eq('authorId', creator.id)
         .order('createdAt', { ascending: false });
 
-      // Fetch follow count for this creator
       const followPromise = supabase
         .from('Follow')
         .select('*', { count: 'exact', head: true })
@@ -53,154 +68,263 @@ const Creators: React.FC = () => {
 
       const [{ data: posts }, { count: followers }] = await Promise.all([
         postsPromise,
-        followPromise
+        followPromise,
       ]);
 
       setCreatorPosts(posts || []);
       setFollowerCount(followers || 0);
-    } catch(err) {
-      console.error('Failed to load creator data:', err);
+    } catch (err: any) {
+      toastError(err?.message || 'Failed to load creator portfolio');
     } finally {
       setPostsLoading(false);
     }
   };
 
-  const handleRevealCredentials = (creator: any, e: React.MouseEvent) => {
-    e.stopPropagation(); // prevent opening profile
-    if (revealedCredsId === creator.id) {
-      setRevealedCredsId(null); // toggle off
-    } else {
-      setRevealedCredsId(creator.id);
+  const handleSendPasswordReset = async (creator: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!creator.email) {
+      toastError('This account has no email address configured.');
+      return;
     }
+    setActionBusyId(creator.id);
+    try {
+      const res = await adminService.sendPasswordReset(creator.email);
+      if (res?.actionLink) {
+        try {
+          await adminService.sendCreatorInviteEmail(creator.email, res.actionLink, 'recovery');
+          toastSuccess(`Password reset link sent to ${creator.email}`);
+        } catch {
+          setResetLinkModal({ email: creator.email, actionLink: res.actionLink });
+          toastSuccess('Recovery link generated (copy and share securely if email relay is unconfigured).');
+        }
+      } else {
+        toastSuccess('Password reset initiated.');
+      }
+    } catch (err: any) {
+      toastError(err?.message || 'Failed to generate password reset link');
+    } finally {
+      setActionBusyId(null);
+    }
+  };
+
+  const handleToggleAccountStatus = async (creator: any, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const isCurrentlyActive = (creator.account_status || 'active') === 'active';
+    const nextStatus = isCurrentlyActive ? 'suspended' : 'active';
+    const reason = isCurrentlyActive
+      ? window.prompt(`Reason for suspending ${creator.channel_name || creator.username}?`, 'Policy review')
+      : 'Reactivated by administrator';
+
+    if (isCurrentlyActive && reason === null) return;
+
+    setActionBusyId(creator.id);
+    try {
+      await adminService.updateUserStatus(creator.id, nextStatus, reason || undefined);
+      setCreators((prev) =>
+        prev.map((c) => (c.id === creator.id ? { ...c, account_status: nextStatus } : c))
+      );
+      if (selectedCreator?.id === creator.id) {
+        setSelectedCreator((prev: any) => (prev ? { ...prev, account_status: nextStatus } : prev));
+      }
+      toastSuccess(`Creator account ${nextStatus === 'active' ? 'reactivated' : 'suspended'}.`);
+    } catch (err: any) {
+      toastError(err?.message || 'Failed to update creator status');
+    } finally {
+      setActionBusyId(null);
+    }
+  };
+
+  const filteredCreators = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return creators.filter((c) => {
+      const status = c.account_status || 'active';
+      if (statusFilter !== 'ALL' && status !== statusFilter) return false;
+      if (!q) return true;
+      return (
+        (c.channel_name || '').toLowerCase().includes(q) ||
+        (c.username || '').toLowerCase().includes(q) ||
+        (c.email || '').toLowerCase().includes(q)
+      );
+    });
+  }, [creators, statusFilter, searchQuery]);
+
+  const copyResetLink = () => {
+    if (!resetLinkModal?.actionLink) return;
+    navigator.clipboard.writeText(resetLinkModal.actionLink);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
   };
 
   return (
     <div className="max-w-7xl mx-auto h-full flex flex-col relative">
-      <div className="mb-10">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-          <Users className="text-[#D4191F]" />
-          Approved Creators
-        </h1>
-        <p className="text-gray-500 opacity-60">Directory of published analysts and creators. Manage their access and view their portfolios.</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+            <Users className="text-[#D4191F]" />
+            Approved Creators
+          </h1>
+          <p className="text-gray-500">
+            Directory of creators and analysts. Manage account status, recovery links, and portfolios.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search name, @username, email..."
+              className="pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 outline-none focus:border-[#D4191F] w-64"
+            />
+          </div>
+          <div className="flex bg-white border border-gray-200 rounded-xl p-1 gap-1">
+            {(['ALL', 'active', 'suspended'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setStatusFilter(tab)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                  statusFilter === tab
+                    ? 'bg-[#D4191F] text-white'
+                    : 'text-gray-500 hover:bg-gray-100'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {loading ? (
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="w-10 h-10 animate-spin text-[#D4191F]" />
         </div>
-      ) : creators.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center text-gray-500 opacity-60 italic">
-          No approved creators found.
+      ) : filteredCreators.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center text-gray-500 italic">
+          No creators match the current filter.
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 pb-10">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {creators.map((creator) => (
-              <motion.div 
-                key={creator.id} 
-                className="bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl overflow-hidden border border-black/[0.04] cursor-pointer hover:border-red-500/30 transition-all group relative"
-                onClick={() => handleViewProfile(creator)}
-                whileHover={{ y: -4, scale: 1.01 }}
-              >
-                {/* Cover Image */}
-                <div className="h-32 bg-[#FAFBFF] relative">
-                  {creator.coverUrl ? (
-                    <img src={creator.coverUrl} alt="Cover" className="w-full h-full object-cover opacity-80" />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-gray-50 to-gray-100" />
-                  )}
-                  {/* Badge */}
-                  <div className="absolute top-3 right-3 bg-green-500 text-gray-900 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider shadow-lg shadow-green-900/20 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" /> Approved
-                  </div>
-                </div>
-
-                {/* Profile Info */}
-                <div className="px-6 pb-6 pt-0 relative">
-                  {/* Avatar Avatar */}
-                  <div className="w-20 h-20 rounded-full border-4 border-[#171f33] bg-[#FAFBFF] -mt-10 relative z-10 flex items-center justify-center overflow-hidden mb-3">
-                    {creator.avatarUrl ? (
-                      <img src={creator.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+            {filteredCreators.map((creator) => {
+              const status = creator.account_status || 'active';
+              const isBusy = actionBusyId === creator.id;
+              return (
+                <motion.div
+                  key={creator.id}
+                  className="bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl overflow-hidden border border-black/[0.04] cursor-pointer hover:border-red-500/30 transition-all group relative flex flex-col"
+                  onClick={() => handleViewProfile(creator)}
+                  whileHover={{ y: -4, scale: 1.01 }}
+                >
+                  <div className="h-32 bg-[#FAFBFF] relative">
+                    {creator.coverUrl ? (
+                      <img src={creator.coverUrl} alt="Cover" className="w-full h-full object-cover opacity-80" />
                     ) : (
-                      <span className="text-2xl font-bold text-[#D4191F]">{creator.username?.charAt(0).toUpperCase()}</span>
+                      <div className="w-full h-full bg-gradient-to-br from-gray-50 to-gray-100" />
                     )}
+                    <div
+                      className={`absolute top-3 right-3 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1.5 ${
+                        status === 'active'
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          : 'bg-red-100 text-red-700 border border-red-200'
+                      }`}
+                    >
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          status === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'
+                        }`}
+                      />
+                      {status}
+                    </div>
+                    <div className="absolute top-3 left-3 bg-white/90 text-gray-700 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider border border-gray-200">
+                      {creator.role}
+                    </div>
                   </div>
-                  
-                  <h3 className="text-lg font-extrabold tracking-tight text-gray-900 leading-tight flex items-center gap-2">
-                    {creator.channel_name || creator.username || 'Unnamed'}
-                    <svg className="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-8.1 7.9z"/></svg>
-                  </h3>
-                  <p className="text-[10px] text-gray-400 font-medium tracking-wide mb-4">{creator.email}</p>
-                  
-                  <p className="text-sm text-gray-500 opacity-80 line-clamp-2 min-h-[40px] mb-6">
-                    {creator.bio || 'No bio provided.'}
-                  </p>
 
-                  <div className="border-t border-gray-200 pt-4 mt-auto">
-                    {revealedCredsId === creator.id ? (
-                      <div className="space-y-3" onClick={e => e.stopPropagation()}>
-                        <div className="bg-gray-100 p-3 rounded-xl border border-gray-200">
-                          <p className="text-[10px] text-gray-500 opacity-60 uppercase tracking-widest mb-1">Email</p>
-                          <p className="text-gray-900 text-sm font-mono truncate">{creator.email}</p>
-                        </div>
-                        <div className="bg-green-500/10 p-3 rounded-xl border border-green-500/20">
-                          <p className="text-[10px] text-green-400 uppercase tracking-widest mb-1 font-bold">Initial Password</p>
-                          <p className="text-gray-900 text-sm font-mono tracking-widest">
-                            {creator.temporary_password || '********'}
-                          </p>
-                          {!creator.temporary_password && (
-                            <p className="text-[9px] text-orange-400 mt-1 italic opacity-60">Not captured (legacy account)</p>
-                          )}
-                        </div>
-                        <button 
-                          onClick={(e) => handleRevealCredentials(creator, e)}
-                          className="w-full text-xs text-gray-500 hover:text-gray-900 transition-colors py-1"
-                        >
-                          Hide Credentials
-                        </button>
-                      </div>
-                    ) : (
-                      <button 
-                        onClick={(e) => handleRevealCredentials(creator, e)}
-                        className="w-full py-3 bg-gray-100 hover:bg-white/10 border border-gray-200 rounded-xl text-gray-900 font-bold text-sm transition-all flex items-center justify-center gap-2"
+                  <div className="px-6 pb-6 pt-0 relative flex-1 flex flex-col">
+                    <div className="w-20 h-20 rounded-full border-4 border-white bg-[#FAFBFF] -mt-10 relative z-10 flex items-center justify-center overflow-hidden mb-3 shadow-sm">
+                      {creator.avatarUrl ? (
+                        <img src={creator.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-2xl font-bold text-[#D4191F]">
+                          {(creator.channel_name || creator.username || '?').charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+
+                    <h3 className="text-lg font-extrabold tracking-tight text-gray-900 leading-tight flex items-center gap-2">
+                      {creator.channel_name || creator.username || 'Unnamed'}
+                      <svg className="w-4 h-4 text-blue-500 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-8.1 7.9z" />
+                      </svg>
+                    </h3>
+                    <p className="text-xs text-gray-500 font-medium tracking-wide mb-3 truncate">
+                      @{creator.username} · {creator.email}
+                    </p>
+
+                    <p className="text-sm text-gray-500 line-clamp-2 min-h-[40px] mb-5">
+                      {creator.bio || 'No bio provided.'}
+                    </p>
+
+                    <div className="border-t border-gray-100 pt-4 mt-auto flex gap-2" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={(e) => handleSendPasswordReset(creator, e)}
+                        disabled={isBusy}
+                        className="flex-1 py-2.5 px-3 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl text-gray-800 font-bold text-xs transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                        title="Send one-time password recovery link"
                       >
-                        <Key size={16} /> Reveal Credentials
+                        {isBusy ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
+                        Reset Link
                       </button>
-                    )}
+                      <button
+                        onClick={(e) => handleToggleAccountStatus(creator, e)}
+                        disabled={isBusy}
+                        className={`py-2.5 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 border disabled:opacity-50 ${
+                          status === 'active'
+                            ? 'bg-red-50 hover:bg-red-100 text-red-700 border-red-200'
+                            : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200'
+                        }`}
+                      >
+                        {status === 'active' ? <ShieldAlert size={14} /> : <ShieldCheck size={14} />}
+                        {status === 'active' ? 'Suspend' : 'Activate'}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* Creator Profile Modal (Same layout as the app) */}
+      {/* Creator Profile Slide-over */}
       <AnimatePresence>
         {selectedCreator && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex"
+            onClick={() => setSelectedCreator(null)}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex"
           >
-            {/* Slide-in panel to simulate mobile view */}
-            <motion.div 
+            <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+              onClick={(e) => e.stopPropagation()}
               className="w-full max-w-md ml-auto bg-white h-full shadow-2xl border-l border-gray-200 flex flex-col overflow-hidden relative"
             >
-              <button 
+              <button
                 onClick={() => setSelectedCreator(null)}
-                className="absolute top-4 right-4 z-50 w-10 h-10 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-red-500 transition-colors"
+                className="absolute top-4 right-4 z-50 w-10 h-10 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-colors"
               >
-                <XCircle size={24} />
+                <XCircle size={22} />
               </button>
 
               <div className="overflow-y-auto custom-scrollbar flex-1 pb-10">
-                {/* Profile Header Block */}
                 <div className="relative">
                   <div className="h-40 bg-[#FAFBFF] w-full">
                     {selectedCreator.coverUrl && (
@@ -208,44 +332,71 @@ const Creators: React.FC = () => {
                     )}
                   </div>
                   <div className="px-6 relative pb-6 border-b border-gray-200">
-                    <div className="w-24 h-24 rounded-full border-4 border-white bg-[#FAFBFF] -mt-12 mb-4 relative z-10 flex items-center justify-center overflow-hidden">
+                    <div className="w-24 h-24 rounded-full border-4 border-white bg-[#FAFBFF] -mt-12 mb-4 relative z-10 flex items-center justify-center overflow-hidden shadow">
                       {selectedCreator.avatarUrl ? (
                         <img src={selectedCreator.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-3xl font-bold text-[#D4191F]">{selectedCreator.username?.charAt(0).toUpperCase()}</span>
+                        <span className="text-3xl font-bold text-[#D4191F]">
+                          {selectedCreator.username?.charAt(0).toUpperCase()}
+                        </span>
                       )}
                     </div>
-                    
+
                     <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2 mb-1">
                       {selectedCreator.channel_name || selectedCreator.username}
-                      <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-8.1 7.9z"/></svg>
                     </h2>
-                    <p className="text-sm text-gray-500 opacity-60 mb-4">{selectedCreator.email}</p>
-                    
-                    <p className="text-sm text-gray-700 leading-relaxed mb-6">
-                      {selectedCreator.bio}
+                    <p className="text-sm text-gray-500 mb-3">
+                      @{selectedCreator.username} · {selectedCreator.email}
                     </p>
-                    
-                    <div className="flex items-center gap-6">
+
+                    <p className="text-sm text-gray-700 leading-relaxed mb-5">
+                      {selectedCreator.bio || 'No bio provided.'}
+                    </p>
+
+                    <div className="flex items-center gap-6 mb-5">
                       <div>
                         <p className="text-xl font-bold text-gray-900">{creatorPosts.length}</p>
-                        <p className="text-xs text-gray-500 opacity-60 uppercase tracking-widest font-bold">Posts</p>
+                        <p className="text-xs text-gray-500 uppercase tracking-widest font-bold">Posts</p>
                       </div>
                       <div>
                         <p className="text-xl font-bold text-gray-900">{followerCount}</p>
-                        <p className="text-xs text-gray-500 opacity-60 uppercase tracking-widest font-bold">Followers</p>
+                        <p className="text-xs text-gray-500 uppercase tracking-widest font-bold">Followers</p>
                       </div>
+                      <div>
+                        <p className="text-xl font-bold text-gray-900">
+                          {creatorPosts.reduce((s, p) => s + (p.views_count || 0), 0)}
+                        </p>
+                        <p className="text-xs text-gray-500 uppercase tracking-widest font-bold">Views</p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={(e) => handleSendPasswordReset(selectedCreator, e)}
+                        className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl text-xs font-bold text-gray-900 flex items-center justify-center gap-1.5"
+                      >
+                        <Mail size={14} /> Send Reset Link
+                      </button>
+                      <button
+                        onClick={(e) => handleToggleAccountStatus(selectedCreator, e)}
+                        className={`px-4 py-2.5 rounded-xl text-xs font-bold ${
+                          (selectedCreator.account_status || 'active') === 'active'
+                            ? 'bg-red-50 text-red-700 hover:bg-red-100'
+                            : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                        }`}
+                      >
+                        {(selectedCreator.account_status || 'active') === 'active' ? 'Suspend' : 'Reactivate'}
+                      </button>
                     </div>
                   </div>
                 </div>
 
-                {/* Publications Feed */}
                 <div className="p-6">
-                  <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-gray-900 mb-5 flex items-center gap-2">
                     <LayoutTemplate className="text-[#D4191F]" size={20} />
                     Publications
                   </h3>
-                  
+
                   {postsLoading ? (
                     <div className="flex justify-center py-10">
                       <Loader2 className="w-8 h-8 animate-spin text-[#D4191F]" />
@@ -253,27 +404,42 @@ const Creators: React.FC = () => {
                   ) : creatorPosts.length === 0 ? (
                     <div className="text-center py-10 bg-[#FAFBFF] rounded-2xl border border-black/[0.04]">
                       <FileText className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-500 opacity-60 text-sm">No publications yet.</p>
+                      <p className="text-gray-500 text-sm">No publications yet.</p>
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      {creatorPosts.map(post => (
-                        <div key={post.id} className="bg-white border border-black/[0.04] shadow-sm rounded-2xl p-4 flex gap-4 hover:bg-gray-50 transition-colors cursor-pointer">
-                          <div className="w-20 h-20 bg-[#FAFBFF] rounded-xl overflow-hidden flex-shrink-0">
+                    <div className="space-y-3">
+                      {creatorPosts.map((post) => (
+                        <div
+                          key={post.id}
+                          className="bg-white border border-black/[0.05] shadow-sm rounded-2xl p-4 flex gap-4"
+                        >
+                          <div className="w-16 h-16 bg-[#FAFBFF] rounded-xl overflow-hidden flex-shrink-0">
                             {post.thumbnail ? (
                               <img src={post.thumbnail} alt="" className="w-full h-full object-cover" />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-white/20">
+                              <div className="w-full h-full flex items-center justify-center text-gray-300">
                                 <FileText size={20} />
                               </div>
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#D4191F]/20 text-[#D4191F] uppercase tracking-wider mb-1 inline-block">
-                              {post.type}
-                            </span>
-                            <h4 className="text-sm font-bold text-gray-900 line-clamp-2 mb-1 leading-tight">{post.title}</h4>
-                            <p className="text-xs text-gray-500 opacity-50">{new Date(post.createdAt).toLocaleDateString()}</p>
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#D4191F]/10 text-[#D4191F] uppercase">
+                                {post.type}
+                              </span>
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 uppercase">
+                                {post.language || 'en'}
+                              </span>
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 uppercase">
+                                {post.status || 'PUBLISHED'}
+                              </span>
+                            </div>
+                            <h4 className="text-sm font-bold text-gray-900 line-clamp-2 mb-1 leading-tight">
+                              {post.title}
+                            </h4>
+                            <p className="text-xs text-gray-500">
+                              {new Date(post.createdAt).toLocaleDateString()} · {post.views_count || 0} views
+                            </p>
                           </div>
                         </div>
                       ))}
@@ -283,6 +449,44 @@ const Creators: React.FC = () => {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* One-time Reset Link Fallback Modal */}
+      <AnimatePresence>
+        {resetLinkModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+            <div className="bg-white rounded-2xl w-full max-w-md p-6 border border-gray-200 shadow-2xl">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <ExternalLink size={18} className="text-[#D4191F]" />
+                  One-Time Recovery Link
+                </h3>
+                <button onClick={() => setResetLinkModal(null)} className="text-gray-400 hover:text-gray-700">
+                  <XCircle size={22} />
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mb-4">
+                Generated for <strong>{resetLinkModal.email}</strong>. Share securely — this link lets the creator set a new password directly.
+              </p>
+              <div className="bg-gray-100 border border-gray-200 rounded-xl p-3 flex items-center gap-2 mb-4">
+                <p className="text-xs font-mono text-gray-700 truncate flex-1">{resetLinkModal.actionLink}</p>
+                <button
+                  onClick={copyResetLink}
+                  className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold flex items-center gap-1"
+                >
+                  {copiedLink ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+                  {copiedLink ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+              <button
+                onClick={() => setResetLinkModal(null)}
+                className="w-full py-2.5 bg-gray-900 text-white rounded-xl font-bold text-sm"
+              >
+                Done
+              </button>
+            </div>
+          </div>
         )}
       </AnimatePresence>
     </div>

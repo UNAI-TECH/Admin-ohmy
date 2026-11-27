@@ -1,25 +1,12 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from './supabaseClient';
 import { getMemCache, setMemCache, invalidateMemCache } from './cache';
-// anon-key client (same as mobile app uses) removed as unused
-
-// Admin client — service_role key, no session persistence (for admin-only operations)
-const supabaseAdmin = createClient(
-  import.meta.env.VITE_SUPABASE_URL || '',
-  import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || '',
-  {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      storageKey: 'sb-admin-auth-token',
-    },
-  }
-);
 
 export interface CreateCreatorPayload {
   email: string;
-  password: string;
+  password?: string;
   fullName: string;
   bio?: string;
+  redirectTo?: string;
 }
 
 export interface CreatorRequest {
@@ -41,763 +28,157 @@ export interface CreatorRequest {
   updated_at: string;
 }
 
-let videoAdsPromise: Promise<void> | null = null;
+async function invokeAdminApi<T = any>(action: string, payload: Record<string, unknown> = {}): Promise<T> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    throw new Error('Administrator session expired. Please sign in again.');
+  }
+
+  const { data, error } = await supabase.functions.invoke('admin-api', {
+    body: { action, payload },
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
+  });
+
+  if (error) {
+    throw new Error(error.message || `Admin action "${action}" failed`);
+  }
+  if (data?.error) {
+    throw new Error(data.error);
+  }
+  return data as T;
+}
 
 export const adminService = {
-  /**
-   * Fix the broken DB trigger (one-time). The existing trigger inserts into
-   * `public.profiles` with `user_role` type, but our app uses `public."User"` 
-   * with `public."Role"` type. This replaces the trigger function.
-   */
-  async fixTriggerIfNeeded() {
-    try {
-      const { error } = await supabaseAdmin.rpc('exec_sql', {
-        query: `
-          CREATE OR REPLACE FUNCTION public.handle_new_user()
-          RETURNS trigger
-          LANGUAGE plpgsql
-          SECURITY DEFINER SET search_path = public
-          AS $$
-          BEGIN
-            INSERT INTO public."User" (id, email, username, role)
-            VALUES (
-              NEW.id::text,
-              NEW.email,
-              COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
-              'CITIZEN'::"Role"
-            )
-            ON CONFLICT (id) DO NOTHING;
-            RETURN NEW;
-          END;
-          $$;
-        `
-      });
-      if (error) {
-        console.warn('[Admin] Could not update trigger via RPC:', error.message);
-      } else {
-        console.log('[Admin] Trigger function updated successfully');
-      }
-    } catch (e: any) {
-      console.warn('[Admin] Unexpected error in fixTriggerIfNeeded:', e.message);
-    }
+  async invoke<T = any>(action: string, payload: Record<string, unknown> = {}): Promise<T> {
+    return invokeAdminApi<T>(action, payload);
   },
 
-  /**
-   * Create the Feedback table if it doesn't exist
-   */
-  async createFeedbackTable() {
-    try {
-      const { error } = await supabaseAdmin.rpc('exec_sql', {
-        query: `
-          create table if not exists public."Feedback" (
-            id uuid not null default gen_random_uuid(),
-            "userId" text null,
-            content text not null,
-            category text null,
-            "createdAt" timestamp without time zone not null default CURRENT_TIMESTAMP,
-            status text default 'pending',
-            constraint Feedback_pkey primary key (id),
-            constraint Feedback_userId_fkey foreign KEY ("userId") references "User" (id) on update CASCADE on delete SET NULL
-          ) TABLESPACE pg_default;
-        `
-      });
-      if (error) {
-        console.warn('[Admin] Could not create feedback table:', error.message);
-      } else {
-        console.log('[Admin] Feedback table ensured');
-      }
-    } catch (e: any) {
-      console.warn('[Admin] Unexpected error in createFeedbackTable:', e.message);
-    }
-  },
-
-  /**
-   * Migrate the Post table to add status and scheduledFor columns
-   */
-  async migratePostTable() {
-    try {
-      const { error } = await supabaseAdmin.rpc('exec_sql', {
-        query: `
-          ALTER TABLE public."Post" 
-          ADD COLUMN IF NOT EXISTS "status" text DEFAULT 'PUBLISHED',
-          ADD COLUMN IF NOT EXISTS "scheduledFor" timestamp with time zone;
-          NOTIFY pgrst, 'reload schema';
-        `
-      });
-      if (error) {
-        console.warn('[Admin] Could not migrate Post table:', error.message);
-      } else {
-        console.log('[Admin] Post table migrated successfully');
-      }
-    } catch (e: any) {
-      console.warn('[Admin] Unexpected error in migratePostTable:', e.message);
-    }
-  },
-
-  /**
-   * Migrate the User table to add temporary_password column
-   */
-  async migrateUserTable() {
-    try {
-      const { error } = await supabaseAdmin.rpc('exec_sql', {
-        query: `
-          ALTER TABLE public."User" 
-          ADD COLUMN IF NOT EXISTS "temporary_password" text;
-          NOTIFY pgrst, 'reload schema';
-        `
-      });
-      if (error) {
-        console.warn('[Admin] Could not migrate User table:', error.message);
-      } else {
-        console.log('[Admin] User table migrated successfully');
-      }
-    } catch (e: any) {
-      console.warn('[Admin] Unexpected error in migrateUserTable:', e.message);
-    }
-  },
-
-  /**
-   * Create a new creator account.
-   * Uses admin.createUser() then manually creates the User row.
-   * The trigger may fail (500) but the auth user is sometimes still created.
-   */
   async createCreatorAccount(payload: CreateCreatorPayload, _isOrganization: boolean = false) {
-    const email = payload.email.trim().toLowerCase();
-    const rawUsername = email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') || 'creator';
-
-    // Step 1: Check if this email already exists in auth
-    let existingAuthUser = null;
-    try {
-      const { data: usersList } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-      existingAuthUser = usersList?.users?.find((u: any) => (u.email || '').toLowerCase() === email);
-    } catch (e) {
-      console.warn('[Admin] Could not list users:', e);
-    }
-
-    if (existingAuthUser) {
-      console.log('[Admin] Auth user already exists, updating password and creator role...');
-      const { error: updateAuthErr } = await supabaseAdmin.auth.admin.updateUserById(existingAuthUser.id, {
-        password: payload.password,
-        email_confirm: true,
-        user_metadata: {
-          ...(existingAuthUser.user_metadata || {}),
-          full_name: payload.fullName || existingAuthUser.user_metadata?.full_name,
-        },
-      });
-      if (updateAuthErr) {
-        throw new Error(updateAuthErr.message || 'Failed to update existing auth account');
-      }
-
-      await this._ensureProfile(existingAuthUser.id, { ...payload, email });
-
-      invalidateMemCache('admin:overview:stats');
-      invalidateMemCache('admin:all:creators');
-
-      return existingAuthUser;
-    }
-
-    // Pass a unique username in metadata so auth triggers never hit unique username collisions.
-    const uniqueDummyUsername = rawUsername + '_' + Date.now();
-
-    const { data: createData, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password: payload.password,
-      email_confirm: true,
-      user_metadata: {
-        full_name: payload.fullName,
-        username: uniqueDummyUsername,
-      },
-    });
-
-    if (createError) {
-      console.error('[Admin] CreateUser error:', createError.message);
-      throw new Error(createError.message || 'Failed to create user');
-    }
-
-    if (!createData.user) {
-      throw new Error('CreateUser returned no user data');
-    }
-
-    const userId = createData.user.id;
-    console.log('[Admin] Auth user created:', userId);
-
-    // Ensure the public."User" record exists with CREATOR role, channel_name, bio, and temporary_password
-    await this._ensureProfile(userId, { ...payload, email });
-
-    console.log('[Admin] Creator auth account and profile provisioned for:', email);
-
-    // Invalidate admin caches
+    const res = await invokeAdminApi<{ userId: string; email: string; username: string; actionLink: string | null }>(
+      'createCreatorAccount',
+      { ...payload }
+    );
     invalidateMemCache('admin:overview:stats');
     invalidateMemCache('admin:all:creators');
-
-    return createData.user;
+    return res;
   },
 
-  /**
-   * Ensure a creator profile exists in public."User" with CREATOR role
-   */
-  async _ensureProfile(userId: string, payload: CreateCreatorPayload) {
-    const email = payload.email.trim().toLowerCase();
-    const baseUsername = (email.split('@')[0] || 'creator').toLowerCase().replace(/[^a-z0-9_]/g, '') || 'creator';
-    const now = new Date().toISOString();
-
-    const { data: existingRow } = await supabaseAdmin
-      .from('User')
-      .select('id, username, role, bio, channel_name')
-      .eq('id', userId)
-      .maybeSingle();
-
-    const resolveUniqueUsername = async (preferred: string): Promise<string> => {
-      const { data: conflict } = await supabaseAdmin
-        .from('User')
-        .select('id')
-        .eq('username', preferred)
-        .neq('id', userId)
-        .maybeSingle();
-      if (!conflict) return preferred;
-      return `${preferred}_${Date.now().toString().slice(-5)}`;
-    };
-
-    const targetRole = existingRow?.role === 'ADMIN' ? 'ADMIN' : 'CREATOR';
-    const hasDummyUsername = !existingRow?.username || /_\d{10,}$/.test(existingRow.username);
-
-    if (existingRow) {
-      const nextUsername = hasDummyUsername
-        ? await resolveUniqueUsername(baseUsername)
-        : existingRow.username;
-
-      const { error } = await supabaseAdmin
-        .from('User')
-        .update({
-          role: targetRole,
-          username: nextUsername,
-          channel_name: existingRow.channel_name || payload.fullName?.trim() || nextUsername,
-          bio: payload.bio?.trim() ? payload.bio.trim() : existingRow.bio || '',
-          temporary_password: payload.password,
-          updatedAt: now,
-        })
-        .eq('id', userId);
-
-      if (error) {
-        console.error('[Admin] Profile update error:', error);
-        throw new Error(error.message || 'Failed to assign creator role to user profile');
-      }
-      return;
-    }
-
-    const uniqueUsername = await resolveUniqueUsername(baseUsername);
-    const { error } = await supabaseAdmin
-      .from('User')
-      .insert({
-        id: userId,
-        email,
-        username: uniqueUsername,
-        password: '',
-        channel_name: payload.fullName?.trim() || uniqueUsername,
-        bio: payload.bio?.trim() || '',
-        role: 'CREATOR',
-        temporary_password: payload.password,
-        createdAt: now,
-        updatedAt: now,
-      });
-
-    if (error) {
-      console.error('[Admin] Profile creation error:', error);
-      throw new Error(error.message || 'Failed to create creator user profile');
-    }
-  },
-
-  /**
-   * Get all creator requests — uses service role to bypass RLS
-   */
   async getCreatorRequests(filter?: string) {
-    let query = supabaseAdmin
-      .from('creator_requests')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (filter && filter !== 'ALL') {
-      query = query.eq('status', filter.toLowerCase());
-    }
-
-    const { data, error } = await query;
-    if (error) throw error;
-    return (data || []) as CreatorRequest[];
+    const res = await invokeAdminApi<{ data: CreatorRequest[] }>('getCreatorRequests', { filter: filter || 'ALL' });
+    return res.data || [];
   },
 
-  /**
-   * Update request status to approved — uses service role to bypass RLS
-   */
   async approveRequestStatus(requestId: string, adminMessage?: string) {
-    const { error } = await supabaseAdmin
-      .from('creator_requests')
-      .update({
-        status: 'approved',
-        admin_message: adminMessage || 'Your application has been approved! Login with the credentials shared by admin.',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', requestId);
-
-    if (error) throw error;
-
-    // Invalidate admin caches
+    await invokeAdminApi('approveCreatorRequest', { requestId, adminMessage });
     invalidateMemCache('admin:overview:stats');
     invalidateMemCache('admin:all:creators');
   },
 
-  /**
-   * Reject a creator request — uses service role to bypass RLS
-   */
   async rejectCreatorRequest(requestId: string, adminMessage?: string) {
-    const { error } = await supabaseAdmin
-      .from('creator_requests')
-      .update({
-        status: 'rejected',
-        admin_message: adminMessage || 'Your application has been rejected.',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', requestId);
-
-    if (error) throw error;
-
-    // Invalidate admin caches
+    await invokeAdminApi('rejectCreatorRequest', { requestId, adminMessage });
     invalidateMemCache('admin:overview:stats');
     invalidateMemCache('admin:all:creators');
   },
 
-  /**
-   * Platform analytics — uses service role to bypass RLS
-   */
+  async sendPasswordReset(email: string, redirectTo?: string) {
+    return await invokeAdminApi<{ actionLink: string | null }>('sendPasswordReset', { email, redirectTo });
+  },
+
+  async sendCreatorInviteEmail(email: string, actionLink: string, type: 'invite' | 'recovery' = 'invite') {
+    const { data: { session } } = await supabase.auth.getSession();
+    const { data, error } = await supabase.functions.invoke('send-credentials', {
+      body: { email, actionLink, type },
+      headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
+    });
+    if (error) throw error;
+    return data;
+  },
+
   async getOverviewStats() {
-    // Check in-memory cache (60s TTL)
     const cacheKey = 'admin:overview:stats';
     const cached = getMemCache<any>(cacheKey);
     if (cached) return cached;
 
-    const [
-      { count: totalUsers },
-      { count: totalCreators },
-      { count: totalPosts },
-      { count: totalComments },
-      { count: pendingRequests },
-    ] = await Promise.all([
-      supabaseAdmin.from('User').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('User').select('*', { count: 'exact', head: true }).in('role', ['ANALYST', 'CREATOR']),
-      supabaseAdmin.from('Post').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('Comment').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('creator_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-    ]);
-
-    const result = {
-      totalUsers: totalUsers || 0,
-      totalCreators: totalCreators || 0,
-      totalPosts: totalPosts || 0,
-      totalComments: totalComments || 0,
-      pendingRequests: pendingRequests || 0,
-    };
-
-    setMemCache(cacheKey, result, 60000);
-    return result;
+    const stats = await invokeAdminApi('getOverviewStats');
+    setMemCache(cacheKey, stats, 60000);
+    return stats;
   },
 
-  async getRecentPosts(limit = 10) {
-    // Check in-memory cache (30s TTL)
+  async getRecentPosts(limit = 100) {
     const cacheKey = `admin:recent:posts:${limit}`;
     const cached = getMemCache<any[]>(cacheKey);
     if (cached) return cached;
 
-    const { data, error } = await supabaseAdmin
-      .from('Post')
-      .select('*, User(username, email, avatarUrl)')
-      .order('createdAt', { ascending: false })
-      .limit(limit);
-
-    if (error) throw error;
-    const result = data || [];
+    const res = await invokeAdminApi<{ data: any[] }>('getAllPosts', { limit });
+    const result = res.data || [];
     setMemCache(cacheKey, result, 30000);
     return result;
   },
 
   async getAllCreators() {
-    // Check in-memory cache (120s TTL)
     const cacheKey = 'admin:all:creators';
     const cached = getMemCache<any[]>(cacheKey);
     if (cached) return cached;
 
-    const { data, error } = await supabaseAdmin
-      .from('User')
-      .select('*')
-      .in('role', ['ANALYST', 'CREATOR'])
-      .order('createdAt', { ascending: false });
-
-    if (error) throw error;
-    const result = data || [];
+    const res = await invokeAdminApi<{ data: any[] }>('getUsers', { roleFilter: 'CREATORS' });
+    const result = res.data || [];
     setMemCache(cacheKey, result, 120000);
     return result;
   },
 
-  /**
-   * Send the email credentials using the Supabase Edge Function via the Service Role Key.
-   */
-  async sendCreatorCredentialsEmail(email: string, password: string) {
-    const { data, error } = await supabaseAdmin.functions.invoke('send-credentials', {
-      body: { email, password }
-    });
-    if (error) throw error;
-    return data;
+  async getAllReaders() {
+    const res = await invokeAdminApi<{ data: any[] }>('getUsers', { roleFilter: 'READERS' });
+    return res.data || [];
   },
 
-  /**
-   * Ensure the 'ads' storage bucket exists.
-   * Note: Policies must be applied manually via SQL if automated ones fail.
-   */
-  async ensureAdsBucket() {
-    try {
-      const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets();
-      if (listError) throw listError;
-
-      const adsBucket = buckets?.find(b => b.name === 'ads');
-      if (!adsBucket) {
-        console.log('[Admin] Ads bucket not found, creating...');
-        await supabaseAdmin.storage.createBucket('ads', {
-          public: true,
-        });
-      }
-      
-      // Removed applyAdsBucketPolicies to avoid 403 Forbidden errors.
-      // These must be applied manually via the provided SQL script.
-    } catch (e: any) {
-      console.warn('[Admin] Error in ensureAdsBucket:', e.message);
-    }
+  async updateUserStatus(userId: string, account_status: 'active' | 'suspended' | 'deactivated', reason?: string) {
+    const res = await invokeAdminApi('updateUserStatus', { userId, account_status, reason });
+    invalidateMemCache('admin:overview:stats');
+    invalidateMemCache('admin:all:creators');
+    return res;
   },
 
-  /**
-   * Manual policy application (Disabled to prevent console noise).
-   */
-  async applyAdsBucketPolicies() {
-    // This is now disabled. Please run the SQL script provided in the documentation.
-    return;
+  async deleteUserAccount(userId: string) {
+    const res = await invokeAdminApi('deleteUserAccount', { userId });
+    invalidateMemCache('admin:overview:stats');
+    invalidateMemCache('admin:all:creators');
+    return res;
   },
 
-  /**
-   * Ensure the full Custom Advertisement System (Ads, Impressions, Clicks) and RPCs exist.
-   */
-  async ensureAdsTable() {
-    try {
-      const { error: sqlError } = await supabaseAdmin.rpc('exec_sql', {
-        query: `
-          DO $$
-          BEGIN
-            -- 1. ADS TABLE
-            IF NOT EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'ads') THEN
-              CREATE TABLE public.ads (
-                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-                advertiser_name text,
-                title text,
-                description text,
-                media_url text, -- supports images/videos
-                redirect_url text,
-                pricing_model text CHECK (pricing_model IN ('cpc', 'cpm')),
-                cpc_amount numeric DEFAULT 0,
-                cpm_amount numeric DEFAULT 0,
-                budget_total numeric NOT NULL,
-                budget_remaining numeric NOT NULL,
-                impressions_count integer DEFAULT 0,
-                clicks_count integer DEFAULT 0,
-                total_spent numeric DEFAULT 0,
-                status text DEFAULT 'active', -- active, paused, completed
-                created_at timestamp with time zone DEFAULT now()
-              );
-              CREATE INDEX idx_ads_status ON ads(status);
-              CREATE INDEX idx_ads_budget ON ads(budget_remaining);
-            END IF;
-
-            -- 2. AD IMPRESSIONS (with unique constraint for fraud prevention)
-            IF NOT EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'ad_impressions') THEN
-              CREATE TABLE public.ad_impressions (
-                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-                ad_id uuid REFERENCES ads(id) ON DELETE CASCADE,
-                user_id text,
-                viewed_at timestamp with time zone DEFAULT now(),
-                UNIQUE (ad_id, user_id)
-              );
-              CREATE INDEX idx_impressions_ad ON ad_impressions(ad_id);
-            END IF;
-
-            -- 3. AD CLICKS (with unique constraint for fraud prevention)
-            IF NOT EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'ad_clicks') THEN
-              CREATE TABLE public.ad_clicks (
-                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-                ad_id uuid REFERENCES ads(id) ON DELETE CASCADE,
-                user_id text,
-                clicked_at timestamp with time zone DEFAULT now(),
-                cost numeric,
-                UNIQUE (ad_id, user_id)
-              );
-              CREATE INDEX idx_clicks_ad ON ad_clicks(ad_id);
-            END IF;
-
-            -- 4. PERMISSIONS & RLS
-            ALTER TABLE public.ads DISABLE ROW LEVEL SECURITY;
-            ALTER TABLE public.ad_impressions DISABLE ROW LEVEL SECURITY;
-            ALTER TABLE public.ad_clicks DISABLE ROW LEVEL SECURITY;
-            GRANT ALL ON TABLE public.ads TO anon, authenticated, service_role;
-            GRANT ALL ON TABLE public.ad_impressions TO anon, authenticated, service_role;
-            GRANT ALL ON TABLE public.ad_clicks TO anon, authenticated, service_role;
-
-            -- 5. RPC: track_ad_impression
-            CREATE OR REPLACE FUNCTION public.track_ad_impression(p_ad_id uuid, p_user_id text)
-            RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $f$
-            DECLARE
-              v_cpm numeric;
-            BEGIN
-              -- Avoid duplicate impressions
-              IF EXISTS (SELECT 1 FROM ad_impressions WHERE ad_id = p_ad_id AND user_id = p_user_id) THEN
-                RETURN;
-              END IF;
-
-              INSERT INTO ad_impressions (ad_id, user_id) VALUES (p_ad_id, p_user_id);
-
-              SELECT cpm_amount INTO v_cpm FROM ads WHERE id = p_ad_id;
-
-              UPDATE ads SET 
-                impressions_count = impressions_count + 1,
-                total_spent = total_spent + (v_cpm / 1000.0),
-                budget_remaining = budget_remaining - (v_cpm / 1000.0)
-              WHERE id = p_ad_id;
-
-              -- Auto-stop check
-              UPDATE ads SET status = 'completed' WHERE id = p_ad_id AND budget_remaining <= 0;
-            END;
-            $f$;
-
-            -- 6. RPC: track_ad_click
-            CREATE OR REPLACE FUNCTION public.track_ad_click(p_ad_id uuid, p_user_id text)
-            RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $f$
-            DECLARE
-              v_cpc numeric;
-            BEGIN
-              -- Avoid duplicate clicks
-              IF EXISTS (SELECT 1 FROM ad_clicks WHERE ad_id = p_ad_id AND user_id = p_user_id) THEN
-                RETURN;
-              END IF;
-
-              SELECT cpc_amount INTO v_cpc FROM ads WHERE id = p_ad_id;
-
-              INSERT INTO ad_clicks (ad_id, user_id, cost) VALUES (p_ad_id, p_user_id, v_cpc);
-
-              UPDATE ads SET 
-                clicks_count = clicks_count + 1,
-                total_spent = total_spent + v_cpc,
-                budget_remaining = budget_remaining - v_cpc
-              WHERE id = p_ad_id;
-
-              -- Auto-stop check
-              UPDATE ads SET status = 'completed' WHERE id = p_ad_id AND budget_remaining <= 0;
-            END;
-            $f$;
-
-          END
-          $$;
-        `
-      });
-
-      if (sqlError) {
-        console.warn('[Admin] Error ensuring full ads ecosystem:', sqlError.message);
-      } else {
-        console.log('[Admin] Full ads ecosystem and RPCs ensured');
-      }
-    } catch (e: any) {
-      console.warn('[Admin] Unexpected error in ensureAdsTable:', e.message);
-    }
+  async adminUpdatePost(postId: string, updates: Record<string, unknown>) {
+    const res = await invokeAdminApi<{ data: any }>('adminUpdatePost', { postId, updates });
+    invalidateMemCache('admin:recent:posts:100');
+    invalidateMemCache('admin:recent:posts:5');
+    return res.data;
   },
 
-  /**
-   * Upload an ad image using the service role to bypass RLS.
-   */
+  async adminDeletePost(postId: string) {
+    const res = await invokeAdminApi('adminDeletePost', { postId });
+    invalidateMemCache('admin:recent:posts:100');
+    invalidateMemCache('admin:recent:posts:5');
+    invalidateMemCache('admin:overview:stats');
+    return res;
+  },
+
+  async respondFeedback(feedbackId: string, status: string, response_text: string) {
+    return await invokeAdminApi<{ data: any }>('respondFeedback', { feedbackId, status, response_text });
+  },
+
   async uploadAdImage(file: File, fileName: string) {
-    const { data, error } = await supabaseAdmin.storage
+    const { data, error } = await supabase.storage
       .from('ads')
       .upload(fileName, file, {
         cacheControl: '3600',
-        upsert: true
+        upsert: true,
       });
-    
     if (error) throw error;
     return data;
   },
 
-  /**
-   * Ensure the Video Ads system tables exist (mid-roll ads).
-   * Additive only — does NOT modify any existing columns or tables.
-   */
-  async ensureVideoAdsTable(): Promise<void> {
-    if (videoAdsPromise) return videoAdsPromise;
-
-    videoAdsPromise = (async () => {
-      try {
-        // Ensure 'ad-videos' bucket exists for direct video uploads
-        try {
-          const { data: buckets } = await supabaseAdmin.storage.listBuckets();
-          if (!buckets?.find(b => b.name === 'ad-videos')) {
-            await supabaseAdmin.storage.createBucket('ad-videos', { public: true });
-            console.log('[Admin] Created ad-videos bucket');
-          }
-        } catch (e) {
-          console.warn('[Admin] Failed to check/create ad-videos bucket', e);
-        }
-
-        // Step 1: Add ads_enabled column to Post table + create video_ad_slots table
-        const { error: err1 } = await supabaseAdmin.rpc('exec_sql', {
-          query: `
-            ALTER TABLE public."Post"
-            ADD COLUMN IF NOT EXISTS "ads_enabled" BOOLEAN DEFAULT false;
-
-            CREATE TABLE IF NOT EXISTS public.video_ads (
-              id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-              ad_video_url TEXT NOT NULL,
-              title TEXT,
-              is_active BOOLEAN DEFAULT true,
-              created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-              revenue_per_view NUMERIC DEFAULT 0,
-              views INTEGER DEFAULT 0,
-              revenue NUMERIC DEFAULT 0
-            );
-            ALTER TABLE public.video_ads DISABLE ROW LEVEL SECURITY;
-            GRANT ALL ON TABLE public.video_ads TO anon, authenticated, service_role;
-
-            CREATE TABLE IF NOT EXISTS public.video_ad_slots (
-              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-              post_id TEXT NOT NULL REFERENCES "Post"(id) ON DELETE CASCADE,
-              ad_position_seconds INTEGER NOT NULL,
-              created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-            );
-            CREATE INDEX IF NOT EXISTS idx_video_ad_slots_post ON video_ad_slots(post_id);
-
-            CREATE TABLE IF NOT EXISTS public.midroll_ad_impressions (
-              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-              ad_id uuid,
-              post_id TEXT,
-              user_id TEXT,
-              slot_position INTEGER,
-              viewed_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-            );
-            CREATE INDEX IF NOT EXISTS idx_midroll_imp_ad ON midroll_ad_impressions(ad_id);
-            CREATE INDEX IF NOT EXISTS idx_midroll_imp_user ON midroll_ad_impressions(user_id);
-
-            CREATE TABLE IF NOT EXISTS public.midroll_ad_clicks (
-              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-              ad_id uuid,
-              post_id TEXT,
-              user_id TEXT,
-              clicked_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-              cost NUMERIC
-            );
-            CREATE INDEX IF NOT EXISTS idx_midroll_click_ad ON midroll_ad_clicks(ad_id);
-
-            ALTER TABLE public.video_ads ADD COLUMN IF NOT EXISTS description TEXT;
-            ALTER TABLE public.video_ads ADD COLUMN IF NOT EXISTS link TEXT;
-            ALTER TABLE public.video_ads ADD COLUMN IF NOT EXISTS logo_url TEXT;
-
-            ALTER TABLE public.video_ad_slots DISABLE ROW LEVEL SECURITY;
-            ALTER TABLE public.midroll_ad_impressions DISABLE ROW LEVEL SECURITY;
-            ALTER TABLE public.midroll_ad_clicks DISABLE ROW LEVEL SECURITY;
-            GRANT ALL ON TABLE public.video_ad_slots TO anon, authenticated, service_role;
-            GRANT ALL ON TABLE public.midroll_ad_impressions TO anon, authenticated, service_role;
-            GRANT ALL ON TABLE public.midroll_ad_clicks TO anon, authenticated, service_role;
-          `
-        });
-
-        if (err1) {
-          console.warn('[Admin] Step 1 video ads migration error:', err1.message);
-          return;
-        }
-
-        // Step 2: Create track_midroll_impression RPC
-        await supabaseAdmin.rpc('exec_sql', {
-          query: `
-            CREATE OR REPLACE FUNCTION public.track_midroll_impression(
-              p_ad_id uuid, p_post_id text, p_user_id text, p_slot_position integer
-            )
-            RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
-            DECLARE
-              v_cpm numeric;
-            BEGIN
-              IF EXISTS (
-                SELECT 1 FROM midroll_ad_impressions
-                WHERE ad_id = p_ad_id AND user_id = p_user_id
-                  AND post_id = p_post_id AND slot_position = p_slot_position
-              ) THEN
-                RETURN;
-              END IF;
-
-              INSERT INTO midroll_ad_impressions (ad_id, post_id, user_id, slot_position)
-              VALUES (p_ad_id, p_post_id, p_user_id, p_slot_position);
-
-              SELECT cpm_amount INTO v_cpm FROM ads WHERE id = p_ad_id;
-
-              UPDATE ads SET
-                impressions_count = impressions_count + 1,
-                total_spent = total_spent + (COALESCE(v_cpm, 0) / 1000.0),
-                budget_remaining = budget_remaining - (COALESCE(v_cpm, 0) / 1000.0)
-              WHERE id = p_ad_id;
-
-              UPDATE ads SET status = 'completed' WHERE id = p_ad_id AND budget_remaining <= 0;
-            END;
-            $$;
-          `
-        });
-
-        // Step 3: Create track_midroll_click RPC
-        await supabaseAdmin.rpc('exec_sql', {
-          query: `
-            CREATE OR REPLACE FUNCTION public.track_midroll_click(
-              p_ad_id uuid, p_post_id text, p_user_id text
-            )
-            RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
-            DECLARE
-              v_cpc numeric;
-            BEGIN
-              IF EXISTS (
-                SELECT 1 FROM midroll_ad_clicks
-                WHERE ad_id = p_ad_id AND user_id = p_user_id AND post_id = p_post_id
-              ) THEN
-                RETURN;
-              END IF;
-
-              SELECT cpc_amount INTO v_cpc FROM ads WHERE id = p_ad_id;
-
-              INSERT INTO midroll_ad_clicks (ad_id, post_id, user_id, cost)
-              VALUES (p_ad_id, p_post_id, p_user_id, v_cpc);
-
-              UPDATE ads SET
-                clicks_count = clicks_count + 1,
-                total_spent = total_spent + COALESCE(v_cpc, 0),
-                budget_remaining = budget_remaining - COALESCE(v_cpc, 0)
-              WHERE id = p_ad_id;
-
-              UPDATE ads SET status = 'completed' WHERE id = p_ad_id AND budget_remaining <= 0;
-            END;
-            $$;
-
-            NOTIFY pgrst, 'reload schema';
-          `
-        });
-
-        console.log('[Admin] Video ads tables and RPCs ensured');
-      } catch (e: any) {
-        console.warn('[Admin] Unexpected error in ensureVideoAdsTable:', e.message);
-      }
-    })();
-    
-    return videoAdsPromise;
-  },
-
-  /**
-   * Get all video posts for the Video Ads management panel.
-   */
   async getVideoPosts() {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from('Post')
       .select('id, title, thumbnail, videoDuration, ads_enabled, authorId, createdAt, author:User!authorId(username, avatarUrl)')
       .eq('type', 'VIDEO')
@@ -808,65 +189,25 @@ export const adminService = {
     return data || [];
   },
 
-  /**
-   * Toggle ads_enabled for a video post, and auto-manage ad slots.
-   */
   async toggleVideoAds(postId: string, enabled: boolean, durationSeconds: number) {
-    let adBreaksJson = [];
-    if (enabled) {
-      adBreaksJson.push({ type: 'pre', time: 0 });
-      if (durationSeconds >= 30) adBreaksJson.push({ type: 'mid', time: 30 });
-      if (durationSeconds > 60) adBreaksJson.push({ type: 'mid', time: Math.floor(durationSeconds * (2 / 3)) });
-      // Example of multiple mid-rolls
-    }
-
-    // Update the flag and ad_breaks array
-    const { error: updateErr } = await supabaseAdmin
-      .from('Post')
-      .update({ ads_enabled: enabled, ad_breaks: adBreaksJson })
-      .eq('id', postId);
-
-    if (updateErr) throw updateErr;
-
-    // We can also retain video_ad_slots for legacy compatibility or delete it later
-    await supabaseAdmin
-      .from('video_ad_slots')
-      .delete()
-      .eq('post_id', postId);
-
-    // If enabling, auto-generate slots based on duration
-    if (enabled && durationSeconds > 30) {
-      const slots: { post_id: string; ad_position_seconds: number }[] = [];
-
-      if (durationSeconds > 60) {
-        slots.push({ post_id: postId, ad_position_seconds: 30 });
-      }
-      if (durationSeconds > 120) {
-        slots.push({ post_id: postId, ad_position_seconds: 60 });
-      }
-      if (durationSeconds > 180) {
-        slots.push({ post_id: postId, ad_position_seconds: 120 });
-      }
-      if (slots.length > 0) {
-        const { error: insertErr } = await supabaseAdmin
-          .from('video_ad_slots')
-          .insert(slots);
-        if (insertErr) throw insertErr;
-      }
-    }
+    return await invokeAdminApi('toggleVideoAds', { postId, enabled, durationSeconds });
   },
 
-  /**
-   * Get ad slots for a specific video post.
-   */
   async getVideoAdSlots(postId: string) {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from('video_ad_slots')
       .select('*')
       .eq('post_id', postId)
       .order('ad_position_seconds', { ascending: true });
-
     if (error) throw error;
     return data || [];
+  },
+
+  async getAuditLogs(params: { limit?: number; offset?: number; actionFilter?: string; resourceFilter?: string } = {}) {
+    return await invokeAdminApi<{ data: any[]; total: number }>('getAuditLogs', params);
+  },
+
+  async writeAudit(auditAction: string, resourceType: string, resourceId: string | null, previousValues?: unknown, updatedValues?: unknown) {
+    return await invokeAdminApi('writeAudit', { auditAction, resourceType, resourceId, previousValues, updatedValues });
   },
 };

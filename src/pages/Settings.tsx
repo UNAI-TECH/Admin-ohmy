@@ -1,258 +1,154 @@
 import React, { useState, useEffect } from 'react';
-import { User, Bell, Palette, Shield, Save } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Globe, Shield, Save, Loader2, BarChart2 } from 'lucide-react';
+import { supabase } from '../lib/supabaseClient';
+import { adminService } from '../lib/adminService';
+import { useToast } from '../context/ToastContext';
 
-const SettingsView: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('Profile');
-  const [loading, setLoading] = useState(false);
-  const [saved, setSaved] = useState(false);
+export default function SettingsView() {
+  const { success, error: toastError } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  // Settings State
-  const [profile, setProfile] = useState({
-    name: 'Admin User',
-    email: 'admin@postsapp.com',
-    role: 'Super Admin'
-  });
+  const [siteName, setSiteName] = useState('PostsApp');
+  const [taglineEn, setTaglineEn] = useState('Independent Bilingual Journalism · English & தமிழ்');
+  const [taglineTa, setTaglineTa] = useState('சுயாதீன இருமொழி செய்தித் தளம் · English & தமிழ்');
+  const [contactEmail, setContactEmail] = useState('editorial@postsapp.com');
+  const [ga4MeasurementId, setGa4MeasurementId] = useState('');
+  const [gscVerification, setGscVerification] = useState('');
+  const [defaultSeoDescEn, setDefaultSeoDescEn] = useState('');
+  const [defaultSeoDescTa, setDefaultSeoDescTa] = useState('');
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
 
-  const [notifications, setNotifications] = useState({
-    emailAlerts: true,
-    pushNotifications: false,
-    dailyDigest: true,
-    newCreatorAlerts: true
-  });
-
-  const [theme, setTheme] = useState({
-    darkMode: true,
-    accentColor: '#D4191F'
-  });
-
-  // Load settings from localStorage (with legacy key fallback)
   useEffect(() => {
-    const savedSettings =
-      localStorage.getItem('postsapp_admin_settings') ||
-      localStorage.getItem('omh_admin_settings');
-    if (savedSettings) {
-      const parsed = JSON.parse(savedSettings);
-      if (parsed.profile) setProfile(parsed.profile);
-      if (parsed.notifications) setNotifications(parsed.notifications);
-      if (parsed.theme) setTheme(parsed.theme);
-    }
+    const loadSettings = async () => {
+      setLoading(true);
+      const { data } = await supabase.from('site_settings').select('key, value');
+      const map: Record<string, any> = {};
+      (data || []).forEach((r: any) => {
+        map[r.key] = r.value;
+      });
+      if (map.site_name) setSiteName(String(map.site_name));
+      if (map.tagline_en) setTaglineEn(String(map.tagline_en));
+      if (map.tagline_ta) setTaglineTa(String(map.tagline_ta));
+      if (map.contact_email) setContactEmail(String(map.contact_email));
+      if (map.ga4_measurement_id) setGa4MeasurementId(String(map.ga4_measurement_id));
+      if (map.gsc_verification) setGscVerification(String(map.gsc_verification));
+      if (map.default_seo_description_en) setDefaultSeoDescEn(String(map.default_seo_description_en));
+      if (map.default_seo_description_ta) setDefaultSeoDescTa(String(map.default_seo_description_ta));
+      if (map.maintenance_mode !== undefined) setMaintenanceMode(Boolean(map.maintenance_mode));
+      setLoading(false);
+    };
+    loadSettings();
   }, []);
 
-  const handleSave = () => {
-    setLoading(true);
-    setTimeout(() => {
-      localStorage.setItem('postsapp_admin_settings', JSON.stringify({ profile, notifications, theme }));
-      setLoading(false);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    }, 800);
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const now = new Date().toISOString();
+      const rows = [
+        { key: 'site_name', value: siteName.trim(), updated_at: now },
+        { key: 'tagline_en', value: taglineEn.trim(), updated_at: now },
+        { key: 'tagline_ta', value: taglineTa.trim(), updated_at: now },
+        { key: 'contact_email', value: contactEmail.trim(), updated_at: now },
+        { key: 'ga4_measurement_id', value: ga4MeasurementId.trim(), updated_at: now },
+        { key: 'gsc_verification', value: gscVerification.trim(), updated_at: now },
+        { key: 'default_seo_description_en', value: defaultSeoDescEn.trim(), updated_at: now },
+        { key: 'default_seo_description_ta', value: defaultSeoDescTa.trim(), updated_at: now },
+        { key: 'maintenance_mode', value: maintenanceMode, updated_at: now },
+      ];
+      const { error } = await supabase.from('site_settings').upsert(rows, { onConflict: 'key' });
+      if (error) throw error;
+      await adminService.writeAudit('settings.update', 'site_settings', null, null, { siteName, maintenanceMode }).catch(() => {});
+      success('Global site settings persisted to PostgreSQL.');
+    } catch (err: any) {
+      toastError(err?.message || 'Failed to save settings');
+    } finally {
+      setSaving(false);
+    }
   };
 
+  if (loading) {
+    return (
+      <div className="py-20 flex justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#D4191F]" />
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-5xl mx-auto h-full flex flex-col">
-      <div className="mb-10 flex justify-between items-end">
+    <form onSubmit={handleSave} className="max-w-4xl mx-auto space-y-6 pb-10">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Platform Settings</h1>
-          <p className="text-gray-500 opacity-60">Manage your administrative preferences and system configurations.</p>
+          <h1 className="text-3xl font-bold text-gray-900">Global Site Settings</h1>
+          <p className="text-gray-500 text-sm mt-1">
+            Authoritative configuration saved to PostgreSQL (`site_settings`).
+          </p>
         </div>
         <button
-          onClick={handleSave}
-          disabled={loading}
-          className="flex items-center gap-2 px-6 py-2.5 bg-[#D4191F] hover:bg-[#9E1111] text-white font-bold rounded-xl transition-all shadow-lg shadow-red-900/20 disabled:opacity-50"
+          type="submit"
+          disabled={saving}
+          className="flex items-center gap-2 px-6 py-2.5 bg-[#D4191F] hover:bg-red-700 text-white font-bold rounded-xl text-sm disabled:opacity-50"
         >
-          {loading ? (
-            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          ) : (
-            <Save size={18} />
-          )}
-          {saved ? 'Saved!' : 'Save Changes'}
+          {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+          Save Settings
         </button>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-8 flex-1">
-        {/* Settings Navigation */}
-        <div className="w-full md:w-64 space-y-2">
-          {[
-            { id: 'Profile', icon: <User size={18} /> },
-            { id: 'Notifications', icon: <Bell size={18} /> },
-            { id: 'Appearance', icon: <Palette size={18} /> },
-            { id: 'Security', icon: <Shield size={18} /> },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-3 w-full p-4 rounded-xl font-semibold text-sm transition-all ${
-                activeTab === tab.id
-                  ? 'bg-white/10 text-gray-900 border border-gray-200'
-                  : 'text-gray-500/60 hover:bg-gray-100 hover:text-gray-500'
-              }`}
-            >
-              {tab.icon}
-              {tab.id}
-            </button>
-          ))}
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-4">
+        <h2 className="font-bold text-gray-900 flex items-center gap-2"><Globe size={18} className="text-[#D4191F]" /> Brand &amp; Bilingual Identity</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-600 mb-1">Brand Name</label>
+            <input value={siteName} onChange={(e) => setSiteName(e.target.value)} className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-600 mb-1">Newsroom Contact Email</label>
+            <input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm" />
+          </div>
         </div>
-
-        {/* Settings Content */}
-        <div className="flex-1 bg-white shadow-sm backdrop-blur-md border border-gray-200 rounded-2xl p-8 overflow-y-auto custom-scrollbar pb-20">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            {activeTab === 'Profile' && (
-              <div className="space-y-8">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-6">Profile Settings</h3>
-                  <div className="flex items-center gap-6 mb-8 pb-8 border-b border-white/5">
-                    <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-[#D4191F] to-[#9E1111] border-2 border-gray-200 shadow-xl flex items-center justify-center text-3xl font-bold text-white">
-                      {profile.name.charAt(0)}
-                    </div>
-                    <div>
-                      <button className="px-4 py-2 bg-gray-100 hover:bg-white/10 border border-gray-200 rounded-lg text-sm font-bold text-gray-900 transition-colors mb-2">
-                        Change Avatar
-                      </button>
-                      <p className="text-xs text-gray-500 opacity-50">JPG, GIF or PNG. Max size of 800K</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider opacity-60">Full Name</label>
-                    <input
-                      type="text"
-                      value={profile.name}
-                      onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                      className="w-full bg-[#F5F5F7] border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-[#D4191F] transition-colors"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider opacity-60">Email Address</label>
-                    <input
-                      type="email"
-                      value={profile.email}
-                      onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                      className="w-full bg-[#F5F5F7] border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-[#D4191F] transition-colors"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider opacity-60">Role</label>
-                    <input
-                      type="text"
-                      value={profile.role}
-                      disabled
-                      className="w-full bg-[#F5F5F7]/50 border border-white/5 rounded-xl px-4 py-3 text-gray-500 cursor-not-allowed"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'Notifications' && (
-              <div className="space-y-8">
-                <h3 className="text-xl font-bold text-gray-900 mb-6">Notification Preferences</h3>
-                
-                <div className="space-y-4">
-                  {[
-                    { key: 'emailAlerts', title: 'Email Alerts', desc: 'Receive daily system performance reports' },
-                    { key: 'pushNotifications', title: 'Push Notifications', desc: 'Instant alerts for critical system events' },
-                    { key: 'dailyDigest', title: 'Daily Digest', desc: 'Summary of platform activity and growth' },
-                    { key: 'newCreatorAlerts', title: 'New Creator Alerts', desc: 'Notify when a new creator applies' }
-                  ].map((item) => (
-                    <div key={item.key} className="flex items-center justify-between p-4 rounded-xl bg-gray-100 border border-white/5">
-                      <div>
-                        <h4 className="text-sm font-bold text-gray-900 mb-1">{item.title}</h4>
-                        <p className="text-xs text-gray-500 opacity-60">{item.desc}</p>
-                      </div>
-                      <button
-                        onClick={() => setNotifications({ ...notifications, [item.key]: !(notifications as any)[item.key] })}
-                        className={`w-12 h-6 rounded-full p-1 transition-colors ${
-                          (notifications as any)[item.key] ? 'bg-[#D4191F]' : 'bg-black/40'
-                        }`}
-                      >
-                        <motion.div
-                          layout
-                          className={`w-4 h-4 rounded-full bg-white shadow-sm ${(notifications as any)[item.key] ? 'ml-auto' : ''}`}
-                        />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'Appearance' && (
-              <div className="space-y-8">
-                <h3 className="text-xl font-bold text-gray-900 mb-6">Theme Settings</h3>
-                
-                <div className="space-y-6">
-                  <div>
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider opacity-60 mb-4 block">Mode</label>
-                    <div className="grid grid-cols-2 gap-4">
-                      <button
-                        onClick={() => setTheme({ ...theme, darkMode: true })}
-                        className={`p-4 rounded-xl border flex flex-col items-center gap-3 transition-colors ${
-                          theme.darkMode ? 'border-[#D4191F] bg-[#D4191F]/10' : 'border-gray-200 bg-gray-100'
-                        }`}
-                      >
-                        <div className="w-16 h-12 bg-[#F5F5F7] rounded-md border border-gray-200 flex items-center justify-center">
-                          <div className="w-8 h-2 bg-white/20 rounded-full" />
-                        </div>
-                        <span className="text-sm font-bold text-gray-900">Dark Mode</span>
-                      </button>
-                      <button
-                        onClick={() => setTheme({ ...theme, darkMode: false })}
-                        className={`p-4 rounded-xl border flex flex-col items-center gap-3 transition-colors opacity-50 cursor-not-allowed ${
-                          !theme.darkMode ? 'border-[#D4191F] bg-[#D4191F]/10' : 'border-gray-200 bg-gray-100'
-                        }`}
-                        title="Light mode coming soon"
-                      >
-                        <div className="w-16 h-12 bg-white rounded-md border border-gray-200 flex items-center justify-center">
-                          <div className="w-8 h-2 bg-gray-200 rounded-full" />
-                        </div>
-                        <span className="text-sm font-bold text-gray-900">Light Mode (Soon)</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'Security' && (
-              <div className="space-y-8">
-                <h3 className="text-xl font-bold text-gray-900 mb-6">Security Settings</h3>
-                
-                <div className="space-y-4">
-                  <div className="p-5 rounded-xl bg-gray-100 border border-white/5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <div>
-                      <h4 className="text-sm font-bold text-gray-900 mb-1">Password</h4>
-                      <p className="text-xs text-gray-500 opacity-60">Last changed 3 months ago</p>
-                    </div>
-                    <button className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-bold text-gray-900 transition-colors">
-                      Change Password
-                    </button>
-                  </div>
-
-                  <div className="p-5 rounded-xl bg-gray-100 border border-white/5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <div>
-                      <h4 className="text-sm font-bold text-gray-900 mb-1">Two-Factor Authentication</h4>
-                      <p className="text-xs text-gray-500 opacity-60">Protect your account with an extra layer of security</p>
-                    </div>
-                    <button className="px-4 py-2 bg-[#D4191F]/20 text-[#D4191F] hover:bg-[#D4191F]/30 rounded-lg text-sm font-bold transition-colors">
-                      Enable 2FA
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </motion.div>
+        <div>
+          <label className="block text-xs font-bold text-gray-600 mb-1">Tagline (English)</label>
+          <input value={taglineEn} onChange={(e) => setTaglineEn(e.target.value)} className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm" />
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-gray-600 mb-1">Tagline (Tamil / தமிழ்)</label>
+          <input value={taglineTa} onChange={(e) => setTaglineTa(e.target.value)} className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm" />
         </div>
       </div>
-    </div>
-  );
-};
 
-export default SettingsView;
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-4">
+        <h2 className="font-bold text-gray-900 flex items-center gap-2"><BarChart2 size={18} className="text-blue-600" /> SEO, GA4 &amp; Search Console Integrations</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-600 mb-1">Google Analytics 4 Measurement ID</label>
+            <input value={ga4MeasurementId} onChange={(e) => setGa4MeasurementId(e.target.value)} placeholder="G-XXXXXXXXXX" className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-600 mb-1">Google Search Console Verification Token</label>
+            <input value={gscVerification} onChange={(e) => setGscVerification(e.target.value)} placeholder="google-site-verification token" className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono" />
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-gray-600 mb-1">Default Meta Description (EN)</label>
+          <textarea rows={2} value={defaultSeoDescEn} onChange={(e) => setDefaultSeoDescEn(e.target.value)} className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs" />
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-gray-600 mb-1">Default Meta Description (TA)</label>
+          <textarea rows={2} value={defaultSeoDescTa} onChange={(e) => setDefaultSeoDescTa(e.target.value)} className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs" />
+        </div>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Shield size={20} className="text-amber-600" />
+          <div>
+            <p className="text-sm font-bold text-gray-900">Maintenance Banner Mode</p>
+            <p className="text-xs text-gray-500">Show public maintenance notice across portals when scheduled work occurs.</p>
+          </div>
+        </div>
+        <input type="checkbox" checked={maintenanceMode} onChange={(e) => setMaintenanceMode(e.target.checked)} className="w-5 h-5 accent-[#D4191F]" />
+      </div>
+    </form>
+  );
+}
