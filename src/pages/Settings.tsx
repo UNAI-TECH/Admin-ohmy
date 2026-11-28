@@ -3,6 +3,7 @@ import { Globe, Shield, Save, Loader2, BarChart2 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { adminService } from '../lib/adminService';
 import { useToast } from '../context/ToastContext';
+import { logAndGetFriendlyError } from '../lib/errorHandler';
 
 export default function SettingsView() {
   const { success, error: toastError } = useToast();
@@ -77,7 +78,7 @@ export default function SettingsView() {
       await adminService.writeAudit('settings.update', 'site_settings', '1', null, payload).catch(() => {});
       success('Global site settings persisted to PostgreSQL.');
     } catch (err: any) {
-      toastError(err?.message || 'Failed to save settings');
+      toastError(logAndGetFriendlyError(err, 'Something went wrong while saving settings.', 'Settings:save'));
     } finally {
       setSaving(false);
     }

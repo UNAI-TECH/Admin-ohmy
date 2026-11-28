@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabaseClient';
 import { adminService } from '../lib/adminService';
 import { useToast } from '../context/ToastContext';
+import { logAndGetFriendlyError } from '../lib/errorHandler';
 
 const Feedback: React.FC = () => {
   const { success, error: toastError } = useToast();
@@ -63,7 +64,7 @@ const Feedback: React.FC = () => {
         }))
       );
     } catch (err: any) {
-      toastError(err?.message || 'Failed to fetch feedback');
+      toastError(logAndGetFriendlyError(err, 'Something went wrong while loading feedback.', 'Feedback:fetch'));
     } finally {
       setLoading(false);
     }
@@ -93,7 +94,7 @@ const Feedback: React.FC = () => {
       setRespondingItem(null);
       success('Feedback response saved and logged.');
     } catch (err: any) {
-      toastError(err?.message || 'Failed to save response');
+      toastError(logAndGetFriendlyError(err, 'Something went wrong while saving the response.', 'Feedback:respond'));
     } finally {
       setSubmitting(false);
     }

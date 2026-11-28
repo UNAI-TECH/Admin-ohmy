@@ -3,6 +3,7 @@ import { Globe, Plus, Trash2, AlertTriangle, Loader2, ArrowRight } from 'lucide-
 import { supabase } from '../lib/supabaseClient';
 import { adminService } from '../lib/adminService';
 import { useToast } from '../context/ToastContext';
+import { logAndGetFriendlyError } from '../lib/errorHandler';
 
 export default function SeoCenter() {
   const { success, error: toastError } = useToast();
@@ -23,7 +24,7 @@ export default function SeoCenter() {
       if (auditRes.data) setAudit(auditRes.data);
       setRedirects(redRes.data || []);
     } catch (e: any) {
-      toastError(e?.message || 'Failed to run SEO audit');
+      toastError(logAndGetFriendlyError(e, 'Something went wrong while running the SEO audit.', 'SeoCenter:load'));
     } finally {
       setLoading(false);
     }
@@ -52,7 +53,7 @@ export default function SeoCenter() {
       success('301 redirect rule saved.');
       load();
     } catch (e: any) {
-      toastError(e?.message || 'Failed to add redirect');
+      toastError(logAndGetFriendlyError(e, 'Something went wrong while adding the redirect.', 'SeoCenter:redirect'));
     }
   };
 

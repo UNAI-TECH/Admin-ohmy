@@ -3,6 +3,8 @@ import { LayoutList, Plus, ArrowUp, ArrowDown, Trash2, Loader2 } from 'lucide-re
 import { supabase } from '../lib/supabaseClient';
 import { adminService } from '../lib/adminService';
 import { useToast } from '../context/ToastContext';
+import { useConfirmModal } from '../context/ConfirmModalContext';
+import { logAndGetFriendlyError } from '../lib/errorHandler';
 
 interface HomepageSection {
   key: string;
@@ -33,6 +35,7 @@ const DEFAULT_SECTIONS: Record<'en' | 'ta', HomepageSection[]> = {
 
 export default function HomepageManager() {
   const { success, error: toastError } = useToast();
+  const { confirm } = useConfirmModal();
   const [lang, setLang] = useState<'en' | 'ta'>('en');
   const [sections, setSections] = useState<HomepageSection[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
@@ -62,7 +65,7 @@ export default function HomepageManager() {
       setSections(loadedSections);
       setPosts(postRows || []);
     } catch (e: any) {
-      toastError(e?.message || 'Failed to load homepage config');
+      toastError(logAndGetFriendlyError(e, 'Something went wrong while loading homepage config.', 'HomepageManager:load'));
     } finally {
       setLoading(false);
     }
@@ -134,7 +137,7 @@ export default function HomepageManager() {
       setSectionKey('');
       setSectionTitle('');
     } catch (e: any) {
-      toastError(e?.message || 'Failed to add section');
+      toastError(logAndGetFriendlyError(e, 'Something went wrong while adding the section.', 'HomepageManager:add'));
     }
   };
 
@@ -147,7 +150,7 @@ export default function HomepageManager() {
     try {
       await persistSections(copy, 'Section order saved.');
     } catch (e: any) {
-      toastError(e?.message || 'Failed to save order');
+      toastError(logAndGetFriendlyError(e, 'Something went wrong while saving section order.', 'HomepageManager:order'));
     }
   };
 
@@ -156,17 +159,23 @@ export default function HomepageManager() {
     try {
       await persistSections(next);
     } catch (e: any) {
-      toastError(e?.message || 'Failed to toggle visibility');
+      toastError(logAndGetFriendlyError(e, 'Something went wrong while updating visibility.', 'HomepageManager:toggle'));
     }
   };
 
   const deleteSection = async (key: string) => {
-    if (!window.confirm('Remove this section from homepage config?')) return;
+    const confirmed = await confirm({
+      title: 'Remove Homepage Section',
+      message: 'Remove this section from homepage layout?',
+      confirmText: 'Remove',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     const next = sections.filter((s) => s.key !== key);
     try {
       await persistSections(next, 'Section removed.');
     } catch (e: any) {
-      toastError(e?.message || 'Failed to delete section');
+      toastError(logAndGetFriendlyError(e, 'Something went wrong while removing the section.', 'HomepageManager:delete'));
     }
   };
 
@@ -177,23 +186,23 @@ export default function HomepageManager() {
       setPosts((prev) => prev.map((p) => (p.id === post.id ? { ...p, [field]: next } : p)));
       success('Homepage spotlight placement updated.');
     } catch (e: any) {
-      toastError(e?.message || 'Update failed');
+      toastError(logAndGetFriendlyError(e, 'Something went wrong while updating spotlight placement.', 'HomepageManager:spot'));
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto flex flex-col gap-6 min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <LayoutList className="text-[#D4191F]" />
-            Homepage Layout &amp; Curation
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-3 flex-wrap">
+            <LayoutList className="text-[#D4191F] shrink-0" />
+            <span>Homepage Layout &amp; Curation</span>
           </h1>
           <p className="text-gray-500 text-sm mt-1">
             Configure ordered homepage blocks and curate Breaking Ticker, Lead Featured, and Editor&apos;s Picks per language.
           </p>
         </div>
-        <div className="flex bg-white border border-gray-200 p-1 rounded-xl gap-1">
+        <div className="flex bg-white border border-gray-200 p-1 rounded-xl gap-1 shrink-0">
           {(['en', 'ta'] as const).map((l) => (
             <button
               key={l}
@@ -208,8 +217,8 @@ export default function HomepageManager() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-5 space-y-4">
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+        <div className="w-full lg:w-[42%] flex flex-col gap-4">
           <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-3">
             <h2 className="font-bold text-gray-900 text-sm">Ordered Sections ({lang.toUpperCase()})</h2>
             {loading ? (
@@ -258,7 +267,7 @@ export default function HomepageManager() {
           </form>
         </div>
 
-        <div className="lg:col-span-7 bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="w-full lg:flex-1 min-w-0 bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
           <h2 className="font-bold text-gray-900">Homepage Spotlight Placements ({lang.toUpperCase()})</h2>
           <div className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
             {posts.map((p) => (

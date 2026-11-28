@@ -3,6 +3,7 @@ import { BarChart3, Users, FileText, Loader2, Eye, Download } from 'lucide-react
 import { supabase } from '../lib/supabaseClient';
 import { adminService } from '../lib/adminService';
 import { useToast } from '../context/ToastContext';
+import { logAndGetFriendlyError } from '../lib/errorHandler';
 
 const Analytics: React.FC = () => {
   const { error: toastError } = useToast();
@@ -33,7 +34,7 @@ const Analytics: React.FC = () => {
       setPostsByMonth(processMonthlyData(postsRes.data || []));
       setTopPosts((postsRes.data || []).slice(0, 12));
     } catch (err: any) {
-      toastError(err?.message || 'Failed to fetch analytics');
+      toastError(logAndGetFriendlyError(err, 'Something went wrong while loading analytics.', 'Analytics:fetch'));
     } finally {
       setLoading(false);
     }

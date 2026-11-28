@@ -26,6 +26,7 @@ import {
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabaseClient';
 import { adminService } from '../lib/adminService';
+import { invalidateMemCache } from '../lib/cache';
 import CreatorRequests from './CreatorRequests';
 import Notifications from './Notifications';
 import Feedback from './Feedback';
@@ -59,8 +60,8 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
   const isAdsRoute = location.pathname.startsWith('/ads');
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
+    const fetchData = async (silent = false) => {
+      if (!silent) setLoading(true);
       try {
         const [statsData, postsData, creatorsData] = await Promise.all([
           adminService.getOverviewStats(),
@@ -72,30 +73,42 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
         setCreators(creatorsData);
         lastOverviewFetch.current = Date.now();
       } catch (err) {
-        console.error('Failed to fetch dashboard data:', err);
+        console.error('[Admin Dashboard] Failed to fetch dashboard data:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    if ((location.pathname === '/' || location.pathname === '/overview') && Date.now() - lastOverviewFetch.current > 45000) {
-      fetchData();
+    if ((location.pathname === '/' || location.pathname === '/overview') && Date.now() - lastOverviewFetch.current > 15000) {
+      fetchData(Boolean(stats));
     }
   }, [location.pathname]);
 
   useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const refreshLive = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        invalidateMemCache('admin:overview:stats');
+        invalidateMemCache('admin:recent:posts:6');
+        invalidateMemCache('admin:all:creators');
+        Promise.all([
+          adminService.getOverviewStats().then(setStats),
+          adminService.getRecentPosts(6).then(setRecentPosts),
+          adminService.getAllCreators().then(setCreators),
+        ]).catch((err) => console.error('[Admin Dashboard] Realtime sync error:', err));
+      }, 250);
+    };
+
     const channel = supabase
       .channel('admin-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'Post' }, () => {
-        adminService.getOverviewStats().then(setStats).catch(() => {});
-        adminService.getRecentPosts(6).then(setRecentPosts).catch(() => {});
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'creator_requests' }, () => {
-        adminService.getOverviewStats().then(setStats).catch(() => {});
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'Post' }, refreshLive)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'creator_requests' }, refreshLive)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'User' }, refreshLive)
       .subscribe();
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   }, []);
@@ -206,30 +219,30 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col overflow-hidden relative">
-        <header className="h-[68px] bg-white border-b border-[#E5E7EB] flex items-center justify-between px-4 sm:px-10 z-10 shrink-0 sticky top-0">
-          <div className="flex items-center gap-4 flex-1">
+      <main className="flex-1 flex flex-col overflow-hidden relative min-w-0">
+        <header className="h-[68px] bg-white border-b border-[#E5E7EB] flex items-center justify-between gap-3 px-4 sm:px-8 z-10 shrink-0 sticky top-0">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
             <button
               onClick={() => setMobileSidebarOpen(true)}
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100 text-[#111827]"
+              className="md:hidden p-2 rounded-lg hover:bg-gray-100 text-[#111827] shrink-0"
               aria-label="Open navigation menu"
             >
               <Menu size={20} />
             </button>
-            <div className="max-w-[420px] w-full relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9CA3AF]" size={16} />
+            <div className="max-w-[420px] w-full relative min-w-0">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" size={16} />
               <input
                 type="text"
                 placeholder="Jump to posts, users, audit..."
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') goTo('/posts');
                 }}
-                className="w-full bg-[#F5F5F7] border border-[#E5E7EB] rounded-[8px] py-2 pl-11 pr-4 text-sm focus:outline-none focus:border-[#D4191F] focus:bg-white"
+                className="w-full bg-[#F5F5F7] border border-[#E5E7EB] rounded-[8px] py-2 pl-10 pr-3 text-sm focus:outline-none focus:border-[#D4191F] focus:bg-white"
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-4 sm:gap-6">
+          <div className="flex items-center gap-3 sm:gap-5 shrink-0">
             <button
               onClick={() => goTo('/creator-requests')}
               className="relative p-2 rounded-full hover:bg-red-50 text-[#6B7280] hover:text-[#D4191F]"
@@ -253,21 +266,21 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
           </div>
         </header>
 
-        <div className={`p-6 sm:p-10 overflow-y-auto custom-scrollbar flex-1 ${isAdsRoute ? '!p-0' : ''}`}>
+        <div className={`p-4 sm:p-6 lg:p-10 overflow-y-auto custom-scrollbar flex-1 min-w-0 ${isAdsRoute ? '!p-0' : ''}`}>
           <Routes>
             <Route path="/" element={<Navigate to="/overview" replace />} />
             <Route
               path="/overview"
               element={
                 <>
-                  <div className="mb-8">
-                    <h1 className="text-[30px] font-bold text-[#111827] mb-1 tracking-tight">Platform Overview</h1>
-                    <p className="text-[14px] text-[#6B7280]">
+                  <div className="mb-6 sm:mb-8">
+                    <h1 className="text-2xl sm:text-[30px] font-bold text-[#111827] mb-1 tracking-tight">Platform Overview</h1>
+                    <p className="text-xs sm:text-[14px] text-[#6B7280]">
                       Live operational totals across readers, bilingual newsroom articles, ads, and moderation.
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
                     {statCards.map((stat, i) => (
                       <motion.div
                         key={stat.label}
@@ -290,20 +303,20 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
                     ))}
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2 bg-white border border-gray-200 rounded-[14px] p-6 shadow-sm">
-                      <div className="flex items-center justify-between mb-5">
-                        <div>
+                  <div className="flex flex-col lg:flex-row gap-6">
+                    <div className="w-full lg:flex-[2] min-w-0 bg-white border border-gray-200 rounded-[14px] p-5 sm:p-6 shadow-sm">
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-5">
+                        <div className="min-w-0">
                           <h3 className="text-lg font-bold text-gray-900">Recent Content</h3>
                           <p className="text-xs text-gray-500">Latest articles, drafts, and videos across PostsApp</p>
                         </div>
-                        <button onClick={() => goTo('/posts')} className="text-xs font-bold text-[#D4191F] uppercase hover:underline">
+                        <button onClick={() => goTo('/posts')} className="text-xs font-bold text-[#D4191F] uppercase hover:underline shrink-0">
                           View All →
                         </button>
                       </div>
 
                       <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
+                        <table className="w-full min-w-[540px] text-left border-collapse">
                           <thead>
                             <tr className="border-b border-gray-100 text-[10px] uppercase text-gray-400">
                               <th className="pb-3 pr-4">Title</th>
@@ -339,7 +352,7 @@ const Dashboard: React.FC<Props> = ({ onLogout }) => {
                       </div>
                     </div>
 
-                    <div className="space-y-6">
+                    <div className="w-full lg:flex-1 min-w-0 flex flex-col gap-6">
                       <div className="bg-white border border-gray-200 rounded-[14px] p-6 shadow-sm">
                         <h3 className="text-lg font-bold text-gray-900 mb-4">Creators</h3>
                         <div className="space-y-3">

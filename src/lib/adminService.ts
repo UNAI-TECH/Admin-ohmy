@@ -3,6 +3,7 @@ import { getMemCache, setMemCache, invalidateMemCache } from './cache';
 
 export interface CreateCreatorPayload {
   email: string;
+  oneTimePassword?: string;
   password?: string;
   fullName: string;
   bio?: string;
@@ -28,22 +29,48 @@ export interface CreatorRequest {
   updated_at: string;
 }
 
-async function invokeAdminApi<T = any>(action: string, payload: Record<string, unknown> = {}): Promise<T> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.access_token) {
+async function getValidAccessToken(forceRefresh = false): Promise<string> {
+  if (!forceRefresh) {
+    const { data: { session } } = await supabase.auth.getSession();
+    const expiresAtMs = (session?.expires_at || 0) * 1000;
+    if (session?.access_token && (!expiresAtMs || expiresAtMs > Date.now() + 60_000)) {
+      return session.access_token;
+    }
+  }
+
+  const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession();
+  if (refreshErr || !refreshed.session?.access_token) {
+    await supabase.auth.signOut().catch(() => {});
     throw new Error('Administrator session expired. Please sign in again.');
   }
+  return refreshed.session.access_token;
+}
+
+async function invokeAdminApi<T = any>(
+  action: string,
+  payload: Record<string, unknown> = {},
+  attempt = 0
+): Promise<T> {
+  const accessToken = await getValidAccessToken(attempt > 0);
 
   const { data, error } = await supabase.functions.invoke('admin-api', {
     body: { action, payload },
     headers: {
-      Authorization: `Bearer ${session.access_token}`,
+      Authorization: `Bearer ${accessToken}`,
     },
   });
 
   if (error) {
-    throw new Error(error.message || `Admin action "${action}" failed`);
+    const status = (error as any)?.context?.status;
+    if ((status === 401 || String(error.message || '').includes('401')) && attempt === 0) {
+      return invokeAdminApi<T>(action, payload, 1);
+    }
+    if (status === 401) {
+      await supabase.auth.signOut().catch(() => {});
+    }
+    throw error;
   }
+
   if (data?.error) {
     throw new Error(data.error);
   }
@@ -56,13 +83,24 @@ export const adminService = {
   },
 
   async createCreatorAccount(payload: CreateCreatorPayload, _isOrganization: boolean = false) {
-    const res = await invokeAdminApi<{ userId: string; email: string; username: string; actionLink: string | null }>(
-      'createCreatorAccount',
-      { ...payload }
-    );
+    const res = await invokeAdminApi<{
+      userId: string;
+      email: string;
+      username: string;
+      oneTimePassword: string;
+      actionLink: string | null;
+    }>('createCreatorAccount', { ...payload });
     invalidateMemCache('admin:overview:stats');
     invalidateMemCache('admin:all:creators');
     return res;
+  },
+
+  async issueCreatorOtp(email: string, oneTimePassword?: string) {
+    return await invokeAdminApi<{
+      email: string;
+      oneTimePassword: string;
+      actionLink: string | null;
+    }>('issueCreatorOtp', { email, ...(oneTimePassword ? { oneTimePassword } : {}) });
   },
 
   async getCreatorRequests(filter?: string) {
@@ -86,14 +124,33 @@ export const adminService = {
     return await invokeAdminApi<{ actionLink: string | null }>('sendPasswordReset', { email, redirectTo });
   },
 
-  async sendCreatorInviteEmail(email: string, actionLink: string, type: 'invite' | 'recovery' = 'invite') {
-    const { data: { session } } = await supabase.auth.getSession();
+  async sendCreatorOtpEmail(email: string, oneTimePassword: string, type: 'otp' | 'otp_reset' = 'otp') {
+    const accessToken = await getValidAccessToken();
     const { data, error } = await supabase.functions.invoke('send-credentials', {
-      body: { email, actionLink, type },
-      headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
+      body: {
+        email,
+        oneTimePassword,
+        loginUrl: 'https://creator.postsapp.in/login',
+        type,
+      },
+      headers: { Authorization: `Bearer ${accessToken}` },
     });
     if (error) throw error;
     return data;
+  },
+
+  async sendCreatorInviteEmail(email: string, actionLink: string, type: 'invite' | 'recovery' = 'invite') {
+    const accessToken = await getValidAccessToken();
+    const { data, error } = await supabase.functions.invoke('send-credentials', {
+      body: { email, actionLink, type },
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteCategory(categoryId: string) {
+    return await invokeAdminApi<{ success: boolean; reassignedPostCount: number }>('deleteCategory', { categoryId });
   },
 
   async getOverviewStats() {
@@ -150,6 +207,7 @@ export const adminService = {
   async adminUpdatePost(postId: string, updates: Record<string, unknown>) {
     const res = await invokeAdminApi<{ data: any }>('adminUpdatePost', { postId, updates });
     invalidateMemCache('admin:recent:posts:100');
+    invalidateMemCache('admin:recent:posts:6');
     invalidateMemCache('admin:recent:posts:5');
     return res.data;
   },
@@ -157,6 +215,7 @@ export const adminService = {
   async adminDeletePost(postId: string) {
     const res = await invokeAdminApi('adminDeletePost', { postId });
     invalidateMemCache('admin:recent:posts:100');
+    invalidateMemCache('admin:recent:posts:6');
     invalidateMemCache('admin:recent:posts:5');
     invalidateMemCache('admin:overview:stats');
     return res;

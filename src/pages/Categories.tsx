@@ -3,6 +3,8 @@ import { FolderTree, Plus, Trash2, Save, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { adminService } from '../lib/adminService';
 import { useToast } from '../context/ToastContext';
+import { useConfirmModal } from '../context/ConfirmModalContext';
+import { logAndGetFriendlyError } from '../lib/errorHandler';
 
 const slugify = (s: string) =>
   s
@@ -14,6 +16,7 @@ const slugify = (s: string) =>
 
 export default function Categories() {
   const { success, error: toastError } = useToast();
+  const { confirm } = useConfirmModal();
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<any | null>(null);
@@ -30,20 +33,31 @@ export default function Categories() {
   const [homeVisible, setHomeVisible] = useState(true);
   const [isActive, setIsActive] = useState(true);
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (showSpinner = true) => {
+    if (showSpinner) setLoading(true);
     const { data, error } = await supabase
       .from('categories')
       .select('*')
       .order('display_order', { ascending: true })
       .order('name_en', { ascending: true });
-    if (error) toastError(error.message);
+    if (error) {
+      toastError(logAndGetFriendlyError(error, 'Something went wrong while loading categories.', 'Categories:load'));
+    }
     setCategories(data || []);
-    setLoading(false);
+    if (showSpinner) setLoading(false);
   };
 
   useEffect(() => {
     load();
+    const channel = supabase
+      .channel('admin-categories-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, () => {
+        load(false);
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const resetForm = () => {
@@ -110,47 +124,58 @@ export default function Categories() {
       resetForm();
       load();
     } catch (e: any) {
-      toastError(e?.message || 'Save failed');
+      toastError(logAndGetFriendlyError(e, 'Something went wrong while saving the category.', 'Categories:save'));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (cat: any) => {
-    const { count } = await supabase
-      .from('post_categories')
-      .select('post_id', { count: 'exact', head: true })
-      .eq('category_id', cat.id);
+    try {
+      const { count } = await supabase
+        .from('post_categories')
+        .select('post_id', { count: 'exact', head: true })
+        .eq('category_id', cat.id);
 
-    if ((count || 0) > 0) {
-      toastError(`Cannot delete: ${count} article(s) reference this category. Deactivate it instead.`);
-      return;
+      const linkedCount = count || 0;
+      const confirmed = await confirm({
+        title: `Delete "${cat.name_en}"?`,
+        message:
+          linkedCount > 0
+            ? `${linkedCount} article(s) currently reference this category. Deleting it will reassign those articles to "General" and update the site in realtime.`
+            : `Are you sure you want to permanently delete "${cat.name_en}"?`,
+        confirmText: 'Delete Category',
+        variant: 'danger',
+      });
+      if (!confirmed) return;
+
+      await adminService.deleteCategory(cat.id);
+      if (editing?.id === cat.id) resetForm();
+      success(
+        linkedCount > 0
+          ? `Category deleted and ${linkedCount} article(s) moved to General.`
+          : 'Category deleted.'
+      );
+      load(false);
+    } catch (e: any) {
+      toastError(logAndGetFriendlyError(e, 'Something went wrong while deleting this category.', 'Categories:delete'));
     }
-    if (!window.confirm(`Delete category "${cat.name_en}"?`)) return;
-    const { error } = await supabase.from('categories').delete().eq('id', cat.id);
-    if (error) {
-      toastError(error.message);
-      return;
-    }
-    await adminService.writeAudit('category.delete', 'categories', cat.id, cat, null).catch(() => {});
-    success('Category deleted.');
-    load();
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-          <FolderTree className="text-[#D4191F]" />
-          Bilingual Categories
+    <div className="max-w-7xl mx-auto flex flex-col gap-6">
+      <div className="min-w-0">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-3 flex-wrap">
+          <FolderTree className="text-[#D4191F] shrink-0" />
+          <span>Bilingual Categories</span>
         </h1>
         <p className="text-gray-500 text-sm mt-1">
-          Configure English &amp; Tamil news sections, URL slugs, display order, and navigation visibility.
+          Configure English &amp; Tamil news sections, URL slugs, display order, and navigation visibility in realtime.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <form onSubmit={handleSubmit} className="lg:col-span-5 bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-4">
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+        <form onSubmit={handleSubmit} className="w-full lg:w-[42%] bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-bold text-gray-900">{editing ? 'Edit Category' : 'Add Bilingual Category'}</h2>
             {editing && (
@@ -233,11 +258,12 @@ export default function Categories() {
           </button>
         </form>
 
-        <div className="lg:col-span-7 bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+        <div className="w-full lg:flex-1 min-w-0 bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
           {loading ? (
             <div className="py-16 flex justify-center"><Loader2 className="animate-spin text-[#D4191F]" /></div>
           ) : (
-            <table className="w-full text-left text-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[540px] text-left text-sm">
               <thead className="bg-[#FAFBFF] border-b border-gray-100 text-[10px] font-bold uppercase text-gray-500">
                 <tr>
                   <th className="px-4 py-3">Order</th>
@@ -271,6 +297,7 @@ export default function Categories() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>

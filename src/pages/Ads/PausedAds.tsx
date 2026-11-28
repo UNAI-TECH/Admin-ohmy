@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { PauseCircle, Target, Link, Calendar, IndianRupee, Play, Search, CreditCard, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '../../context/ToastContext';
+import { logAndGetFriendlyError } from '../../lib/errorHandler';
 
 export default function PausedAds() {
   const { success, error: toastError } = useToast();
@@ -50,7 +51,7 @@ export default function PausedAds() {
       setAds(prev => prev.filter(c => c.id !== campaignToDelete.id));
       success('Campaign deleted successfully');
     } catch (err: any) {
-      toastError(err.message || 'Failed to delete campaign');
+      toastError(logAndGetFriendlyError(err, 'Something went wrong while deleting the campaign.', 'Ads:deletePaused'));
     } finally {
       setShowDeleteModal(false);
       setCampaignToDelete(null);

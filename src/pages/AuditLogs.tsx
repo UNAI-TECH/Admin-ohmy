@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ShieldCheck, Search, Loader2 } from 'lucide-react';
 import { adminService } from '../lib/adminService';
 import { useToast } from '../context/ToastContext';
+import { logAndGetFriendlyError } from '../lib/errorHandler';
 
 export default function AuditLogs() {
   const { error: toastError } = useToast();
@@ -22,7 +23,7 @@ export default function AuditLogs() {
       setLogs(res.data || []);
       setTotal(res.total || 0);
     } catch (e: any) {
-      toastError(e?.message || 'Failed to load audit logs');
+      toastError(logAndGetFriendlyError(e, 'Something went wrong while loading audit logs.', 'AuditLogs:load'));
     } finally {
       setLoading(false);
     }
@@ -33,12 +34,12 @@ export default function AuditLogs() {
   }, [resourceFilter]);
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <ShieldCheck className="text-[#D4191F]" />
-            Security &amp; Editorial Audit Logs
+    <div className="max-w-7xl mx-auto flex flex-col gap-6 min-w-0">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-3 flex-wrap">
+            <ShieldCheck className="text-[#D4191F] shrink-0" />
+            <span>Security &amp; Editorial Audit Logs</span>
           </h1>
           <p className="text-gray-500 text-sm mt-1">
             Immutable record of publishing transitions, account moderation, credential invites, and config updates ({total} entries).
@@ -50,16 +51,16 @@ export default function AuditLogs() {
             e.preventDefault();
             load();
           }}
-          className="flex gap-2"
+          className="flex flex-wrap gap-2 items-center"
         >
-          <div className="relative">
+          <div className="relative flex-1 sm:flex-initial min-w-[180px]">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
               placeholder="Filter action (e.g. post.publish)"
-              className="pl-8 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-xs outline-none w-52"
+              className="pl-8 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-xs outline-none w-full sm:w-52"
             />
           </div>
           <select
@@ -87,7 +88,7 @@ export default function AuditLogs() {
           <div className="py-16 text-center text-sm text-gray-500">No audit entries found.</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full min-w-[700px] text-left text-xs">
               <thead className="bg-[#FAFBFF] border-b border-gray-100 text-[10px] font-bold uppercase text-gray-500">
                 <tr>
                   <th className="px-5 py-3.5">Timestamp</th>

@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { adminService } from '../../lib/adminService';
 import { Film, ToggleLeft, ToggleRight, Zap, AlertTriangle, Plus, X, PlayCircle, Trash2 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
+import { logAndGetFriendlyError } from '../../lib/errorHandler';
 
 // --- existing helpers ---
 function parseDurationToSeconds(duration: string | null | undefined): number {
@@ -130,7 +131,7 @@ export default function VideoAds() {
       setVideos(prev => prev.map(v => v.id === video.id ? { ...v, ads_enabled: newState } : v));
       success(newState ? 'Mid-roll ads enabled' : 'Mid-roll ads disabled');
     } catch (err: any) {
-      toastError(err.message || 'Failed to update video ads');
+      toastError(logAndGetFriendlyError(err, 'Failed to update video ads.', 'VideoAds.handleTogglePostAds'));
     } finally {
       setToggling(null);
     }
@@ -145,7 +146,7 @@ export default function VideoAds() {
       setCampaigns(prev => prev.map(c => c.id === campaign.id ? { ...c, is_active: newState } : c));
       success(newState ? 'Campaign activated' : 'Campaign paused');
     } catch (err: any) {
-      toastError(err.message || 'Failed to toggle campaign');
+      toastError(logAndGetFriendlyError(err, 'Failed to toggle campaign.', 'VideoAds.handleToggleCampaignAd'));
     } finally {
       setToggling(null);
     }
@@ -164,7 +165,7 @@ export default function VideoAds() {
       setCampaigns(prev => prev.filter(c => c.id !== campaignToDelete.id));
       success('Campaign deleted successfully');
     } catch (err: any) {
-      toastError(err.message || 'Failed to delete campaign');
+      toastError(logAndGetFriendlyError(err, 'Failed to delete campaign.', 'VideoAds.confirmDeleteCampaign'));
     } finally {
       setShowDeleteModal(false);
       setCampaignToDelete(null);
@@ -280,7 +281,7 @@ export default function VideoAds() {
       setNewAdLogoPreview('');
       fetchCampaigns();
     } catch (err: any) {
-      toastError(err.message || 'Failed to create campaign');
+      toastError(logAndGetFriendlyError(err, 'Failed to create campaign.', 'VideoAds.handleCreateCampaign'));
     } finally {
       setUploading(false);
       setUploadProgress(0);
@@ -301,23 +302,23 @@ export default function VideoAds() {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-black text-gray-900 mb-2 tracking-tight flex items-center gap-3">
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-3xl md:text-4xl font-black text-gray-900 mb-2 tracking-tight flex items-center gap-3">
             Video Ads <Film className="text-[#D4191F]" size={28} />
           </h1>
           <p className="text-gray-500 opacity-60 font-medium">Manage actual video ads and creator content mid-roll slots.</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="px-6 py-3 bg-[#D4191F] text-white rounded-xl shadow-md hover:bg-red-700 transition flex items-center gap-2 font-bold uppercase tracking-wide text-xs"
+          className="px-6 py-3 bg-[#D4191F] text-white rounded-xl shadow-md hover:bg-red-700 transition flex items-center gap-2 font-bold uppercase tracking-wide text-xs shrink-0"
         >
           <Plus size={16} strokeWidth={3} /> Create Video Ad
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-4 border-b border-gray-200 mb-8">
+      <div className="flex flex-wrap gap-4 border-b border-gray-200 mb-8">
         <button
           onClick={() => setActiveTab('campaigns')}
           className={`pb-4 px-2 font-black uppercase tracking-widest text-xs transition-colors ${
@@ -362,8 +363,8 @@ export default function VideoAds() {
             </div>
           </div>
           
-          <div className="bg-white border border-gray-200 rounded-3xl shadow-sm overflow-hidden">
-            <table className="w-full text-left">
+          <div className="bg-white border border-gray-200 rounded-3xl shadow-sm overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left">
               <thead>
                 <tr className="bg-[#FAFBFF]">
                   <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest opacity-60">Video</th>
@@ -408,8 +409,8 @@ export default function VideoAds() {
       )}
 
       {activeTab === 'campaigns' && (
-        <div className="bg-white border border-gray-200 rounded-3xl shadow-sm overflow-hidden">
-          <table className="w-full text-left">
+        <div className="bg-white border border-gray-200 rounded-3xl shadow-sm overflow-x-auto">
+          <table className="w-full min-w-[680px] text-left">
             <thead>
               <tr className="bg-[#FAFBFF]">
                 <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest opacity-60">Campaign Content</th>

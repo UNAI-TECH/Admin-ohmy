@@ -6,6 +6,7 @@ import {
 import { supabase } from '../lib/supabaseClient';
 import { adminService, type CreatorRequest, type CreateCreatorPayload } from '../lib/adminService';
 import { useToast } from '../context/ToastContext';
+import { logAndGetFriendlyError } from '../lib/errorHandler';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function CreatorRequests() {
@@ -17,10 +18,10 @@ export default function CreatorRequests() {
   const [actionLoading, setActionLoading] = useState(false);
   const [adminMessage, setAdminMessage] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createdInvite, setCreatedInvite] = useState<{
+  const [createdCredentials, setCreatedCredentials] = useState<{
     email: string;
-    actionLink: string | null;
-    type: 'invite' | 'recovery';
+    oneTimePassword: string;
+    type: 'otp' | 'otp_reset';
   } | null>(null);
   const [showApproveCredModal, setShowApproveCredModal] = useState(false);
   const [approvePassword, setApprovePassword] = useState('');
@@ -32,7 +33,7 @@ export default function CreatorRequests() {
   // Create Creator form state
   const [newCreator, setNewCreator] = useState<CreateCreatorPayload>({
     email: '',
-    password: '',
+    oneTimePassword: '',
     fullName: '',
     bio: '',
   });
@@ -108,36 +109,29 @@ export default function CreatorRequests() {
       const userName = isOrg ? (requestToApprove.channel_name || '') : requestToApprove.name;
       const userBio = isOrg ? (requestToApprove.channel_bio || '') : requestToApprove.bio;
 
-      // Create the creator account (generates secure invite/recovery link if password omitted)
+      // Provision creator account with an admin-issued or auto-generated One-Time Password
       const created = await adminService.createCreatorAccount({
         email: userEmail,
-        ...(approvePassword.trim().length >= 8 ? { password: approvePassword.trim() } : {}),
+        ...(approvePassword.trim().length >= 6 ? { oneTimePassword: approvePassword.trim() } : {}),
         fullName: userName,
         bio: userBio,
       }, isOrg);
 
-      // Update the request status to approved
       await adminService.approveRequestStatus(requestToApprove.id, adminMessage);
 
-      let inviteLink = created.actionLink || null;
-      if (!inviteLink) {
-        const resetRes = await adminService.sendPasswordReset(userEmail).catch(() => null);
-        inviteLink = resetRes?.actionLink || null;
-      }
-
-      setCreatedInvite({
+      setCreatedCredentials({
         email: userEmail,
-        actionLink: inviteLink,
-        type: 'invite',
+        oneTimePassword: created.oneTimePassword,
+        type: 'otp',
       });
-      toastSuccess('Account provisioned and application approved!');
+      toastSuccess('Creator account provisioned with a One-Time Password.');
       setShowApproveCredModal(false);
       setRequestToApprove(null);
       setAdminMessage('');
       setApprovePassword('');
       fetchRequests();
     } catch (err: any) {
-      toastError('Failed to approve: ' + (err.message || 'Unknown error'));
+      toastError(logAndGetFriendlyError(err, 'Something went wrong while approving the creator request.', 'CreatorRequests:approve'));
     } finally {
       setActionLoading(false);
     }
@@ -153,7 +147,7 @@ export default function CreatorRequests() {
       setSelectedRequest(null);
       fetchRequests();
     } catch (err: any) {
-      toastError('Failed to reject: ' + (err.message || 'Unknown error'));
+      toastError(logAndGetFriendlyError(err, 'Something went wrong while rejecting the application.', 'CreatorRequests:reject'));
     } finally {
       setActionLoading(false);
     }
@@ -164,29 +158,30 @@ export default function CreatorRequests() {
     setCreateLoading(true);
     setCreateError('');
     try {
+      const otpInput = (newCreator.oneTimePassword || '').trim();
+      if (otpInput && otpInput.length < 6) {
+        setCreateError('One-Time Password must be at least 6 characters (or leave blank to auto-generate).');
+        setCreateLoading(false);
+        return;
+      }
+
       const created = await adminService.createCreatorAccount({
         email: newCreator.email,
         fullName: newCreator.fullName,
         bio: newCreator.bio,
-        ...(newCreator.password && newCreator.password.trim().length >= 8
-          ? { password: newCreator.password.trim() }
-          : {}),
+        ...(otpInput ? { oneTimePassword: otpInput } : {}),
       });
-      let inviteLink = created.actionLink || null;
-      if (!inviteLink) {
-        const resetRes = await adminService.sendPasswordReset(newCreator.email).catch(() => null);
-        inviteLink = resetRes?.actionLink || null;
-      }
-      setCreatedInvite({
+
+      setCreatedCredentials({
         email: newCreator.email,
-        actionLink: inviteLink,
-        type: 'invite',
+        oneTimePassword: created.oneTimePassword,
+        type: 'otp',
       });
       setShowCreateModal(false);
-      setNewCreator({ email: '', password: '', fullName: '', bio: '' });
+      setNewCreator({ email: '', oneTimePassword: '', fullName: '', bio: '' });
       fetchRequests();
     } catch (err: any) {
-      setCreateError(err.message || 'Failed to create creator account');
+      setCreateError(logAndGetFriendlyError(err, 'Something went wrong while creating the creator account.', 'CreatorRequests:create'));
     } finally {
       setCreateLoading(false);
     }
@@ -199,35 +194,36 @@ export default function CreatorRequests() {
   };
 
   const handleSendEmail = async () => {
-    if (!createdInvite) return;
-    if (!createdInvite.actionLink) {
-      toastError('No secure invite link available. Generate a reset link from the Creators directory.');
-      return;
-    }
+    if (!createdCredentials?.oneTimePassword) return;
     setIsSendingEmail(true);
     setEmailSentMsg('');
     try {
-      await adminService.sendCreatorInviteEmail(
-        createdInvite.email,
-        createdInvite.actionLink,
-        createdInvite.type
+      const res = await adminService.sendCreatorOtpEmail(
+        createdCredentials.email,
+        createdCredentials.oneTimePassword,
+        createdCredentials.type
       );
 
-      toastSuccess('Secure onboarding invitation sent via email');
-      setEmailSentMsg('Invitation email sent successfully');
+      if (res?.sent === false) {
+        toastError(res?.message || 'Email relay is unavailable. Copy and share the One-Time Password directly.');
+        return;
+      }
+
+      toastSuccess('One-Time Password sent to creator via email.');
+      setEmailSentMsg('Credentials email sent successfully');
       setTimeout(() => {
-        setCreatedInvite(null);
+        setCreatedCredentials(null);
         setEmailSentMsg('');
       }, 2000);
     } catch (err: any) {
-      toastError('Error sending email: ' + err.message);
+      toastError(logAndGetFriendlyError(err, 'Something went wrong while sending the credentials email.', 'CreatorRequests:email'));
     } finally {
       setIsSendingEmail(false);
     }
   };
 
   const handleCloseCredentials = () => {
-    setCreatedInvite(null);
+    setCreatedCredentials(null);
     setEmailSentMsg('');
   };
 
@@ -237,22 +233,23 @@ export default function CreatorRequests() {
 
   return (
     <div>
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-10">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2 tracking-tight">Creator Management</h1>
-            <p className="text-gray-500 opacity-60">Manage creator applications and directly create new creator accounts.</p>
+      <div className="max-w-7xl mx-auto flex flex-col gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 tracking-tight">Creator Management</h1>
+            <p className="text-sm text-gray-500">Manage creator applications and provision accounts with one-time passwords.</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
             <button 
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-5 py-3 bg-[#D4191F] text-white rounded-xl font-bold text-sm hover:bg-red-700 transition-all shadow-lg shadow-red-900/20"
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#D4191F] text-white rounded-xl font-bold text-sm hover:bg-red-700 transition-all shadow-lg shadow-red-900/20"
             >
               <UserPlus size={18} /> Create Creator
             </button>
             <button 
               onClick={fetchRequests}
-              className="p-3 bg-gray-100 border border-gray-200 rounded-xl hover:bg-white/10 transition-all"
+              className="p-2.5 bg-gray-100 border border-gray-200 rounded-xl hover:bg-gray-200 transition-all"
+              title="Refresh applications"
             >
               <RefreshCw className={`w-5 h-5 text-gray-500 ${loading ? 'animate-spin' : ''}`} />
             </button>
@@ -260,7 +257,7 @@ export default function CreatorRequests() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           <StatCard title="Total" count={requests.length} icon={Users} color="blue" />
           <StatCard title="Pending" count={requests.filter(r => r.status === 'pending').length} icon={Clock} color="orange" />
           <StatCard title="Approved" count={requests.filter(r => r.status === 'approved').length} icon={CheckCircle} color="green" />
@@ -269,7 +266,7 @@ export default function CreatorRequests() {
 
         {/* Filter + Table */}
         <div className="bg-white shadow-sm backdrop-blur-md border border-gray-200 rounded-2xl overflow-hidden">
-          <div className="p-6 border-b border-gray-100 flex gap-4">
+          <div className="p-4 sm:p-6 border-b border-gray-100 flex flex-wrap gap-2 sm:gap-4">
             <FilterButton active={filter === 'pending'} onClick={() => setFilter('pending')} label="Pending" />
             <FilterButton active={filter === 'approved'} onClick={() => setFilter('approved')} label="Approved" />
             <FilterButton active={filter === 'rejected'} onClick={() => setFilter('rejected')} label="Rejected" />
@@ -277,7 +274,7 @@ export default function CreatorRequests() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[640px]">
               <thead>
                 <tr className="border-b border-gray-100">
                   <th className="px-8 py-4 text-left text-[10px] font-bold text-gray-500 uppercase tracking-widest opacity-40">Creator Info</th>
@@ -332,7 +329,7 @@ export default function CreatorRequests() {
                     <td className="px-8 py-6 text-right">
                       <button 
                         onClick={() => setSelectedRequest(request)}
-                        className="px-4 py-2 bg-gray-100 text-gray-900 rounded-xl text-sm font-bold hover:bg-white/10 transition-all opacity-0 group-hover:opacity-100 border border-gray-200"
+                        className="px-4 py-2 bg-gray-100 text-gray-900 rounded-xl text-sm font-bold hover:bg-gray-200 transition-all border border-gray-200"
                       >
                         Review
                       </button>
@@ -513,13 +510,13 @@ export default function CreatorRequests() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-500 opacity-60 mb-2">Initial Password (optional — leave blank for secure invite link)</label>
+                    <label className="block text-sm font-medium text-gray-600 mb-2">One-Time Password (optional — leave blank to auto-generate)</label>
                     <input 
-                      type="password" minLength={8}
-                      className="w-full p-3 bg-gray-100 border border-gray-200 focus:border-[#D4191F] rounded-xl outline-none text-gray-900 placeholder-[#e7bdb8]/30"
-                      placeholder="Optional (min 8 chars) or leave blank"
-                      value={newCreator.password || ''}
-                      onChange={e => setNewCreator({...newCreator, password: e.target.value})}
+                      type="text" minLength={6}
+                      className="w-full p-3 bg-gray-100 border border-gray-200 focus:border-[#D4191F] rounded-xl outline-none text-gray-900 font-mono placeholder:text-gray-400"
+                      placeholder="Auto-generated if left blank (min 6 chars)"
+                      value={newCreator.oneTimePassword || ''}
+                      onChange={e => setNewCreator({...newCreator, oneTimePassword: e.target.value})}
                     />
                   </div>
                   <div>
@@ -595,11 +592,11 @@ export default function CreatorRequests() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-500 opacity-60 mb-2">Initial Password (optional — leave blank to issue invite link)</label>
+                    <label className="block text-sm font-medium text-gray-600 mb-2">One-Time Password (optional — leave blank to auto-generate)</label>
                     <input 
-                      type="password" minLength={8}
-                      className="w-full p-3 bg-gray-100 border border-gray-200 focus:border-green-500 rounded-xl outline-none text-gray-900 placeholder-[#e7bdb8]/30"
-                      placeholder="Optional (min 8 chars) or leave blank for invite link"
+                      type="text" minLength={6}
+                      className="w-full p-3 bg-gray-100 border border-gray-200 focus:border-green-500 rounded-xl outline-none text-gray-900 font-mono placeholder:text-gray-400"
+                      placeholder="Auto-generated if left blank (min 6 chars)"
                       value={approvePassword}
                       onChange={e => setApprovePassword(e.target.value)}
                       autoFocus
@@ -629,49 +626,47 @@ export default function CreatorRequests() {
         )}
       </AnimatePresence>
 
-      {/* Onboarding Invite Link Modal */}
+      {/* One-Time Password Provisioned Modal */}
       <AnimatePresence>
-        {createdInvite && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+        {createdCredentials && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-green-500/20 relative overflow-hidden"
+              className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-green-500/20 relative overflow-hidden max-h-[90vh] overflow-y-auto"
             >
-              <div className="p-10">
+              <div className="p-6 sm:p-8">
                 <div className="flex flex-col items-center mb-6">
                   <div className="w-16 h-16 bg-green-500/10 rounded-2xl flex items-center justify-center mb-4">
                     <CheckCircle className="w-8 h-8 text-green-500" />
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-900">Creator Provisioned</h2>
-                  <p className="text-gray-500 opacity-75 text-sm mt-2 text-center">
-                    Send this one-time secure setup link so the creator can activate their password and sign in to Creator Studio.
+                  <h2 className="text-2xl font-bold text-gray-900 text-center">Creator Provisioned</h2>
+                  <p className="text-gray-500 text-sm mt-2 text-center leading-relaxed">
+                    Share this email and one-time password so the creator can sign in to Creator Studio and create their personal password.
                   </p>
                 </div>
 
-                <div className="space-y-4 mb-6">
-                  <div className="bg-gray-100 border border-gray-200 rounded-xl p-4 flex items-center justify-between">
-                    <div className="min-w-0 flex-1 pr-2">
-                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest opacity-60 mb-1">Email</p>
-                      <p className="text-gray-900 font-mono text-sm truncate">{createdInvite.email}</p>
+                <div className="space-y-3 mb-6">
+                  <div className="bg-gray-100 border border-gray-200 rounded-xl p-4 flex items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Email</p>
+                      <p className="text-gray-900 font-mono text-sm truncate">{createdCredentials.email}</p>
                     </div>
-                    <button onClick={() => copyToClipboard(createdInvite.email, 'email')} className="p-2 hover:bg-white rounded-lg transition-colors">
+                    <button onClick={() => copyToClipboard(createdCredentials.email, 'email')} className="p-2 hover:bg-white rounded-lg transition-colors shrink-0">
                       {copiedField === 'email' ? <Check size={16} className="text-green-600" /> : <Copy size={16} className="text-gray-500" />}
                     </button>
                   </div>
-                  <div className="bg-gray-100 border border-gray-200 rounded-xl p-4 flex items-center justify-between">
-                    <div className="min-w-0 flex-1 pr-2">
-                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest opacity-60 mb-1">One-Time Setup Link</p>
-                      <p className="text-gray-900 font-mono text-xs truncate">
-                        {createdInvite.actionLink || 'Account provisioned with initial password.'}
+                  <div className="bg-gray-100 border border-gray-200 rounded-xl p-4 flex items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">One-Time Password</p>
+                      <p className="text-gray-900 font-mono text-base font-bold tracking-wider truncate">
+                        {createdCredentials.oneTimePassword}
                       </p>
                     </div>
-                    {createdInvite.actionLink && (
-                      <button onClick={() => copyToClipboard(createdInvite.actionLink!, 'link')} className="p-2 hover:bg-white rounded-lg transition-colors">
-                        {copiedField === 'link' ? <Check size={16} className="text-green-600" /> : <Copy size={16} className="text-gray-500" />}
-                      </button>
-                    )}
+                    <button onClick={() => copyToClipboard(createdCredentials.oneTimePassword, 'otp')} className="p-2 hover:bg-white rounded-lg transition-colors shrink-0">
+                      {copiedField === 'otp' ? <Check size={16} className="text-green-600" /> : <Copy size={16} className="text-gray-500" />}
+                    </button>
                   </div>
                 </div>
 
@@ -680,27 +675,25 @@ export default function CreatorRequests() {
                     {emailSentMsg}
                   </div>
                 ) : (
-                  <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-700 text-xs mb-6">
-                    No plaintext passwords are stored or emailed. This link expires automatically after use.
+                  <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 text-xs mb-6 leading-relaxed">
+                    Stored securely in the database. On first login in Creator Studio, the creator must verify this one-time password and set a new password.
                   </div>
                 )}
 
-                <div className="flex gap-4">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <button 
                     onClick={handleCloseCredentials}
                     className="flex-1 py-3 bg-gray-100 border border-gray-200 text-gray-900 rounded-xl font-bold hover:bg-gray-200 transition-all flex items-center justify-center"
                   >
                     Close
                   </button>
-                  {createdInvite.actionLink && (
-                    <button 
-                      onClick={handleSendEmail}
-                      disabled={isSendingEmail || !!emailSentMsg}
-                      className="flex-1 py-3 bg-[#D4191F] text-white rounded-xl font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
-                      {isSendingEmail ? <Loader2 className="w-5 h-5 animate-spin" /> : "Send Invite Email"}
-                    </button>
-                  )}
+                  <button 
+                    onClick={handleSendEmail}
+                    disabled={isSendingEmail || !!emailSentMsg}
+                    className="flex-1 py-3 bg-[#D4191F] text-white rounded-xl font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {isSendingEmail ? <Loader2 className="w-5 h-5 animate-spin" /> : "Email Credentials"}
+                  </button>
                 </div>
               </div>
             </motion.div>

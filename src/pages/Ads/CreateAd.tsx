@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { adminService } from '../../lib/adminService';
 import { Link as LinkIcon, IndianRupee, Target, AlignLeft, Type, Save, Upload, X, MousePointerClick, Eye } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
+import { logAndGetFriendlyError } from '../../lib/errorHandler';
 
 export default function CreateAd({ onAdCreated }: { onAdCreated: () => void }) {
   const { success, error: toastError } = useToast();
@@ -72,7 +73,7 @@ export default function CreateAd({ onAdCreated }: { onAdCreated: () => void }) {
       success('Campaign deployed successfully!');
       onAdCreated();
     } catch (err: any) {
-      toastError(err.message || 'Failed to deploy campaign');
+      toastError(logAndGetFriendlyError(err, 'Something went wrong while deploying the campaign.', 'Ads:create'));
     } finally {
       setLoading(false);
     }

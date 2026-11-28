@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { adminService } from '../lib/adminService';
 import { supabase } from '../lib/supabaseClient';
 import { useToast } from '../context/ToastContext';
+import { useConfirmModal } from '../context/ConfirmModalContext';
+import { logAndGetFriendlyError } from '../lib/errorHandler';
 import {
   FileText,
   Loader2,
@@ -19,6 +21,7 @@ import {
 
 export default function Posts() {
   const { success, error: toastError } = useToast();
+  const { confirm } = useConfirmModal();
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -47,7 +50,7 @@ export default function Posts() {
       const data = await adminService.getRecentPosts(250);
       setPosts(data);
     } catch (err: any) {
-      toastError(err?.message || 'Failed to fetch posts');
+      toastError(logAndGetFriendlyError(err, 'Something went wrong while loading posts.', 'Posts:fetch'));
     } finally {
       setLoading(false);
     }
@@ -119,7 +122,7 @@ export default function Posts() {
       setEditingPost(null);
       success('Post updated & audited.');
     } catch (err: any) {
-      toastError(err?.message || 'Update failed');
+      toastError(logAndGetFriendlyError(err, 'Something went wrong while updating the post.', 'Posts:update'));
     } finally {
       setSavingEdit(false);
     }
@@ -132,28 +135,34 @@ export default function Posts() {
       setPosts((prev) => prev.map((p) => (p.id === post.id ? { ...p, [field]: next } : p)));
       success('Editorial flag updated.');
     } catch (err: any) {
-      toastError(err?.message || 'Flag update failed');
+      toastError(logAndGetFriendlyError(err, 'Something went wrong while updating editorial flags.', 'Posts:flag'));
     }
   };
 
   const handleDelete = async (post: any) => {
-    if (!window.confirm(`Permanently delete "${post.title}"? This action is audited.`)) return;
+    const confirmed = await confirm({
+      title: 'Delete Post',
+      message: `Permanently delete "${post.title}"? This action is audited.`,
+      confirmText: 'Delete Post',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     try {
       await adminService.adminDeletePost(post.id);
       setPosts((prev) => prev.filter((p) => p.id !== post.id));
       success('Post permanently deleted.');
     } catch (err: any) {
-      toastError(err?.message || 'Delete failed');
+      toastError(logAndGetFriendlyError(err, 'Something went wrong while deleting the post.', 'Posts:delete'));
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto h-full flex flex-col space-y-6">
+    <div className="max-w-7xl mx-auto h-full flex flex-col gap-6 min-w-0">
       <div className="flex flex-col lg:flex-row gap-4 lg:items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-1 flex items-center gap-3">
-            <FileText className="text-[#D4191F]" />
-            Global Content Management
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 flex items-center gap-3">
+            <FileText className="text-[#D4191F] shrink-0" />
+            <span>Global Content Management</span>
           </h1>
           <p className="text-gray-500 text-sm">
             Moderate, edit SEO/slugs, toggle Breaking/Featured/Editor&apos;s Picks, publish, archive, or remove any story.
@@ -166,7 +175,7 @@ export default function Posts() {
             placeholder="Search title, slug, creator..."
             value={filterSearch}
             onChange={(e) => setFilterSearch(e.target.value)}
-            className="bg-white border border-gray-200 rounded-xl text-sm px-4 py-2 outline-none focus:border-[#D4191F] w-56"
+            className="bg-white border border-gray-200 rounded-xl text-sm px-4 py-2 outline-none focus:border-[#D4191F] w-full sm:w-56"
           />
           <select
             value={filterLang}
@@ -203,7 +212,7 @@ export default function Posts() {
 
       <div className="flex-1 bg-white shadow-sm border border-gray-200 rounded-2xl overflow-hidden flex flex-col">
         <div className="overflow-x-auto flex-1 custom-scrollbar">
-          <table className="w-full text-left">
+          <table className="w-full min-w-[820px] text-left">
             <thead className="sticky top-0 bg-[#FAFBFF] z-10 border-b border-gray-100">
               <tr className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
                 <th className="px-5 py-4">Story</th>

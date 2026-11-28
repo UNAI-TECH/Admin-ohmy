@@ -3,9 +3,12 @@ import { Image as ImageIcon, Film, Search, Trash2, Copy, Loader2 } from 'lucide-
 import { supabase } from '../lib/supabaseClient';
 import { adminService } from '../lib/adminService';
 import { useToast } from '../context/ToastContext';
+import { useConfirmModal } from '../context/ConfirmModalContext';
+import { logAndGetFriendlyError } from '../lib/errorHandler';
 
 export default function MediaLibrary() {
   const { success, error: toastError } = useToast();
+  const { confirm } = useConfirmModal();
   const [assets, setAssets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -17,7 +20,7 @@ export default function MediaLibrary() {
       .select('*, owner:User!owner_id(username, email)')
       .order('created_at', { ascending: false })
       .limit(200);
-    if (error) toastError(error.message);
+    if (error) toastError(logAndGetFriendlyError(error, 'Something went wrong while loading media assets.', 'MediaLibrary:load'));
     setAssets(data || []);
     setLoading(false);
   };
@@ -32,14 +35,20 @@ export default function MediaLibrary() {
       .select('id', { count: 'exact', head: true })
       .or(`thumbnail.eq.${asset.public_url},og_image.eq.${asset.public_url}`);
     if ((count || 0) > 0) {
-      toastError(`Blocked: referenced by ${count} post(s).`);
+      toastError(`Cannot delete: referenced by ${count} post(s).`);
       return;
     }
-    if (!window.confirm(`Delete "${asset.file_name}" permanently?`)) return;
+    const confirmed = await confirm({
+      title: 'Delete Media Asset',
+      message: `Delete "${asset.file_name}" permanently?`,
+      confirmText: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     await supabase.storage.from(asset.bucket).remove([asset.storage_path]);
     const { error } = await supabase.from('media_assets').delete().eq('id', asset.id);
     if (error) {
-      toastError(error.message);
+      toastError(logAndGetFriendlyError(error, 'Something went wrong while deleting this asset.', 'MediaLibrary:delete'));
       return;
     }
     await adminService.writeAudit('media.delete', 'media_assets', asset.id, asset, null).catch(() => {});

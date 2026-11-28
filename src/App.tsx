@@ -3,6 +3,8 @@ import { supabase } from './lib/supabaseClient';
 import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
 import { ToastProvider } from './context/ToastContext';
+import { ConfirmModalProvider } from './context/ConfirmModalContext';
+import { clearMemCache } from './lib/cache';
 import './index.css';
 
 function App() {
@@ -10,33 +12,42 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing session on mount
+    // Check for existing session on mount and refresh if near expiry
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-        // Verify admin role
-        const { data: profile } = await supabase
-          .from('User')
-          .select('role')
-          .eq('id', session.user.id)
-          .maybeSingle();
-
-        if (profile?.role === 'ADMIN') {
-          setIsLoggedIn(true);
-        } else {
-          await supabase.auth.signOut();
+      try {
+        let { data: { session } } = await supabase.auth.getSession();
+        const expiresAtMs = (session?.expires_at || 0) * 1000;
+        if (session?.access_token && expiresAtMs && expiresAtMs <= Date.now() + 60_000) {
+          const { data: refreshed } = await supabase.auth.refreshSession();
+          session = refreshed.session;
         }
+
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from('User')
+            .select('role, account_status')
+            .eq('id', session.user.id)
+            .maybeSingle();
+
+          if (profile?.role === 'ADMIN' && (profile?.account_status || 'active') === 'active') {
+            setIsLoggedIn(true);
+          } else {
+            await supabase.auth.signOut();
+          }
+        }
+      } catch (err) {
+        console.error('[Admin Auth] Session check error:', err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     checkSession();
 
-    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, _session) => {
+      async (event) => {
         if (event === 'SIGNED_OUT') {
+          clearMemCache();
           setIsLoggedIn(false);
           localStorage.removeItem('adminUser');
         }
@@ -48,6 +59,7 @@ function App() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    clearMemCache();
     localStorage.removeItem('adminUser');
     setIsLoggedIn(false);
   };
@@ -63,13 +75,15 @@ function App() {
 
   return (
     <ToastProvider>
-      <div className="app-container">
-        {isLoggedIn ? (
-          <Dashboard onLogout={handleLogout} />
-        ) : (
-          <LoginPage onLogin={(success) => setIsLoggedIn(success)} />
-        )}
-      </div>
+      <ConfirmModalProvider>
+        <div className="app-container">
+          {isLoggedIn ? (
+            <Dashboard onLogout={handleLogout} />
+          ) : (
+            <LoginPage onLogin={(success) => setIsLoggedIn(success)} />
+          )}
+        </div>
+      </ConfirmModalProvider>
     </ToastProvider>
   );
 }

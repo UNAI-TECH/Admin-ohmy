@@ -80,42 +80,42 @@ const Notifications: React.FC = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto h-full flex flex-col">
-      <div className="mb-10">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-          <Bell className="text-[#D4191F]" />
-          Live Notifications
+    <div className="max-w-4xl mx-auto h-full flex flex-col min-w-0">
+      <div className="mb-6 sm:mb-10">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+          <Bell className="text-[#D4191F] shrink-0" />
+          <span>Live Notifications</span>
         </h1>
-        <p className="text-gray-500 opacity-60">Real-time alerts for creator activity and new content publications.</p>
+        <p className="text-sm text-gray-500">Real-time alerts for creator activity and new content publications.</p>
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-4 custom-scrollbar pr-4">
+      <div className="flex-1 overflow-y-auto space-y-4 custom-scrollbar sm:pr-2">
         <AnimatePresence>
           {notifications.length === 0 ? (
-            <p className="text-center text-gray-500 opacity-50 italic py-10">No notifications yet.</p>
+            <p className="text-center text-gray-500 opacity-60 italic py-10">No notifications yet.</p>
           ) : (
             notifications.map((notif) => (
               <motion.div
                 key={notif.id}
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`p-6 rounded-2xl border ${notif.isNew ? 'bg-[#D4191F]/10 border-[#D4191F]/30' : 'bg-white shadow-sm border-gray-200'} backdrop-blur-md flex items-start gap-4 transition-colors`}
+                className={`p-4 sm:p-6 rounded-2xl border ${notif.isNew ? 'bg-[#D4191F]/10 border-[#D4191F]/30' : 'bg-white shadow-sm border-gray-200'} backdrop-blur-md flex items-start gap-3 sm:gap-4 transition-colors`}
               >
-                <div className={`p-3 rounded-xl ${notif.isNew ? 'bg-[#D4191F] text-white' : 'bg-gray-100 text-[#D4191F]'}`}>
+                <div className={`p-2.5 sm:p-3 rounded-xl shrink-0 ${notif.isNew ? 'bg-[#D4191F] text-white' : 'bg-gray-100 text-[#D4191F]'}`}>
                   <FileText size={20} />
                 </div>
-                <div className="flex-1">
-                  <div className="flex justify-between items-start mb-1">
-                    <h3 className="text-gray-900 font-bold text-lg">
-                      {notif.title}
-                      {notif.isNew && <span className="ml-3 text-[10px] bg-[#D4191F] text-white px-2 py-0.5 rounded-full font-bold uppercase">New</span>}
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 mb-1">
+                    <h3 className="text-gray-900 font-bold text-base sm:text-lg flex flex-wrap items-center gap-2">
+                      <span>{notif.title}</span>
+                      {notif.isNew && <span className="text-[10px] bg-[#D4191F] text-white px-2 py-0.5 rounded-full font-bold uppercase">New</span>}
                     </h3>
-                    <div className="flex items-center gap-1 text-xs text-gray-500 opacity-50">
+                    <div className="flex items-center gap-1 text-xs text-gray-500 shrink-0">
                       <Clock size={12} />
                       {new Date(notif.date).toLocaleString()}
                     </div>
                   </div>
-                  <p className="text-gray-500 opacity-80 mb-3">{notif.message}</p>
+                  <p className="text-gray-600 text-sm mb-3 break-words">{notif.message}</p>
                   <span className="text-[10px] font-bold px-3 py-1 rounded-full bg-gray-100 text-gray-500/60 uppercase tracking-wider border border-white/5">
                     {notif.type}
                   </span>

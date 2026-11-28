@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '../../context/ToastContext';
+import { logAndGetFriendlyError } from '../../lib/errorHandler';
 
 export default function ActiveAds() {
   const [ads, setAds] = useState<any[]>([]);
@@ -62,7 +63,7 @@ export default function ActiveAds() {
       setAds(prev => prev.filter(c => c.id !== campaignToDelete.id));
       success('Campaign deleted successfully');
     } catch (err: any) {
-      toastError(err.message || 'Failed to delete campaign');
+      toastError(logAndGetFriendlyError(err, 'Something went wrong while deleting the campaign.', 'Ads:deleteActive'));
     } finally {
       setShowDeleteModal(false);
       setCampaignToDelete(null);

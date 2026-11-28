@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { adminService } from '../lib/adminService';
 import { supabase } from '../lib/supabaseClient';
 import { useToast } from '../context/ToastContext';
+import { useConfirmModal } from '../context/ConfirmModalContext';
+import { logAndGetFriendlyError } from '../lib/errorHandler';
 import {
   Users,
   Loader2,
@@ -14,12 +16,13 @@ import {
   Search,
   Copy,
   Check,
-  ExternalLink,
+  KeyRound,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Creators: React.FC = () => {
   const { success: toastSuccess, error: toastError } = useToast();
+  const { prompt } = useConfirmModal();
   const [creators, setCreators] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'active' | 'suspended'>('ALL');
@@ -31,8 +34,9 @@ const Creators: React.FC = () => {
   const [postsLoading, setPostsLoading] = useState(false);
 
   const [actionBusyId, setActionBusyId] = useState<string | null>(null);
-  const [resetLinkModal, setResetLinkModal] = useState<{ email: string; actionLink: string } | null>(null);
-  const [copiedLink, setCopiedLink] = useState(false);
+  const [otpModal, setOtpModal] = useState<{ email: string; oneTimePassword: string } | null>(null);
+  const [copiedOtp, setCopiedOtp] = useState(false);
+  const [sendingOtpEmail, setSendingOtpEmail] = useState(false);
 
   useEffect(() => {
     fetchCreators();
@@ -44,7 +48,7 @@ const Creators: React.FC = () => {
       const data = await adminService.getAllCreators();
       setCreators(data);
     } catch (err: any) {
-      toastError(err?.message || 'Failed to load creators');
+      toastError(logAndGetFriendlyError(err, 'Something went wrong while loading creators.', 'Creators:fetch'));
     } finally {
       setLoading(false);
     }
@@ -74,13 +78,13 @@ const Creators: React.FC = () => {
       setCreatorPosts(posts || []);
       setFollowerCount(followers || 0);
     } catch (err: any) {
-      toastError(err?.message || 'Failed to load creator portfolio');
+      toastError(logAndGetFriendlyError(err, 'Something went wrong while loading this creator profile.', 'Creators:portfolio'));
     } finally {
       setPostsLoading(false);
     }
   };
 
-  const handleSendPasswordReset = async (creator: any, e: React.MouseEvent) => {
+  const handleIssueCreatorOtp = async (creator: any, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!creator.email) {
       toastError('This account has no email address configured.');
@@ -88,20 +92,11 @@ const Creators: React.FC = () => {
     }
     setActionBusyId(creator.id);
     try {
-      const res = await adminService.sendPasswordReset(creator.email);
-      if (res?.actionLink) {
-        try {
-          await adminService.sendCreatorInviteEmail(creator.email, res.actionLink, 'recovery');
-          toastSuccess(`Password reset link sent to ${creator.email}`);
-        } catch {
-          setResetLinkModal({ email: creator.email, actionLink: res.actionLink });
-          toastSuccess('Recovery link generated (copy and share securely if email relay is unconfigured).');
-        }
-      } else {
-        toastSuccess('Password reset initiated.');
-      }
+      const res = await adminService.issueCreatorOtp(creator.email);
+      setOtpModal({ email: creator.email, oneTimePassword: res.oneTimePassword });
+      toastSuccess('One-Time Password generated.');
     } catch (err: any) {
-      toastError(err?.message || 'Failed to generate password reset link');
+      toastError(logAndGetFriendlyError(err, 'Something went wrong while generating a One-Time Password.', 'Creators:otp'));
     } finally {
       setActionBusyId(null);
     }
@@ -112,7 +107,15 @@ const Creators: React.FC = () => {
     const isCurrentlyActive = (creator.account_status || 'active') === 'active';
     const nextStatus = isCurrentlyActive ? 'suspended' : 'active';
     const reason = isCurrentlyActive
-      ? window.prompt(`Reason for suspending ${creator.channel_name || creator.username}?`, 'Policy review')
+      ? await prompt({
+          title: 'Suspend Creator Account',
+          message: `Provide a reason for suspending ${creator.channel_name || creator.username}.`,
+          confirmText: 'Suspend',
+          variant: 'danger',
+          inputLabel: 'Reason',
+          inputPlaceholder: 'Policy review',
+          defaultInputValue: 'Policy review',
+        })
       : 'Reactivated by administrator';
 
     if (isCurrentlyActive && reason === null) return;
@@ -128,7 +131,7 @@ const Creators: React.FC = () => {
       }
       toastSuccess(`Creator account ${nextStatus === 'active' ? 'reactivated' : 'suspended'}.`);
     } catch (err: any) {
-      toastError(err?.message || 'Failed to update creator status');
+      toastError(logAndGetFriendlyError(err, 'Something went wrong while updating creator status.', 'Creators:status'));
     } finally {
       setActionBusyId(null);
     }
@@ -148,11 +151,29 @@ const Creators: React.FC = () => {
     });
   }, [creators, statusFilter, searchQuery]);
 
-  const copyResetLink = () => {
-    if (!resetLinkModal?.actionLink) return;
-    navigator.clipboard.writeText(resetLinkModal.actionLink);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
+  const copyOtp = () => {
+    if (!otpModal?.oneTimePassword) return;
+    navigator.clipboard.writeText(otpModal.oneTimePassword);
+    setCopiedOtp(true);
+    setTimeout(() => setCopiedOtp(false), 2000);
+  };
+
+  const sendOtpByEmail = async () => {
+    if (!otpModal) return;
+    setSendingOtpEmail(true);
+    try {
+      const res = await adminService.sendCreatorOtpEmail(otpModal.email, otpModal.oneTimePassword, 'otp_reset');
+      if (res?.sent === false) {
+        toastError(res?.message || 'Email relay is unconfigured. Copy and share the One-Time Password directly.');
+      } else {
+        toastSuccess(`One-Time Password emailed to ${otpModal.email}`);
+        setOtpModal(null);
+      }
+    } catch (err: any) {
+      toastError(logAndGetFriendlyError(err, 'Something went wrong while emailing the One-Time Password.', 'Creators:emailOtp'));
+    } finally {
+      setSendingOtpEmail(false);
+    }
   };
 
   return (
@@ -268,15 +289,15 @@ const Creators: React.FC = () => {
                       {creator.bio || 'No bio provided.'}
                     </p>
 
-                    <div className="border-t border-gray-100 pt-4 mt-auto flex gap-2" onClick={(e) => e.stopPropagation()}>
+                    <div className="border-t border-gray-100 pt-4 mt-auto flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
                       <button
-                        onClick={(e) => handleSendPasswordReset(creator, e)}
+                        onClick={(e) => handleIssueCreatorOtp(creator, e)}
                         disabled={isBusy}
-                        className="flex-1 py-2.5 px-3 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl text-gray-800 font-bold text-xs transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
-                        title="Send one-time password recovery link"
+                        className="flex-1 min-w-[110px] py-2.5 px-3 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl text-gray-800 font-bold text-xs transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                        title="Generate One-Time Password for Creator Studio"
                       >
-                        {isBusy ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
-                        Reset Link
+                        {isBusy ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />}
+                        Issue OTP
                       </button>
                       <button
                         onClick={(e) => handleToggleAccountStatus(creator, e)}
@@ -370,12 +391,12 @@ const Creators: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <button
-                        onClick={(e) => handleSendPasswordReset(selectedCreator, e)}
-                        className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl text-xs font-bold text-gray-900 flex items-center justify-center gap-1.5"
+                        onClick={(e) => handleIssueCreatorOtp(selectedCreator, e)}
+                        className="flex-1 min-w-[140px] py-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl text-xs font-bold text-gray-900 flex items-center justify-center gap-1.5"
                       >
-                        <Mail size={14} /> Send Reset Link
+                        <KeyRound size={14} /> Issue One-Time Password
                       </button>
                       <button
                         onClick={(e) => handleToggleAccountStatus(selectedCreator, e)}
@@ -452,39 +473,49 @@ const Creators: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* One-time Reset Link Fallback Modal */}
+      {/* One-Time Password Modal */}
       <AnimatePresence>
-        {resetLinkModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-            <div className="bg-white rounded-2xl w-full max-w-md p-6 border border-gray-200 shadow-2xl">
-              <div className="flex items-center justify-between mb-3">
+        {otpModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6">
+            <div className="bg-white rounded-2xl w-full max-w-md p-6 border border-gray-200 shadow-2xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-3 gap-2">
                 <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                  <ExternalLink size={18} className="text-[#D4191F]" />
-                  One-Time Recovery Link
+                  <KeyRound size={18} className="text-[#D4191F]" />
+                  Creator One-Time Password
                 </h3>
-                <button onClick={() => setResetLinkModal(null)} className="text-gray-400 hover:text-gray-700">
+                <button onClick={() => setOtpModal(null)} className="text-gray-400 hover:text-gray-700">
                   <XCircle size={22} />
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mb-4">
-                Generated for <strong>{resetLinkModal.email}</strong>. Share securely — this link lets the creator set a new password directly.
+              <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+                Generated for <strong>{otpModal.email}</strong>. The creator must verify this one-time password at Creator Studio login and set a new personal password.
               </p>
               <div className="bg-gray-100 border border-gray-200 rounded-xl p-3 flex items-center gap-2 mb-4">
-                <p className="text-xs font-mono text-gray-700 truncate flex-1">{resetLinkModal.actionLink}</p>
+                <p className="text-base font-mono font-bold tracking-wider text-gray-900 truncate flex-1">{otpModal.oneTimePassword}</p>
                 <button
-                  onClick={copyResetLink}
-                  className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold flex items-center gap-1"
+                  onClick={copyOtp}
+                  className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold flex items-center gap-1 shrink-0"
                 >
-                  {copiedLink ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
-                  {copiedLink ? 'Copied' : 'Copy'}
+                  {copiedOtp ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+                  {copiedOtp ? 'Copied' : 'Copy'}
                 </button>
               </div>
-              <button
-                onClick={() => setResetLinkModal(null)}
-                className="w-full py-2.5 bg-gray-900 text-white rounded-xl font-bold text-sm"
-              >
-                Done
-              </button>
+              <div className="flex flex-col sm:flex-row gap-2.5">
+                <button
+                  onClick={() => setOtpModal(null)}
+                  className="flex-1 py-2.5 bg-gray-100 text-gray-900 rounded-xl font-bold text-sm hover:bg-gray-200"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={sendOtpByEmail}
+                  disabled={sendingOtpEmail}
+                  className="flex-1 py-2.5 bg-[#D4191F] text-white rounded-xl font-bold text-sm hover:bg-red-700 flex items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  {sendingOtpEmail ? <Loader2 size={15} className="animate-spin" /> : <Mail size={15} />}
+                  Email OTP
+                </button>
+              </div>
             </div>
           </div>
         )}

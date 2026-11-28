@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Loader2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { AuthIllustration } from '../components/AuthIllustrations';
+import { logAndGetFriendlyError } from '../lib/errorHandler';
 
 interface Props {
   onLogin: (success: boolean) => void;
@@ -27,7 +28,7 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
       });
 
       if (authError) {
-        setError(authError.message);
+        setError(logAndGetFriendlyError(authError, 'Unable to sign in. Please check your credentials.', 'AdminLogin:auth'));
         return;
       }
 

@@ -3,6 +3,8 @@ import { Tag, Plus, Trash2, GitMerge, Loader2, Pencil, Check, X, Flame } from 'l
 import { supabase } from '../lib/supabaseClient';
 import { adminService } from '../lib/adminService';
 import { useToast } from '../context/ToastContext';
+import { useConfirmModal } from '../context/ConfirmModalContext';
+import { logAndGetFriendlyError } from '../lib/errorHandler';
 
 const slugify = (s: string) =>
   s
@@ -15,6 +17,7 @@ const slugify = (s: string) =>
 
 export default function Tags() {
   const { success, error: toastError } = useToast();
+  const { confirm } = useConfirmModal();
   const [tags, setTags] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [nameEn, setNameEn] = useState('');
@@ -45,7 +48,7 @@ export default function Tags() {
       error = fb.error;
     }
 
-    if (error) toastError(error.message);
+    if (error) toastError(logAndGetFriendlyError(error, 'Something went wrong while loading tags.', 'Tags:load'));
     setTags(data || []);
     setLoading(false);
   };
@@ -96,7 +99,7 @@ export default function Tags() {
       success('Tag created and synced.');
       load(true);
     } catch (e: any) {
-      toastError(e?.message || 'Failed to create tag');
+      toastError(logAndGetFriendlyError(e, 'Something went wrong while creating the tag.', 'Tags:create'));
     }
   };
 
@@ -131,7 +134,7 @@ export default function Tags() {
       success('Tag updated in realtime.');
       load(true);
     } catch (e: any) {
-      toastError(e?.message || 'Failed to update tag');
+      toastError(logAndGetFriendlyError(e, 'Something went wrong while updating the tag.', 'Tags:update'));
     } finally {
       setSavingId(null);
     }
@@ -149,7 +152,7 @@ export default function Tags() {
       success(nextPopular ? `#${t.name_en} added to Popular Tags.` : `#${t.name_en} hidden from Popular Tags.`);
       load(true);
     } catch (e: any) {
-      toastError(e?.message || 'Failed to toggle Popular status (run migration 008 if missing column).');
+      toastError(logAndGetFriendlyError(e, 'Something went wrong while updating Popular tag visibility.', 'Tags:popular'));
     } finally {
       setSavingId(null);
     }
@@ -160,7 +163,13 @@ export default function Tags() {
       toastError('Select two different tags to merge.');
       return;
     }
-    if (!window.confirm('Reassign all articles from source tag to target tag and delete source?')) return;
+    const confirmed = await confirm({
+      title: 'Merge Tags',
+      message: 'Reassign all articles from the source tag to the target tag and delete the source tag?',
+      confirmText: 'Merge Tags',
+      variant: 'primary',
+    });
+    if (!confirmed) return;
     try {
       const { data: rows } = await supabase.from('post_tags').select('post_id').eq('tag_id', mergeSourceId);
       if (rows && rows.length > 0) {
@@ -175,14 +184,20 @@ export default function Tags() {
       success('Tags merged cleanly.');
       load(true);
     } catch (e: any) {
-      toastError(e?.message || 'Merge failed');
+      toastError(logAndGetFriendlyError(e, 'Something went wrong while merging tags.', 'Tags:merge'));
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete tag permanently?')) return;
+    const confirmed = await confirm({
+      title: 'Delete Tag',
+      message: 'Delete this tag permanently?',
+      confirmText: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     const { error } = await supabase.from('tags').delete().eq('id', id);
-    if (error) toastError(error.message);
+    if (error) toastError(logAndGetFriendlyError(error, 'Something went wrong while deleting the tag.', 'Tags:delete'));
     else {
       success('Tag deleted.');
       load(true);
@@ -190,23 +205,23 @@ export default function Tags() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto flex flex-col gap-6 min-w-0">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-          <Tag className="text-[#D4191F]" />
-          Tags &amp; Popular Tags Manager
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-3 flex-wrap">
+          <Tag className="text-[#D4191F] shrink-0" />
+          <span>Tags &amp; Popular Tags Manager</span>
         </h1>
         <p className="text-gray-500 text-sm mt-1">
           Add, edit, reorder, or remove Popular Tags shown below the public website navbar in real time.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <form onSubmit={handleCreate} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-4">
+      <div className="flex flex-col lg:flex-row gap-6">
+        <form onSubmit={handleCreate} className="w-full lg:flex-1 bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
           <h2 className="font-bold text-gray-900">Create / Add Popular Tag</h2>
-          <div className="grid grid-cols-2 gap-3">
-            <input required value={nameEn} onChange={(e) => setNameEn(e.target.value)} placeholder="English label (e.g. Budget2026)" className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm" />
-            <input value={nameTa} onChange={(e) => setNameTa(e.target.value)} placeholder="Tamil label (தமிழ்)" className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm" />
+          <div className="flex flex-col sm:flex-row gap-3">
+            <input required value={nameEn} onChange={(e) => setNameEn(e.target.value)} placeholder="English label (e.g. Budget2026)" className="flex-1 min-w-0 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm" />
+            <input value={nameTa} onChange={(e) => setNameTa(e.target.value)} placeholder="Tamil label (தமிழ்)" className="flex-1 min-w-0 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm" />
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 cursor-pointer">

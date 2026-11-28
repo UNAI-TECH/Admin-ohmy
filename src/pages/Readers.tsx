@@ -2,9 +2,12 @@ import { useEffect, useState, useMemo } from 'react';
 import { Users, Search, Loader2, ShieldAlert, ShieldCheck, Trash2 } from 'lucide-react';
 import { adminService } from '../lib/adminService';
 import { useToast } from '../context/ToastContext';
+import { useConfirmModal } from '../context/ConfirmModalContext';
+import { logAndGetFriendlyError } from '../lib/errorHandler';
 
 export default function Readers() {
   const { success, error: toastError } = useToast();
+  const { confirm, prompt } = useConfirmModal();
   const [readers, setReaders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -17,7 +20,7 @@ export default function Readers() {
       const data = await adminService.getAllReaders();
       setReaders(data);
     } catch (e: any) {
-      toastError(e?.message || 'Failed to load readers');
+      toastError(logAndGetFriendlyError(e, 'Something went wrong while loading readers.', 'Readers:fetch'));
     } finally {
       setLoading(false);
     }
@@ -32,7 +35,15 @@ export default function Readers() {
     const next = curr === 'active' ? 'suspended' : 'active';
     const reason =
       curr === 'active'
-        ? window.prompt(`Reason for suspending @${reader.username}?`, 'Community guidelines violation')
+        ? await prompt({
+            title: 'Suspend Reader Account',
+            message: `Provide a reason for suspending @${reader.username || 'reader'}.`,
+            confirmText: 'Suspend',
+            variant: 'danger',
+            inputLabel: 'Reason',
+            inputPlaceholder: 'Community guidelines violation',
+            defaultInputValue: 'Community guidelines violation',
+          })
         : 'Reactivated by administrator';
     if (curr === 'active' && reason === null) return;
 
@@ -42,21 +53,27 @@ export default function Readers() {
       setReaders((prev) => prev.map((r) => (r.id === reader.id ? { ...r, account_status: next } : r)));
       success(`Reader account ${next === 'active' ? 'reactivated' : 'suspended'}.`);
     } catch (e: any) {
-      toastError(e?.message || 'Status update failed');
+      toastError(logAndGetFriendlyError(e, 'Something went wrong while updating reader status.', 'Readers:status'));
     } finally {
       setBusyId(null);
     }
   };
 
   const handleDelete = async (reader: any) => {
-    if (!window.confirm(`Permanently deactivate & anonymize reader "${reader.email}"?`)) return;
+    const confirmed = await confirm({
+      title: 'Delete Reader Account',
+      message: `Permanently deactivate & anonymize reader "${reader.email}"?`,
+      confirmText: 'Delete Account',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     setBusyId(reader.id);
     try {
       await adminService.deleteUserAccount(reader.id);
       setReaders((prev) => prev.filter((r) => r.id !== reader.id));
       success('Reader account deactivated and anonymized.');
     } catch (e: any) {
-      toastError(e?.message || 'Delete failed');
+      toastError(logAndGetFriendlyError(e, 'Something went wrong while deleting this account.', 'Readers:delete'));
     } finally {
       setBusyId(null);
     }
@@ -125,7 +142,7 @@ export default function Readers() {
           <div className="py-16 text-center text-sm text-gray-500">No reader accounts match your filter.</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left">
+            <table className="w-full min-w-[680px] text-left">
               <thead className="bg-[#FAFBFF] border-b border-gray-100 text-[10px] font-bold uppercase tracking-wider text-gray-500">
                 <tr>
                   <th className="px-6 py-4">Reader</th>

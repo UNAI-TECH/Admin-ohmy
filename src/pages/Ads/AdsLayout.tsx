@@ -15,21 +15,21 @@ const AdsLayout: React.FC<Props> = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState('Overview');
 
   return (
-    <div className="flex h-full bg-[#F5F5F7]">
+    <div className="flex flex-col md:flex-row h-full bg-[#F5F5F7] min-w-0">
       {/* Ads Manager Sidebar */}
-      <aside className="w-64 bg-white border-r border-[#E5E7EB] flex flex-col pt-6">
-        <div className="px-6 mb-6">
+      <aside className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-[#E5E7EB] flex flex-col pt-4 md:pt-6 shrink-0">
+        <div className="px-4 sm:px-6 mb-3 md:mb-6">
           <button 
             onClick={onBack}
-            className="flex items-center gap-2 text-xs font-bold text-[#6B7280] hover:text-[#D4191F] transition-colors uppercase tracking-widest mb-6"
+            className="flex items-center gap-2 text-xs font-bold text-[#6B7280] hover:text-[#D4191F] transition-colors uppercase tracking-widest mb-3 md:mb-6"
           >
             <ChevronLeft size={14} /> Back to PostsApp Admin
           </button>
-          <h2 className="text-xl font-black text-[#111827] tracking-tight leading-tight">Ads Manager</h2>
+          <h2 className="text-lg sm:text-xl font-black text-[#111827] tracking-tight leading-tight">Ads Manager</h2>
           <p className="text-[10px] font-bold text-[#D4191F] uppercase tracking-[0.2em]">Campaign Hub</p>
         </div>
 
-        <nav className="flex-1 space-y-1 px-4">
+        <nav className="flex md:flex-col gap-1 px-3 sm:px-4 pb-3 md:pb-4 overflow-x-auto md:overflow-visible">
           <AdsNavItem icon={<LayoutDashboard size={18} />} label="Overview" active={activeTab === 'Overview'} onClick={() => setActiveTab('Overview')} />
           <AdsNavItem icon={<PlusCircle size={18} />} label="Create Ad" active={activeTab === 'Create Ad'} onClick={() => setActiveTab('Create Ad')} />
           <AdsNavItem icon={<BarChart2 size={18} />} label="Insights" active={activeTab === 'Insights'} onClick={() => setActiveTab('Insights')} />
@@ -40,7 +40,7 @@ const AdsLayout: React.FC<Props> = ({ onBack }) => {
       </aside>
 
       {/* Ads Main Content */}
-      <main className="flex-1 overflow-y-auto custom-scrollbar p-10 relative">
+      <main className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 lg:p-10 relative min-w-0">
         {activeTab === 'Overview' && <AdsOverview />}
         {activeTab === 'Create Ad' && <CreateAd onAdCreated={() => setActiveTab('Active Ads')} />}
         {activeTab === 'Insights' && <AdsInsights />}
@@ -55,13 +55,13 @@ const AdsLayout: React.FC<Props> = ({ onBack }) => {
 const AdsNavItem = ({ icon, label, active = false, onClick }: { icon: any, label: string, active?: boolean, onClick?: () => void }) => (
   <button 
     onClick={onClick}
-    className={`flex items-center gap-4 w-full p-3 rounded-xl transition-all font-semibold text-sm ${
+    className={`flex items-center gap-3 md:w-full px-3.5 py-2.5 md:p-3 rounded-xl transition-all font-semibold text-xs sm:text-sm whitespace-nowrap shrink-0 ${
       active 
       ? 'bg-white text-gray-900 border shadow-sm border-gray-200' 
-      : 'text-gray-500/60 hover:text-gray-900 hover:bg-gray-100'
+      : 'text-gray-500/80 hover:text-gray-900 hover:bg-gray-100'
     }`}>
     {icon}
-    {label}
+    <span>{label}</span>
   </button>
 );
 
