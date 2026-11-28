@@ -18,18 +18,16 @@ const DEFAULT_SECTIONS: Record<'en' | 'ta', HomepageSection[]> = {
     { key: 'hero', title: 'Main News & Picks', visible: true, limit: 8, order: 2 },
     { key: 'featured', title: 'Featured Stories', visible: true, limit: 4, order: 3 },
     { key: 'latest', title: 'Latest News', visible: true, limit: 10, order: 4 },
-    { key: 'trending', title: 'Trending Now', visible: true, limit: 6, order: 5 },
-    { key: 'most_read', title: 'Most Read', visible: true, limit: 6, order: 6 },
-    { key: 'videos', title: 'Video Reports', visible: true, limit: 6, order: 7 },
+    { key: 'trending', title: 'Trending Now', visible: true, limit: 8, order: 5 },
+    { key: 'most_read', title: 'Most Read', visible: true, limit: 8, order: 6 },
   ],
   ta: [
     { key: 'breaking', title: 'முக்கிய செய்திகள்', visible: true, limit: 5, order: 1 },
     { key: 'hero', title: 'பிரதான செய்திகள்', visible: true, limit: 8, order: 2 },
     { key: 'featured', title: 'சிறப்புக் கட்டுரைகள்', visible: true, limit: 4, order: 3 },
     { key: 'latest', title: 'அண்மைச் செய்திகள்', visible: true, limit: 10, order: 4 },
-    { key: 'trending', title: 'டிரெண்டிங்', visible: true, limit: 6, order: 5 },
-    { key: 'most_read', title: 'அதிகம் வாசிக்கப்பட்டவை', visible: true, limit: 6, order: 6 },
-    { key: 'videos', title: 'காணொளிச் செய்திகள்', visible: true, limit: 6, order: 7 },
+    { key: 'trending', title: 'டிரெண்டிங்', visible: true, limit: 8, order: 5 },
+    { key: 'most_read', title: 'அதிகம் வாசிக்கப்பட்டவை', visible: true, limit: 8, order: 6 },
   ],
 };
 
