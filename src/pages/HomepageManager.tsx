@@ -72,6 +72,27 @@ export default function HomepageManager() {
 
   useEffect(() => {
     load();
+
+    const channel = supabase
+      .channel(`admin-homepage-manager-${lang}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'homepage_config', filter: `language=eq.${lang}` },
+        (payload) => {
+          const next = (payload?.new as any)?.sections;
+          if (Array.isArray(next) && next.length > 0) {
+            setSections([...next].sort((a: any, b: any) => (a.order || 0) - (b.order || 0)));
+          }
+        }
+      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'Post' }, () => {
+        load();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [lang]);
 
   const persistSections = async (nextSections: HomepageSection[], msg?: string) => {
